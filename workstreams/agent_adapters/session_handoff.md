@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 2/5 done on `main` at `7fad3a9`, as of 2026-11-02.
+**State:** 3/5 done on `main` at `2fabaef`, as of 2026-11-02.
 
-**Just landed:** AA-02 (`7fad3a9992`)
+**Just landed:** AA-03 (`2fabaefeb4`)
 
-**Next:** `ws claim --commit AA-03` (phase 1).
+**Next:** `ws claim --commit AA-04` (phase 1).
 
 **Gotchas:**
-- AA-02: Always-on is at 148 of 150 on both agents, so any new always-loaded text has to displace something.
+- AA-03: Neither agent's real hook has been exercised yet: these are payloads built from each agent's docs. AA-05 is the first real test. The hook sees file tools only, so a shell redirect gets past it and is caught later by `ws settle`.

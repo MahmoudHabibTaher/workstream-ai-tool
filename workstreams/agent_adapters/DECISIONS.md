@@ -17,3 +17,7 @@ It could be someone's own skill with the same name, so it gets the same refusal 
 ## D003 (2026-11-02, AA-02): skill descriptions were shortened, and the audit counts the block markers and the worker's description
 
 All three load in every session, and counting them took always-on past 150. Each description lost a few words. Rejected: raising the limit, since the limit is the point. Whether the shorter descriptions still trigger is for AA-05 to show. **Closed.**
+
+## D004 (2026-11-02, AA-03): `ws hook` wraps argument errors too
+
+argparse exits 2 on bad arguments, and exit 2 is what blocks on one agent, so a version skew would stop every edit. Rejected: leaving it, since a missing flag isn't a reason to stop someone's work. **Closed.**
