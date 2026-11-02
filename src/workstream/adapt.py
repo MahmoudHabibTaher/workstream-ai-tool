@@ -130,6 +130,11 @@ def merged_permissions(data: dict, allow: list[str]) -> dict:
                                     "allow": existing + [a for a in allow if a not in existing]}}
 
 
+def merged_env(data: dict, env: dict[str, str]) -> dict:
+    """These variables added to the settings, in place. A value already there is the user's."""
+    return {**data, "env": {**env, **(data.get("env") or {})}} if env else data
+
+
 def _hook_entry(adapter: Adapter) -> dict:
     hook = adapter.raw["hook"]
     return {"matcher": hook["matcher"],
@@ -186,6 +191,8 @@ def _settings_current(project: Project, adapter: Adapter, hook: bool) -> bool:
     data = read_settings(project.root / settings["path"])
     allowed = (data.get("permissions") or {}).get("allow") or []
     if not all(rule in allowed for rule in settings.get("allow", [])):
+        return False
+    if not all(key in (data.get("env") or {}) for key in settings.get("env", {})):
         return False
     return not (hook and _merges_hook(adapter)) or _has_hook(data, adapter)
 
@@ -310,7 +317,7 @@ def adapt(project: Project, name: str, *, force: bool = False, hook: bool | None
     if settings:
         path = project.root / settings["path"]
         before = read_settings(path)
-        after = merged_permissions(before, settings.get("allow", []))
+        after = merged_env(merged_permissions(before, settings.get("allow", [])), settings.get("env", {}))
         if _merges_hook(adapter):
             after = merged_hook(after, adapter) if hook else without_hook(after, adapter)
         if after == before and path.exists():

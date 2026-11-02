@@ -5,6 +5,8 @@ Version 1. `ws protocol <section>` prints one section, so nobody loads the rest.
 ## worker
 
 - Do this task only, then stop. Other work you find goes under Gotchas.
+- Ending your turn ends you: nobody resumes you, and whatever you left running dies with you. Don't end it until you have reported.
+- Search before you read, then read only the lines you need. Whatever you read stays in your context for every later call.
 - Create and change files with your edit tools, and give the shell one command per call: a background worker can't ask permission for anything else. A denied call isn't a block until you've tried it that way.
 - Write code, docs and your own evidence file. Every other file in a workstream folder, and the registry, belongs to the coordinator.
 - Check each acceptance item for real and quote what you saw. "Done" isn't proof.
@@ -60,7 +62,7 @@ Required: `id` (`<PREFIX>-01`), `phase`, `priority` (10, 20, 30; the real order)
 | `summary` | What the task requires |
 | `findings` | Plan sections to read: `T1`, `D-API` |
 | `files` | Expected paths, folders or globs. Touching others warns |
-| `docs` | Paths to read first; each must exist |
+| `docs` | Paths that bear on the task; each must exist |
 | `acceptance` | Observable facts: a named test, a command and its output. `{"text": "...", "kind": "manual"}` for a person's check |
 | `verify` | Keys from `[commands]`, or a raw command. Must run what the task produces |
 | `blockedBy` | Task ids. Tasks sharing files must be chained |
