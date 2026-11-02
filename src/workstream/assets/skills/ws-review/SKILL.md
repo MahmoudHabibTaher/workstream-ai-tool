@@ -1,6 +1,6 @@
 ---
 name: ws-review
-description: Review one workstream task against its acceptance items, evidence and diff, without changing anything.
+description: Review one workstream task against its acceptance items, evidence and diff; changes nothing.
 ---
 
 # Review a task

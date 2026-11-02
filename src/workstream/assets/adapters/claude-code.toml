@@ -2,3 +2,27 @@ name = "claude-code"
 label = "Claude Code"
 instructions = "CLAUDE.md"
 skill = ".claude/skills/{name}/SKILL.md"
+
+[worker]
+path = ".claude/agents/ws-worker.md"
+name = "ws-worker"
+description = "One workstream task: runs `ws brief`, follows it."
+# The whole list, so a worker can't start workers of its own.
+frontmatter = "tools: Read, Edit, Write, Bash, Grep, Glob"
+
+[notes]
+ws-plan = "Do steps 1 to 5 in plan mode, and ask with the question tool. The plan file you write there is what `ws seed --from-plan` reads."
+ws-run = "Start each worker with the Agent tool: `subagent_type: \"{worker}\"`, in the background, with no `isolation` setting. `ws worktree create` already made a worktree from the claim commit, and built-in isolation would start from the default branch. Run this skill from the main session, and you are notified as each finishes."
+
+[settings]
+path = ".claude/settings.json"
+# What a background worker needs without stopping to ask. Never a push.
+allow = ["Bash(ws *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git switch *)"]
+
+[plugin]
+name = "workstream"
+description = "Run large bodies of work as a task graph in your repo."
+manifest = ".claude-plugin/plugin.json"
+skill = "skills/{name}/SKILL.md"
+worker = "agents/ws-worker.md"
+worker_name = "workstream:ws-worker"
