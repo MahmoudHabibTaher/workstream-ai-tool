@@ -168,6 +168,21 @@ class WorkerTests(AdaptCase):
             self.assertIn("`ws brief`", text.split("---")[2])
             self.assertIn("name: ws-worker\n", text)
 
+    def test_every_generated_frontmatter_is_plain_yaml(self) -> None:
+        """A `: ` in an unquoted value is invalid YAML. Claude Code let it through, and Copilot
+        silently dropped three skills and the worker."""
+        self.ok("adapt", CLAUDE)
+        self.ok("adapt", COPILOT)
+        found = [*self.root.glob(".claude/**/*.md"), *self.root.glob(".github/**/*.md")]
+        self.assertGreaterEqual(len(found), 10)
+        for path in found:
+            if not path.read_text().startswith("---\n"):
+                continue
+            for line in path.read_text().split("---")[1].strip().splitlines():
+                _, _, value = line.partition(": ")
+                self.assertNotIn(": ", value, f"{path}: {line}")
+                self.assertNotRegex(value, r"^[*&!|>%@`]|\s#", f"{path}: {line}")
+
     def test_a_copilot_worker_keeps_the_projects_rules(self) -> None:
         self.ok("adapt", COPILOT)
         self.assertIn("include-custom-instructions: true",

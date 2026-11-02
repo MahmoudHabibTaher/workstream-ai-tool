@@ -13,5 +13,5 @@ test-real: ## Also adopt small real projects with the toolchains installed here
 audit: ## Check every role's context against its limit
 	PYTHONPATH=src python3 -B -m workstream audit context
 
-eval: ## Run real agents against a sample repo: make eval AGENT=<agent> [SCENARIOS=a,b] [CAP=n] [ACCOUNT=login]
-	PYTHONPATH=src python3 -B -m evals.harness --agent $(AGENT) $(if $(SCENARIOS),--scenarios $(SCENARIOS)) $(if $(CAP),--cap $(CAP)) $(if $(ACCOUNT),--account $(ACCOUNT)) $(if $(KEEP),--keep $(KEEP))
+eval: ## Run real agents against a sample repo: make eval AGENT=<agent> [SCENARIOS=a,b] [CAP=n] [MODEL=m] [ACCOUNT=login]
+	PYTHONPATH=src python3 -B -m evals.harness --agent $(AGENT) $(if $(SCENARIOS),--scenarios $(SCENARIOS)) $(if $(CAP),--cap $(CAP)) $(if $(MODEL),--model $(MODEL)) $(if $(ACCOUNT),--account $(ACCOUNT)) $(if $(KEEP),--keep $(KEEP))

@@ -119,10 +119,11 @@ class UpdateTests(WsTestCase):
         self.assertEqual(self.by_id("X-01")["startedAt"], "2026-01-01T00:00:00Z")
 
     def test_done_stamps_completed_at_and_records_commit_and_notes(self) -> None:
-        code, _, err = self.update("--status", "done", "--commit", "abc1234", "--notes", "landed")
+        head = self.git("rev-parse", "HEAD").strip()
+        code, _, err = self.update("--status", "done", "--commit", head, "--notes", "landed")
         self.assertEqual(code, 0, err)
         t = self.by_id("X-01")
-        self.assertEqual((t["status"], t["commit"], t["notes"]), ("done", "abc1234", "landed"))
+        self.assertEqual((t["status"], t["commit"], t["notes"]), ("done", head, "landed"))
         self.assertRegex(t["completedAt"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
 
     def test_rejects_a_status_outside_the_status_values(self) -> None:
@@ -162,12 +163,13 @@ class DoneNeedsCommitTests(WsTestCase):
         self.assertEqual((self.ws_dir / "alpha" / "tasks_list.json").read_text(), before)
 
     def test_done_with_a_commit_succeeds(self) -> None:
-        self.ok("update", "-w", "alpha", "X-01", "--status", "done", "--commit", "abc1234")
+        head = self.git("rev-parse", "HEAD").strip()
+        self.ok("update", "-w", "alpha", "X-01", "--status", "done", "--commit", head)
         t = self.by_id("X-01")
-        self.assertEqual((t["status"], t["commit"]), ("done", "abc1234"))
+        self.assertEqual((t["status"], t["commit"]), ("done", head))
 
     def test_a_task_that_already_has_a_commit_needs_no_flag(self) -> None:
-        self.ok("update", "-w", "alpha", "X-01", "--commit", "abc1234")
+        self.ok("update", "-w", "alpha", "X-01", "--commit", self.git("rev-parse", "HEAD").strip())
         self.ok("update", "-w", "alpha", "X-01", "--status", "done")
         self.assertEqual(self.by_id("X-01")["status"], "done")
 

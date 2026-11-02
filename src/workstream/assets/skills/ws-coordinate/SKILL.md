@@ -1,6 +1,6 @@
 ---
 name: ws-coordinate
-description: Manage workstreams over their life: what's next, adding a task, pausing, closing, releasing.
+description: Manage workstreams over their life (what's next, adding a task, pausing, closing, releasing).
 ---
 
 # Coordinate workstreams

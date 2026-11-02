@@ -62,6 +62,7 @@ class ScenarioTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, base, True)
         repo = harness.build_repo(base, harness.STUB)
         self.assertEqual(repo.ws("doctor").returncode, 0)
+        self.assertEqual(repo.ws("reconcile").returncode, 0, "a coordinator's first check fails")
         self.assertIn("1 known, parser regex", repo.ws("baseline", "show", "-w", "demo").stdout)
 
 
@@ -78,6 +79,19 @@ class RealRunGuardTests(unittest.TestCase):
             for flag in ("--dangerously-skip-permissions", "--allow-all", "--yolo"):
                 self.assertNotIn(flag, text)
             self.assertNotIn("push", text)
+
+    def test_a_claude_run_tests_the_generated_rules_and_not_its_own(self) -> None:
+        command = harness.real_command(harness.CLAUDE, "p", "1")
+        self.assertEqual(command[command.index("--settings") + 1], ".claude/settings.json")
+        self.assertNotIn("Bash(", command[command.index("--allowedTools") + 1])
+
+    def test_cost_is_found_among_warnings_and_events(self) -> None:
+        base = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, base, True)
+        log = base / "log"
+        log.write_text('a warning\n{"type": "system"}\n{"total_cost_usd": 0.1}\n'
+                       '{"total_cost_usd": 0.2}\n{"type": "end"}\n')
+        self.assertEqual(harness.cost_from(log), 0.2)
 
     def test_a_run_refuses_an_account_nobody_named(self) -> None:
         with mock.patch.object(harness, "copilot_account", return_value="someone"), \

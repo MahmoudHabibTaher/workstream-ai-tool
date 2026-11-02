@@ -599,6 +599,7 @@ class BookkeepingTests(SettleTestCase):
 class EvidenceCommandTests(SettleTestCase):
     def test_new_writes_a_skeleton_once(self) -> None:
         self.arrange(self.t("T1"))
+        self.git("switch", "-q", "-c", "task/t1")
         self.ok("evidence", "new", "T1")
         self.assertIn("{{", (self.ws_dir / "alpha" / "evidence" / "T1.md").read_text())
         self.assertIn("already exists", self.fails("evidence", "new", "T1"))

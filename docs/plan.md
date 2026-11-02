@@ -9,9 +9,10 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M0 Bootstrap | Done, except CI has not run: the repo has no remote yet |
 | M1 State and core CLI | Done |
 | M2 Execution engine | Done: a scripted fake agent finishes a workstream sequentially and in parallel. No real agent has run it yet |
-| M3 Protocol and skills | Done: every role is within budget and [every old rule is mapped](rule-map.md). No real agent has followed the skills yet, which is M5 |
+| M3 Protocol and skills | Done: every role is within budget and [every old rule is mapped](rule-map.md). Real agents followed the skills in M5 |
 | M4 Project adaptation | Done, and built as a workstream on this tool. `init` is proven on fixture repos for all six profiles, and on real cargo, npm, gradle and python projects. Real go, ruff, pytest and detekt have not run |
-| M5 onward | Not started |
+| M5 Agent adapters | Done: a real three-task workstream completed on Claude Code and on Copilot CLI, on Opus 5.5. The pressure scenarios pass on both, with Copilot's run before the last brief change. Copilot's hook has never fired for real. [Results](decisions/0008-agent-adapters.md) |
+| M6 onward | Not started |
 
 
 ## Design principles
@@ -102,7 +103,7 @@ runbook = "docs/git-workflow.md#releases"
 |---|---|
 | Setup | `init`, `doctor`, `adapt`, `import` |
 | Planning | `new`, `seed --from-plan`, `validate`, `baseline record` |
-| Running | `wave`, `next`, `brief`, `claim`, `unclaim`, `worktree create\|remove`, `verify`, `evidence check`, `settle`, `handoff` |
+| Running | `wave`, `next`, `brief`, `claim`, `unclaim`, `worktree create\|remove`, `verify`, `commit`, `evidence check`, `settle`, `handoff` |
 | Reading | `status`, `show`, `graph`, `decisions --for`, `protocol <section>` |
 | UI contract | `snapshot`, `act`, `review`, `serve` |
 | Lifecycle | `set-status`, `close`, `reset` |

@@ -1,6 +1,6 @@
 ---
 name: ws-run
-description: Run a planned workstream: claim a batch, start a clean worker per task, land the results, repeat.
+description: Run a planned workstream (claim a batch, start a clean worker per task, land the results, repeat).
 ---
 
 # Run a workstream

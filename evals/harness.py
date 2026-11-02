@@ -1,6 +1,6 @@
 """Real agents against a sample repository, judged by what the repository ends up holding.
 
-    make eval AGENT=claude-code [SCENARIOS=full,chain] [CAP=1.00]
+    make eval AGENT=claude-code [SCENARIOS=full,chain] [CAP=1.00] [MODEL=sonnet]
     make eval AGENT=copilot-cli ACCOUNT=<login> [CAP=5]
 
 Prompts can't be checked by reading them: the plan's main risk is that trimming them removed
@@ -32,7 +32,10 @@ REPO = Path(__file__).resolve().parent.parent
 STUB = "stub"
 CLAUDE, COPILOT = "claude-code", "copilot-cli"
 AGENT_TIMEOUT_SECONDS = 1200
-DEFAULT_CAP = {CLAUDE: "1.00", COPILOT: "5"}
+DEFAULT_CAP = {CLAUDE: "1.00", COPILOT: "80"}  # a full run took 53 credits on Opus
+DEFAULT_MODEL = {CLAUDE: "claude-opus-5-5", COPILOT: "claude-opus-5.5"}
+EFFORT = "medium"
+LOG_TAIL_CHARS = 400
 GIT_IDENTITY = {"GIT_AUTHOR_NAME": "ws eval", "GIT_AUTHOR_EMAIL": "eval@example.invalid",
                 "GIT_COMMITTER_NAME": "ws eval", "GIT_COMMITTER_EMAIL": "eval@example.invalid"}
 WS_ID = "demo"
@@ -288,19 +291,24 @@ SCENARIOS = {s.name: s for s in (
 # --- starting an agent ------------------------------------------------------------------------
 
 
-def real_command(agent: str, prompt: str, cap: str) -> list[str]:
+def real_command(agent: str, prompt: str, cap: str, model: str | None = None) -> list[str]:
     """The command line. Each carries its agent's spend cap, and allows named tools rather than
     everything, so a run can't wander outside what the sample needs."""
     if agent == CLAUDE:
+        # Claude ignores a project's settings in a folder nobody has accepted the trust dialog for,
+        # which is every scratch repo. Naming the file loads what `ws adapt` wrote, hook included,
+        # and no shell rule is added here: what `ws adapt` allows is what's being tested.
         return ["claude", "-p", prompt, "--max-budget-usd", cap, "--permission-mode", "acceptEdits",
-                "--allowedTools",
-                "Bash(ws *),Bash(git *),Bash(make *),Bash(python3 *),Read,Edit,Write,Grep,Glob,Agent",
-                "--output-format", "json", "--no-session-persistence"]
+                "--settings", ".claude/settings.json", "--allowedTools",
+                "Read,Edit,Write,Grep,Glob,Agent",
+                "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+                "--model", model or DEFAULT_MODEL[CLAUDE], "--effort", EFFORT]
     if agent == COPILOT:
         return ["copilot", "-p", prompt, "--max-ai-credits", cap, "--no-ask-user", "--trust-folder",
                 "--allow-tool=shell(ws:*)", "--allow-tool=shell(git:*)", "--allow-tool=shell(make:*)",
                 "--allow-tool=shell(python3:*)", "--allow-tool=write", "--allow-tool=task",
-                "--output-format", "json"]
+                "--output-format", "json", "--model", model or DEFAULT_MODEL[COPILOT],
+                "--reasoning-effort", EFFORT]
     raise ValueError(f"no real command for {agent}")
 
 
@@ -336,12 +344,12 @@ def preflight(agent: str, account: str | None) -> str:
     return ""
 
 
-def start_agent(agent: str, prompt: str, cap: str, repo: Repo, log: Path, stub_behaviour: str
-                ) -> tuple[int, float]:
+def start_agent(agent: str, prompt: str, cap: str, repo: Repo, log: Path, stub_behaviour: str,
+                model: str | None = None) -> tuple[int, float]:
     if agent == STUB:
         command = [sys.executable, "-B", str(REPO / "evals" / "stub_agent.py"), prompt, stub_behaviour]
     else:
-        command = real_command(agent, prompt, cap)
+        command = real_command(agent, prompt, cap, model)
     started = time.monotonic()
     with log.open("w") as out:
         try:
@@ -354,15 +362,24 @@ def start_agent(agent: str, prompt: str, cap: str, repo: Repo, log: Path, stub_b
 
 
 def cost_from(log: Path) -> float | None:
-    """What the run cost, where the agent's output says."""
+    """What the run cost, where the agent's output says: the log is JSON lines, with any warnings
+    among them, and the summary last."""
     try:
-        return json.loads(log.read_text()).get("total_cost_usd")
-    except (OSError, json.JSONDecodeError, AttributeError):
+        lines = log.read_text().splitlines()
+    except OSError:
         return None
+    for line in reversed(lines):
+        try:
+            cost = json.loads(line).get("total_cost_usd")
+        except (json.JSONDecodeError, AttributeError):
+            continue
+        if cost is not None:
+            return cost
+    return None
 
 
 def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
-                 keep: Path | None = None) -> dict:
+                 keep: Path | None = None, model: str | None = None) -> dict:
     scenario = SCENARIOS[name]
     base = Path(tempfile.mkdtemp(prefix=f"ws-eval-{name}-"))
     try:
@@ -371,10 +388,11 @@ def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
             repo.must("ws", "claim", "--commit", "-w", WS_ID, "D-1")
             repo.must("ws", "worktree", "create", "-w", WS_ID, "D-1")
         log = base / "agent.log"
-        code, seconds = start_agent(agent, scenario.prompt, cap, repo, log, stub_behaviour)
+        code, seconds = start_agent(agent, scenario.prompt, cap, repo, log, stub_behaviour, model)
         problems = scenario.check(repo)
         result = {"scenario": name, "agent": agent, "passed": not problems, "problems": problems,
-                  "exit": code, "seconds": seconds, "cost": cost_from(log)}
+                  "exit": code, "seconds": seconds, "cost": cost_from(log),
+                  "said": log.read_text(errors="replace")[-LOG_TAIL_CHARS:].strip() if code else ""}
         if keep is not None:
             keep.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(log, keep / f"{agent}-{name}.log")
@@ -389,6 +407,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--scenarios", default=",".join(SCENARIOS))
     parser.add_argument("--cap", help="the spend cap per scenario, in the agent's own unit")
     parser.add_argument("--account", help="the account a run must be on, where it matters")
+    parser.add_argument("--model", help="the model to run on, where the agent takes one")
     parser.add_argument("--keep", type=Path, help="copy each agent's log here")
     args = parser.parse_args(argv)
     unknown = [s for s in args.scenarios.split(",") if s not in SCENARIOS]
@@ -401,11 +420,13 @@ def main(argv: list[str] | None = None) -> int:
     cap = args.cap or DEFAULT_CAP.get(args.agent, "0")
     results = []
     for name in args.scenarios.split(","):
-        result = run_scenario(name, args.agent, cap, keep=args.keep)
+        result = run_scenario(name, args.agent, cap, keep=args.keep, model=args.model)
         results.append(result)
         cost = f", ${result['cost']:.2f}" if result["cost"] is not None else ""
         print(f"{'PASS' if result['passed'] else 'FAIL'} {name}  {result['seconds']}s{cost}"
               + (f"  (agent exit {result['exit']})" if result["exit"] else ""), flush=True)
+        if result["said"]:  # an agent that never started isn't an agent that misbehaved
+            print(f"     the agent said: {result['said']}", flush=True)
         for problem in result["problems"]:
             print(f"     {problem}", flush=True)
     return 0 if all(r["passed"] for r in results) else 1

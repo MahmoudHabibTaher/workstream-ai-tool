@@ -6,7 +6,7 @@ skill = ".github/skills/{name}/SKILL.md"
 [worker]
 path = ".github/agents/ws-worker.agent.md"
 name = "ws-worker"
-description = "One workstream task: runs `ws brief`, follows it."
+description = "Does one workstream task by following `ws brief`."
 # Subagents skip custom instructions by default, and may need the project's own rules. The list
 # leaves out the task tool, so a worker can't start workers of its own.
 frontmatter = "tools: [\"read\", \"grep\", \"glob\", \"edit\", \"execute\"]\nstrict-tools-list: true\ninclude-custom-instructions: true"

@@ -6,7 +6,7 @@ skill = ".claude/skills/{name}/SKILL.md"
 [worker]
 path = ".claude/agents/ws-worker.md"
 name = "ws-worker"
-description = "One workstream task: runs `ws brief`, follows it."
+description = "Does one workstream task by following `ws brief`."
 # The whole list, so a worker can't start workers of its own.
 frontmatter = "tools: Read, Edit, Write, Bash, Grep, Glob"
 
@@ -17,7 +17,7 @@ ws-run = "Start each worker with the Agent tool: `subagent_type: \"{worker}\"`, 
 [settings]
 path = ".claude/settings.json"
 # What a background worker needs without stopping to ask. Never a push.
-allow = ["Bash(ws *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git switch *)"]
+allow = ["Bash(ws *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git status*)", "Bash(git branch --show-current)", "Bash(git diff*)", "Bash(git log*)", "Bash(git switch *)"]
 
 [hook]
 command = "ws hook pre-edit --format exit-code"
