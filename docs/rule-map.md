@@ -127,7 +127,7 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | subsonic | Re-read hard constraints before touching named files | project | The project's own instructions, loaded by path |
 | kotlin | Doc-comment length budgets | project | Language conventions belong to the project |
 | kotlin | One task, one work commit | deleted | A merge commit stands for the whole branch |
-| subsonic | Run a baseline check at the start of each session | deleted | Workers verify before anything lands and `settle` re-checks merged code, so a red tree shows up without a ritual |
+| subsonic | Run a baseline check at the start of each session | deleted | Workers verify before anything lands and `settle` re-checks merged code, so a red tree shows up without a ritual. `ws doctor --run` does it on demand |
 | kotlin | Check the clock mid-shift | code | cli.cmd_status |
 | kotlin | Keep a legacy start and done flow for one-offs | deleted | Two ways to do one thing |
 

@@ -11,8 +11,8 @@ import json
 import sys
 from pathlib import Path
 
-from workstream import act, adopt, audit, baseline, brief, decisions, evidence, gates, graph, gitutil
-from workstream import handoff, plan, protocol, registry, review, settle, snapshot, tasks, verify
+from workstream import act, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
+from workstream import gitutil, handoff, plan, protocol, registry, review, settle, snapshot, tasks, verify
 from workstream import worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
@@ -106,6 +106,23 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"integration branch: {result['project'].config.integration}")
     if result["created"] and has_git:
         print("commit .workstream/ and the registry; `ws doctor` checks the setup")
+    return 0
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    root = getattr(args, "root", None)
+    found = doctor.doctor(Path(root) if root else Path.cwd(), run=args.run,
+                          ws_id=getattr(args, "workstream", None))
+    if args.json:
+        print(json.dumps(found, indent=2))
+    else:
+        _print_gates(found)
+    if gates.blockers(found):
+        if not args.json:
+            print("FAIL")
+        return 1
+    if not args.json:
+        print("OK")
     return 0
 
 
@@ -745,6 +762,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=int, help="seconds for each command tried")
     p.add_argument("--no-git", dest="force_no_git", action="store_true",
                    help="set up outside a git repository")
+
+    p = command("doctor", cmd_doctor, "what is wrong with this setup; changes nothing")
+    p.add_argument("--run", action="store_true", help="also run each command against the baseline")
+    p.add_argument("--json", action="store_true")
 
     p = command("new", cmd_new, "scaffold a workstream folder and register it as planned")
     p.add_argument("id", help="lower-case folder name, e.g. smart_playlists")
