@@ -43,7 +43,8 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | subsonic | Some requirements force foreground, and contradictions are refused | code | tasks._mode_conflict |
 | subsonic | The last task is the end-to-end proof | skill | ws-plan: "The last task is the end-to-end proof" |
 | subsonic | `needsUserDecision` only for what planning couldn't settle | protocol | task-schema: "True only for what planning couldn't settle" |
-| subsonic | Every open task states its release impact, when the project releases | code | tasks.validate_tasks |
+| subsonic | Every open task states its release impact, when the workstream ships a release | code | tasks.validate_tasks |
+| subsonic | A workstream may skip the release | skill | ws-plan: "`--tier full` if it ships a release" |
 | subsonic | `docs` paths must exist | code | tasks.validate_tasks |
 | subsonic | The plan is written once and split, not written again | code | plan.seed_from_plan |
 | subsonic | No template placeholder survives | code | registry.validate_entry |

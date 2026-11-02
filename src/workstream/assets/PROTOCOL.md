@@ -66,7 +66,7 @@ Required: `id` (`<PREFIX>-01`), `phase`, `priority` (10, 20, 30; the real order)
 | `needsUserDecision` | True only for what planning couldn't settle |
 | `mode` | `background`, or `foreground` for what a worktree can't do |
 | `requires` | The config's values, such as `browser` or `user`; some force foreground |
-| `releaseImpact` | `none`, `patch`, `minor` or `major`, when the project releases |
+| `releaseImpact` | `none`, `patch`, `minor` or `major`, required on a `full` workstream |
 | `notes` | Hints. Nothing branches on free text |
 
 ## stop

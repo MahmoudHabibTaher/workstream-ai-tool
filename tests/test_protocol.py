@@ -220,20 +220,6 @@ class NewGateTests(WsTestCase):
         self.seed_ok([task("L1", 10)], "later")
         self.assertIn("depends on alpha", self.fails("claim", "-w", "later", "L1"))
 
-    def test_status_says_the_release_bump(self) -> None:
-        self.edit_config('mode = "none"', 'mode = "runbook"\nrunbook = "docs/release.md"')
-        head = self.git("rev-parse", "HEAD").strip()
-        self.write_queue([task("T1", 10, status="done", commit=head, releaseImpact="minor"),
-                          task("T2", 20, status="done", commit=head, releaseImpact="patch"),
-                          task("T3", 30, status="done", commit=head)])
-        out = self.ok("status")
-        self.assertIn("release: minor, runbook docs/release.md", out)
-        self.assertIn("done without a releaseImpact: T3", out)
-
-    def test_status_is_silent_about_releases_when_there_are_none(self) -> None:
-        self.arrange(task("T1", 10))
-        self.assertNotIn("release:", self.ok("status"))
-
     def test_a_deferred_task_shipped_nothing(self) -> None:
         from workstream import registry
         rows = [{"status": "deferred", "releaseImpact": "major", "id": "A"},

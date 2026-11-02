@@ -19,4 +19,4 @@ description: Manage workstreams over their life: choose what's next, add a task,
 2. Deferred tasks are the user's call: see `ws protocol stop`.
 3. `ws close -w <id>`, then commit as `<id>: close`. Close without asking only if the user asked for the run to finish.
 
-**Releasing,** when the project has a runbook: `ws status` prints the bump, the highest `releaseImpact` among done tasks, and where the runbook is. `none` means no release. `major` is a stop. Otherwise follow the runbook; its steps belong to the project, and a fix found there is not a change to `PLAN.md`.
+**Releasing,** for a `full` workstream: `ws status` prints the bump, the highest `releaseImpact` among done tasks, and where the runbook is. `none` means no release. `major` is a stop. Otherwise follow the runbook; its steps belong to the project, and a fix found there is not a change to `PLAN.md`.
