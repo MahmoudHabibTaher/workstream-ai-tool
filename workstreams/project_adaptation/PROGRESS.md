@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `5ed73b7`.
 
 ---
 
+## 2026-11-02: AD-06: Fix what following the skills found
+
+Merged as `8dc125087c`. Verified: test pass, audit pass. [Evidence](evidence/AD-06.md).
+
 ## 2026-11-02: AD-05: End-to-end proof on all six profiles
 
 Merged as `c8be683532`. Verified: test pass, audit pass. [Evidence](evidence/AD-05.md).

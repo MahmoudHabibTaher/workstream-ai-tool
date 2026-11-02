@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 5/5 done on `main` at `c8be683`, as of 2026-11-02.
+**State:** 6/6 done on `main` at `8dc1250`, as of 2026-11-02.
 
-**Just landed:** AD-05 (`c8be683532`)
+**Just landed:** AD-06 (`8dc125087c`)
 
 **Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- AD-05: Following the skills for real found two defects, for AD-06. The worker rules forbid switching to the integration branch, but a foreground session has to. And `ws seed` prints a warning for each file a task will create, which is noise on every plan.
+- AD-06: My first attempt at this task committed to the integration branch, because a failed `ws claim` didn't stop my script, and nothing refused it: `settle` only checks work that goes through it. M5's optional hook against direct commits to the integration branch would catch this.

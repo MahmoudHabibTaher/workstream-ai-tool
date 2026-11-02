@@ -37,3 +37,7 @@ They add a dependency and time to every run, and a machine without them can't ru
 ## D008 (2026-11-02, coordinator): add AD-06 for what following the skills found
 
 Running this workstream by the skills found defects the plan couldn't have known. They are prompt and CLI fixes, in scope for adoption. Numbered by hand, which is one of the three. Rejected: leaving them for M5, which would run real agents on instructions already known to contradict themselves. **Closed.**
+
+## D009 (2026-11-02, AD-06): `ws validate` keeps warning about paths that don't exist yet
+
+It is the one place a mistyped path gets caught, and someone running it is asking. Rejected: dropping the warning everywhere, which would lose that check. **Closed.**
