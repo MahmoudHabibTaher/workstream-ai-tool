@@ -17,7 +17,7 @@ The deliverable is a committed, registered workstream, not code. Approving a pla
    - Say what a worktree can't do in `mode` and `requires`, never in `notes`.
    - The last task is the end-to-end proof. Docs go with the task that changes them.
 5. **Present it compactly:** phases, ids, titles, dependencies, the scope rule, open questions. Write no workstream files before the user approves, and say that approving creates it without starting anything.
-6. **Create it.** Choose the narrowest folder holding everything the tasks touch (`--under`, or the repo's root folder for wider work).
+6. **Create it.** Choose the narrowest folder holding everything the tasks touch (`--under`, or the repo's root folder for wider work). Add `--tier lite` for a few tasks needing no decision log, or `--tier full` if it ships a release.
    ```
    ws new <id> --title "..." --summary "..." --prefix <PREFIX>
    ws seed -w <id> --from-plan <plan file>

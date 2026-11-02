@@ -461,14 +461,17 @@ class ValidateTests(WsTestCase):
         self.assert_fails_with([task("X-01", 10, status="done", commit=None)],
                                "X-01: done without a commit")
 
-    def test_release_impact_is_required_only_when_the_project_releases(self) -> None:
-        self.assert_ok_with_warnings([self.open_task("X-01", 10, releaseImpact=None)])
-        self.edit_config('[release]\nmode = "none"', '[release]\nmode = "runbook"')
+    def test_release_impact_is_required_only_on_a_full_workstream(self) -> None:
+        for tier in ("lite", "standard"):
+            errors, _ = tasks.validate_tasks([self.open_task("X-01", 10, releaseImpact=None)],
+                                             self.root, self.project().config, tier)
+            self.assertEqual(errors, [], tier)
         for status in tasks.OPEN_STATUSES:
             with self.subTest(status=status):
-                self.assert_fails_with(
+                errors, _ = tasks.validate_tasks(
                     [self.open_task("X-01", 10, status=status, releaseImpact=None)],
-                    "X-01: open task has no releaseImpact")
+                    self.root, self.project().config, "full")
+                self.assertEqual(errors, ["X-01: open task has no releaseImpact"])
 
     def test_fails_on_an_open_task_with_a_missing_docs_path(self) -> None:
         (self.root / "docs").mkdir()

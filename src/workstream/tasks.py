@@ -30,6 +30,8 @@ from workstream.fsutil import now_iso, today, write_json
 SCHEMA_VERSION = 3
 PROTOCOL_VERSION = "1"
 TIERS = ("lite", "standard", "full")
+# The tier that ships: only this one must say what each task does to a release.
+RELEASING_TIER = "full"
 STATUS_VALUES = ("todo", "in-progress", "blocked", "done", "deferred")
 # The statuses the open-task rules apply to; done and deferred are history.
 OPEN_STATUSES = ("todo", "in-progress", "blocked")
@@ -309,13 +311,13 @@ def _verify_errors(task: dict, label: str, config: Config) -> list[str]:
     return errors
 
 
-def validate_tasks(tasks: list[dict], repo_root: Path, config: Config
-                   ) -> tuple[list[str], list[str]]:
+def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
+                   tier: str = "standard") -> tuple[list[str], list[str]]:
     """Every integrity problem in a queue, as (errors, warnings).
 
     Errors: a missing or ill-typed field, a bad enum value, duplicate ids or priorities, an
     unknown, self or cyclic blockedBy, a done task without a commit, and, on open tasks
-    only, a missing releaseImpact (when the project releases), a docs path that doesn't
+    only, a missing releaseImpact (on a full workstream), a docs path that doesn't
     exist, a mode that requires contradicts, an unknown verify key, or a verify that falls
     short of the task's kind. Warnings: a files path missing on an open task (it may be one
     the task creates), and two open tasks in the same phase, neither waiting on the other,
@@ -337,7 +339,7 @@ def validate_tasks(tasks: list[dict], repo_root: Path, config: Config
             errors.append(f"{label}: done without a commit")
         if t.get("status") not in OPEN_STATUSES:
             continue
-        if config.release_mode != "none" and t.get("releaseImpact") is None:
+        if tier == RELEASING_TIER and t.get("releaseImpact") is None:
             errors.append(f"{label}: open task has no releaseImpact")
         for path in t.get("docs", []) if is_type(t.get("docs", []), STR_LIST) else []:
             if not (repo_root / path).exists():

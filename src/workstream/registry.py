@@ -46,6 +46,8 @@ REQUIRED_FILES = {
     "standard": ("PLAN.md", TASKS_NAME, "DECISIONS.md", "PROGRESS.md", "session_handoff.md"),
     "full": ("PLAN.md", TASKS_NAME, "DECISIONS.md", "PROGRESS.md", "session_handoff.md"),
 }
+# A file a tier starts from a different template for.
+TEMPLATE_FOR = {("lite", "PLAN.md"): "PLAN.lite.md"}
 
 
 def new_registry() -> dict:
@@ -124,6 +126,9 @@ def create(project: Project, ws_id: str, title: str, summary: str, *,
         raise WsError(f"tier must be one of {', '.join(tasks.TIERS)}")
     if any(w["id"] == ws_id for w in data["workstreams"]):
         raise WsError(f"workstream {ws_id!r} already registered")
+    if tier == tasks.RELEASING_TIER and project.config.release_mode == "none":
+        raise WsError("a full workstream ships a release, and this project has no runbook: set "
+                      "[release] mode and runbook in the config, or use another tier")
     if prefix:
         clash = [w["id"] for w in data["workstreams"]
                  if w.get("taskPrefix") and (w["taskPrefix"].startswith(prefix)
@@ -146,7 +151,8 @@ def create(project: Project, ws_id: str, title: str, summary: str, *,
               "INTEGRATION": project.config.integration, "SUMMARY": summary}
     for name in REQUIRED_FILES[tier]:
         if name != TASKS_NAME:
-            (folder / name).write_text(render((TEMPLATES_DIR / name).read_text(), values))
+            template = TEMPLATES_DIR / TEMPLATE_FOR.get((tier, name), name)
+            (folder / name).write_text(render(template.read_text(), values))
     source = f"{project.rel(folder)}/PLAN.md"
     tasks.save(folder / TASKS_NAME, tasks.new_envelope(source, tier))
 
@@ -277,7 +283,10 @@ def _queue_problems(project: Project, ws: dict, path: Path, problems: list[str],
     if version != tasks.SCHEMA_VERSION:
         problems.append(f"{wid}: {TASKS_NAME} schemaVersion {version!r} is not "
                         f"{tasks.SCHEMA_VERSION}")
-    errors, task_warnings = tasks.validate_tasks(queue["tasks"], project.root, project.config)
+    tier = ws.get("tier", "standard")
+    errors, task_warnings = tasks.validate_tasks(queue["tasks"], project.root, project.config, tier)
+    if tier == tasks.RELEASING_TIER and project.config.release_mode == "none":
+        errors.append("a full workstream needs [release] mode and runbook in the config")
     problems += [f"{wid}: {e}" for e in errors]
     warnings += [f"{wid}: {w}" for w in task_warnings]
     planned_with = queue.get("protocolVersion")

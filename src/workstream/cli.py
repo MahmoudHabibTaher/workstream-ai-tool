@@ -184,6 +184,9 @@ def cmd_close(args: argparse.Namespace) -> int:
     if destructive and not args.yes and not _confirm(
             "This cannot be undone unless it is committed.", "close"):
         raise Refused("not closed (destructive close needs confirmation or --yes)")
+    ws = registry.find(registry.load(project), ws_id)
+    if ws.get("tier") == tasks.RELEASING_TIER:
+        _print_release(project, tasks.load(project.tasks_path(ws), project.config)["tasks"])
     registry.close(project, ws_id, allow_deferred=args.allow_deferred, prune=args.prune,
                    purge=args.purge)
     print(f"{ws_id}: closed; commit the change")
@@ -378,6 +381,13 @@ def cmd_wave(args: argparse.Namespace) -> int:
     return graph.WAVE_READY
 
 
+def _print_release(project: Project, rows: list[dict]) -> None:
+    bump, unset = registry.release_bump(rows)
+    print(f"release: {bump}, runbook {project.config.release_runbook or '(none named)'}")
+    if unset:
+        print(f"  done without a releaseImpact: {', '.join(unset)}")
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
@@ -398,11 +408,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     else:
         print(wave["state"])
     _print_leftovers(rows)
-    if project.config.release_mode != "none":
-        bump, unset = registry.release_bump(rows)
-        print(f"release: {bump}, runbook {project.config.release_runbook or '(none named)'}")
-        if unset:
-            print(f"  done without a releaseImpact: {', '.join(unset)}")
+    if ws.get("tier") == tasks.RELEASING_TIER:
+        _print_release(project, rows)
     return 0
 
 
