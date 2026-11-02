@@ -171,7 +171,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/ad-03",
       "blockedBy": [
         "AD-02"
       ],
@@ -180,10 +180,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-02T13:06:55Z",
+      "baseCommit": "e9be4debc2d9d15bb958b00db3f2a1b020d9da8f",
+      "claimedBy": "m4-session",
       "completedAt": null,
       "commit": null,
       "verification": null
