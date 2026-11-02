@@ -170,7 +170,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/aa-03",
       "blockedBy": [
         "AA-02"
       ],
@@ -179,10 +179,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-02T13:49:53Z",
+      "baseCommit": "2efc088d6e4df3edaa32318ccfb9c277cb06027f",
+      "claimedBy": "m5-session",
       "completedAt": null,
       "commit": null,
       "verification": null
