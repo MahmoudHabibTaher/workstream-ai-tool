@@ -8,7 +8,6 @@ isn't this one.
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 from workstream.errors import WsError
 from workstream.project import ASSETS_DIR

@@ -1,8 +1,9 @@
 """What a command reports, and what it already reported before the work began.
 
-A task on a repo with known lint findings must not be judged against zero. `ws baseline
-record` runs the commands once and writes <workstream>/baseline.json; `ws verify` then passes
-a key when it reports nothing beyond that record.
+A task on a repo with known lint findings must not be judged against zero. `ws init` records what
+a repo already reports in .workstream/baseline.json, and `ws baseline record` does the same for
+one workstream in <workstream>/baseline.json. `ws verify` then passes a key when it reports
+nothing beyond that record.
 
     {"schemaVersion": 1, "commit": str, "recordedAt": str,
      "keys": {"lint": {"parser": str, "command": str, "exit": int | null,
@@ -32,6 +33,7 @@ from workstream.project import Project
 
 SCHEMA_VERSION = 1
 FILE_NAME = "baseline.json"
+PROJECT_DIR = ".workstream"
 EXIT_CODE = "exit-code"
 PASS, KNOWN_ONLY, FAIL = "pass", "known-only", "fail"
 # Bounded so one enormous report can't fill the record or anyone's context.
@@ -166,6 +168,19 @@ def load(folder: Path) -> dict:
     if not isinstance(data, dict) or not isinstance(data.get("keys"), dict):
         raise WsError(f"{path}: not a baseline (no `keys` table)")
     return data
+
+
+def project_folder(project: Project) -> Path:
+    """Where `ws init` records what a repo already reports, for every workstream to start from."""
+    return project.root / PROJECT_DIR
+
+
+def load_for(project: Project, folder: Path) -> dict:
+    """What a workstream is judged against: the project's record, with the workstream's own
+    keys taking over, since it was taken later and on purpose."""
+    record = load(folder)
+    inherited = load(project_folder(project))["keys"]
+    return {**record, "keys": {**inherited, **record["keys"]}}
 
 
 def known_findings(record: dict, key: str) -> list[str]:

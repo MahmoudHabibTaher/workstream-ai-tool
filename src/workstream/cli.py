@@ -11,12 +11,12 @@ import json
 import sys
 from pathlib import Path
 
-from workstream import act, audit, baseline, brief, decisions, evidence, gates, graph, gitutil
+from workstream import act, adopt, audit, baseline, brief, decisions, evidence, gates, graph, gitutil
 from workstream import handoff, plan, protocol, registry, review, settle, snapshot, tasks, verify
 from workstream import worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
-from workstream.project import Project, init_project, open_project
+from workstream.project import Project, open_project
 
 
 def _project(args: argparse.Namespace) -> Project:
@@ -84,14 +84,28 @@ def _confirm(prompt: str, word: str) -> bool:
 
 def cmd_init(args: argparse.Namespace) -> int:
     root = Path(getattr(args, "root", None) or Path.cwd())
-    if not args.force_no_git and gitutil.toplevel(root) is None:
+    has_git = gitutil.toplevel(root) is not None
+    if not args.force_no_git and not has_git:
         raise WsError(f"{root} is not a git repository (--no-git to set it up anyway)")
-    project, created = init_project(root, args.integration)
-    for path in created:
+    result = adopt.adopt(root, args.integration, args.production, args.profile,
+                         run=has_git and not args.no_run, timeout=args.timeout,
+                         say=lambda line: print(line, flush=True))
+    if result["profile"]:
+        also = f" (also matches {', '.join(result['others'])}; --profile picks another)" \
+            if result["others"] else ""
+        print(f"profile: {result['profile']}{also}")
+    for key, command in result["active"].items():
+        known = len(result["known"].get(key, []))
+        print(f"  on   {key}: {command}" + (f" ({known} known finding(s) recorded)" if known else ""))
+    for key, (command, why) in result["unverified"].items():
+        print(f"  off  {key}: {command}: {why}")
+    for path in result["created"]:
         print(f"created {path}")
-    if not created:
+    if not result["created"]:
         print("already set up")
-    print(f"integration branch: {project.config.integration}")
+    print(f"integration branch: {result['project'].config.integration}")
+    if result["created"] and has_git:
+        print("commit .workstream/ and the registry; `ws doctor` checks the setup")
     return 0
 
 
@@ -481,7 +495,7 @@ def cmd_baseline(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, _ = _queue(project, args)
     if args.action == "show":
-        record = baseline.load(project.folder(ws))
+        record = baseline.load_for(project, project.folder(ws))
         if not record["keys"]:
             print("(no baseline recorded; everything a command reports counts as new)")
             return 0
@@ -714,8 +728,14 @@ def build_parser() -> argparse.ArgumentParser:
         p.set_defaults(func=func)
         return p
 
-    p = command("init", cmd_init, "set up .workstream/config.toml and an empty registry")
+    p = command("init", cmd_init, "detect the stack, try its commands, write what worked to "
+                                  ".workstream/config.toml, and start a registry")
     p.add_argument("--integration", help="the branch task branches merge into")
+    p.add_argument("--production", help="the branch releases go to (default: the same one)")
+    p.add_argument("--profile", help="a stack's profile, instead of detecting one")
+    p.add_argument("--no-run", action="store_true",
+                   help="don't run anything; proposed commands stay commented out")
+    p.add_argument("--timeout", type=int, help="seconds for each command tried")
     p.add_argument("--no-git", dest="force_no_git", action="store_true",
                    help="set up outside a git repository")
 

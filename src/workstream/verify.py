@@ -176,7 +176,7 @@ def verify_task(project: Project, ws: dict, task: dict, keys: list[str] | None =
     tree = code_tree(project)
     directory = runs_dir(project, ws["id"], task["id"])
     directory.mkdir(parents=True, exist_ok=True)
-    known_record = baseline.load(project.folder(ws))
+    known_record = baseline.load_for(project, project.folder(ws))
     results = []
     for label, command in commands:
         if keys and label not in keys:
