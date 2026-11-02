@@ -184,6 +184,49 @@
       }
     },
     {
+      "id": "PI-07",
+      "phase": 3,
+      "priority": 35,
+      "title": "Fixes the first real pilot run found",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "A real worker backgrounded ws verify and ended its turn, which killed the run, and read whole docs because the brief said to read them first. A project run from a linked checkout was also reported as a leftover.",
+      "files": [
+        "src/workstream/brief.py",
+        "src/workstream/snapshot.py",
+        "src/workstream/adapt.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "src/workstream/assets/adapters/claude-code.toml",
+        "src/workstream/assets/skills/ws-run.md",
+        "tests/test_settle.py",
+        "tests/test_adapt.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the brief tells a worker to wait for ws verify in the foreground and to search docs rather than read them whole",
+        "ws adapt merges the adapter's env into settings without overwriting a value already there",
+        "a project run from a linked checkout lands tasks on its branch and doctor doesn't call it a leftover"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
       "id": "PI-04",
       "phase": 3,
       "priority": 40,
