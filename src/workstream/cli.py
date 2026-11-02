@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from workstream import act, adapt, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
-from workstream import gitutil, handoff, hook, plan, protocol, registry, review, settle, snapshot, tasks, verify
+from workstream import gitutil, handoff, hook, importer, plan, protocol, registry, review, settle, snapshot, tasks, verify
 from workstream import usage, worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
@@ -786,6 +786,25 @@ def _cmd_audit_usage(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    project = _project(args)
+    plan = importer.run(project, write=args.write)
+    if not plan.done:
+        print("nothing to import: every queue is current")
+        return 0
+    word = "did" if args.write else "would do"
+    print(f"{word}:")
+    for line in plan.done:
+        print(f"  {line}")
+    if plan.todo:
+        print("needs a person:")
+        for line in plan.todo:
+            print(f"  {line}")
+    print("next: `ws validate`, `ws baseline record`, then commit" if args.write
+          else "nothing changed: `ws import --write` does this")
+    return 0
+
+
 def cmd_audit(args: argparse.Namespace) -> int:
     if args.what == "usage":
         return _cmd_audit_usage(args)
@@ -894,6 +913,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = command("hook", cmd_hook, "for an agent's hook: check a file edit it is about to make")
     p.add_argument("event", choices=("pre-edit",))
     p.add_argument("--format", choices=hook.FORMATS, required=True)
+
+    p = command("import", cmd_import, "bring older workstream files onto this schema (a dry run unless --write)")
+    p.add_argument("--write", action="store_true")
 
     p = command("doctor", cmd_doctor, "what is wrong with this setup; changes nothing")
     p.add_argument("--run", action="store_true", help="also run each command against the baseline")
