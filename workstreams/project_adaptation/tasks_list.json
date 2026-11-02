@@ -327,6 +327,52 @@
           }
         ]
       }
+    },
+    {
+      "id": "AD-06",
+      "phase": 2,
+      "priority": 60,
+      "title": "Fix what following the skills found",
+      "kind": "prompts",
+      "findings": [],
+      "summary": "Three defects a real run exposed: a foreground brief contradicting itself, seed warning about files tasks will create, and decisions needing hand numbering.",
+      "files": [
+        "src/workstream/brief.py",
+        "src/workstream/plan.py",
+        "src/workstream/decisions.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets",
+        "tests/test_plan_tools.py",
+        "tests/test_settle.py",
+        "tests/test_protocol.py",
+        "docs/rule-map.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "a foreground task's brief says to switch back and settle, and a background one's doesn't",
+        "ws seed --from-plan prints nothing about a file a task will create, and still warns about other things",
+        "ws decide appends the next number and the audit still passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AD-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
     }
   ],
   "scope": {

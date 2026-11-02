@@ -33,3 +33,7 @@ A missing tool may be fine on this machine and needed on another, and scripts ne
 ## D007 (2026-11-02, AD-05): real toolchains run only under `make test-real`
 
 They add a dependency and time to every run, and a machine without them can't run them anyway. Rejected: running them whenever the tool is on PATH, which makes a suite's duration and result depend on the machine. **Closed.**
+
+## D008 (2026-11-02, coordinator): add AD-06 for what following the skills found
+
+Running this workstream by the skills found defects the plan couldn't have known. They are prompt and CLI fixes, in scope for adoption. Numbered by hand, which is one of the three. Rejected: leaving them for M5, which would run real agents on instructions already known to contradict themselves. **Closed.**
