@@ -11,7 +11,7 @@ import json
 import sys
 from pathlib import Path
 
-from workstream import act, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
+from workstream import act, adapt, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
 from workstream import gitutil, handoff, plan, protocol, registry, review, settle, snapshot, tasks, verify
 from workstream import worktree
 from workstream import __version__
@@ -110,6 +110,28 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"integration branch: {result['project'].config.integration}")
     if result["created"] and has_git:
         print("commit .workstream/ and the registry; `ws doctor` checks the setup")
+    return 0
+
+
+def cmd_adapt(args: argparse.Namespace) -> int:
+    project = _project(args)
+    if args.agent is None:
+        print(f"agents: {', '.join(adapt.names())}; adapted here: "
+              f"{', '.join(adapt.adapted(project)) or 'none'}")
+        return 0
+    if args.check:
+        wrong = [f"{rel}: {state}" for rel, state
+                 in adapt.file_states(project, adapt.load(args.agent)).items()
+                 if state != adapt.CURRENT]
+        for line in wrong:
+            print(f"  {line}")
+        print(f"FAIL: `ws adapt {args.agent}` refreshes these" if wrong else "OK")
+        return 1 if wrong else 0
+    result = adapt.adapt(project, args.agent, force=args.force)
+    for rel in result["wrote"]:
+        print(f"wrote {rel}")
+    print(f"{args.agent}: {len(result['wrote'])} written, {len(result['same'])} unchanged"
+          + ("; commit them" if result["wrote"] else ""))
     return 0
 
 
@@ -774,6 +796,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=int, help="seconds for each command tried")
     p.add_argument("--no-git", dest="force_no_git", action="store_true",
                    help="set up outside a git repository")
+
+    p = command("adapt", cmd_adapt, "write the skills and pointer an agent reads, from the one "
+                                    "source; with no agent, list them")
+    p.add_argument("agent", nargs="?")
+    p.add_argument("--check", action="store_true", help="exit 1 if its files aren't current")
+    p.add_argument("--force", action="store_true", help="overwrite files edited by hand")
 
     p = command("doctor", cmd_doctor, "what is wrong with this setup; changes nothing")
     p.add_argument("--run", action="store_true", help="also run each command against the baseline")

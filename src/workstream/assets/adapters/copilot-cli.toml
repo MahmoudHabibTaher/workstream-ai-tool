@@ -1,0 +1,4 @@
+name = "copilot-cli"
+label = "Copilot CLI"
+instructions = ".github/copilot-instructions.md"
+skill = ".github/skills/{name}/SKILL.md"

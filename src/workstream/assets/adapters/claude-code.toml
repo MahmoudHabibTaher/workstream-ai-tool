@@ -1,0 +1,4 @@
+name = "claude-code"
+label = "Claude Code"
+instructions = "CLAUDE.md"
+skill = ".claude/skills/{name}/SKILL.md"

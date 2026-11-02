@@ -11,7 +11,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from workstream import adopt, baseline, gitutil, registry, snapshot, verify
+from workstream import adapt, adopt, baseline, gitutil, registry, snapshot, verify
 from workstream.config import CONFIG_REL, load_config
 from workstream.errors import WsError
 from workstream.gates import gate
@@ -84,6 +84,16 @@ def _workstreams(project: Project) -> list[dict]:
     return out
 
 
+def _adapters(project: Project) -> list[dict]:
+    """Generated files are copies, and this is where a stale copy gets noticed."""
+    try:
+        wrong = adapt.drift(project)
+    except WsError as e:
+        return [gate("the agent files are current", False, str(e), blocking=False)]
+    detail = "; ".join(f"`ws adapt {name}`: {', '.join(paths[:4])}" for name, paths in wrong.items())
+    return [gate("the agent files are current", not wrong, detail, blocking=False)]
+
+
 def _run_commands(project: Project, ws: dict | None) -> list[dict]:
     """Each command against its baseline: is this tree any good to start from?"""
     folder = project.folder(ws) if ws else baseline.project_folder(project)
@@ -116,6 +126,7 @@ def doctor(start: Path, *, run: bool = False, ws_id: str | None = None) -> list[
     project = Project(root=root, config=config)
     found += [gate("the config parses", True)]
     found += _branches(project) + _commands(project) + _workstreams(project)
+    found += _adapters(project)
     if run:
         ws = registry.find(registry.load(project), ws_id) if ws_id else None
         found += _run_commands(project, ws)
