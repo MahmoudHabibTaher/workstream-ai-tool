@@ -112,13 +112,29 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-02T13:44:23Z",
       "baseCommit": "eee8159aaa0591fdda003cdba4792ef08ab1c112",
       "claimedBy": "m5-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-02T13:49:52Z",
+      "commit": "7fad3a99921b13ba00709f12d0d1667f0006f508",
+      "verification": {
+        "tree": "72c5b0cb044673667debabd192a4ef2a5bde9e83",
+        "at": "2026-11-02T13:49:51Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "AA-03",

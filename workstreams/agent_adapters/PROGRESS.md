@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `132ac54`.
 
 ---
 
+## 2026-11-02: AA-02: Worker agent, per-agent notes and audit
+
+Merged as `7fad3a9992`. Verified: test pass, audit pass. [Evidence](evidence/AA-02.md).
+
 ## 2026-11-02: AA-01: ws adapt, manifest and drift check
 
 Merged as `b64773ec37`. Verified: test pass, audit pass. [Evidence](evidence/AA-01.md).

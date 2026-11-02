@@ -13,3 +13,7 @@ The user said to start M5. Copilot here is on a work account and the user keeps 
 ## D002 (2026-11-02, AA-01): a file already at a skill's path counts as not ours
 
 It could be someone's own skill with the same name, so it gets the same refusal as a hand edit. Rejected: overwriting it because the name matches. **Closed.**
+
+## D003 (2026-11-02, AA-02): skill descriptions were shortened, and the audit counts the block markers and the worker's description
+
+All three load in every session, and counting them took always-on past 150. Each description lost a few words. Rejected: raising the limit, since the limit is the point. Whether the shorter descriptions still trigger is for AA-05 to show. **Closed.**
