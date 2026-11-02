@@ -1,10 +1,7 @@
 # Session handoff
 
-**State:** 2/5 done on `main` at `334053b`, as of 2026-11-02.
+**State:** 3/5 done on `main` at `bd3c1f6`, as of 2026-11-02.
 
-**Just landed:** AD-02 (`334053b1da`)
+**Just landed:** AD-03 (`bd3c1f6b73`)
 
-**Next:** `ws claim --commit AD-03` (phase 1).
-
-**Gotchas:**
-- AD-02: A command that changes tracked files at init leaves those changes in the tree: `ws init` reports it and doesn't undo them, because undoing could lose something. It says to review what's left.
+**Next:** `ws claim --commit AD-04` (phase 1).

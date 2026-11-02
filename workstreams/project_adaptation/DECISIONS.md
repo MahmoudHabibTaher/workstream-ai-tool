@@ -21,3 +21,7 @@ The dirty-tree check runs before anything is created, so a refused init leaves n
 ## D004 (2026-11-02, AD-02): when every candidate fails, the comment shows one that actually ran
 
 A failure says more than a tool not being installed. Rejected: always showing the first candidate, which would hide an npm failure behind a missing pnpm. **Closed.**
+
+## D005 (2026-11-02, AD-03): a standard workstream doesn't ask for releaseImpact either
+
+Only `full` ships, so the field means nothing elsewhere. This changes M1, where any project with a runbook required it. Rejected: requiring it on standard in a releasing project, which makes the tier choice mean nothing. **Closed.**

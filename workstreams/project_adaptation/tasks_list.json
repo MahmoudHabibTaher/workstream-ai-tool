@@ -180,13 +180,29 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-02T13:06:55Z",
       "baseCommit": "e9be4debc2d9d15bb958b00db3f2a1b020d9da8f",
       "claimedBy": "m4-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-02T13:10:42Z",
+      "commit": "bd3c1f6b73d16401be0e2d5a7824769eb95ed6db",
+      "verification": {
+        "tree": "8e72f93c48ed993d6a4e6443312632fa47fed255",
+        "at": "2026-11-02T13:10:41Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "AD-04",
