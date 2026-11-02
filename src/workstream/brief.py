@@ -8,13 +8,12 @@ tool exists to remove.
 
 from __future__ import annotations
 
-from workstream import baseline, decisions, evidence, plan, tasks, worktree
-from workstream.project import TEMPLATES_DIR, Project
+from workstream import baseline, decisions, evidence, plan, protocol, tasks, worktree
+from workstream.project import Project
 
 DEFAULT_MAX_CHARS = 10_000
 MAX_SECTION_LINES = 80
 MAX_GOTCHA_CHARS = 400
-RULES_FILE = "worker_rules.md"
 
 
 def _plan_sections(project: Project, ws: dict, task: dict) -> tuple[list[str], list[str]]:
@@ -86,15 +85,29 @@ def _finish_lines(ws: dict, task: dict) -> list[str]:
     ]
 
 
+def _scope_lines(scope: dict | None) -> list[str]:
+    """The workstream's boundary. A worker that can't see it can't stay inside it."""
+    if not scope:
+        return []
+    lines = []
+    if scope.get("rule"):
+        lines += ["", f"**Scope rule:** {scope['rule']}"]
+    if scope.get("outOfScope"):
+        lines += ["", "**Out of scope:** " + "; ".join(scope["outOfScope"])]
+    return lines
+
+
 def render(project: Project, ws: dict, task: dict, rows: list[dict],
-           max_chars: int = DEFAULT_MAX_CHARS) -> str:
+           max_chars: int = DEFAULT_MAX_CHARS, *, scope: dict | None = None,
+           cited: bool = True) -> str:
     """The brief, with the decisions log trimmed first if it goes over max_chars. What the task
-    itself asks for is never trimmed."""
+    itself asks for is never trimmed. `cited=False` leaves out the plan sections, for measuring
+    the part the context limit covers."""
     parts = [f"# {task['id']}: {task['title']}",
              f"Workstream `{ws['id']}`, phase {task['phase']}, {task['mode']}."]
     if task.get("summary"):
         parts += ["", task["summary"]]
-    parts += ["", *_start_lines(project, task)]
+    parts += ["", *_start_lines(project, task), *_scope_lines(scope)]
     for label, field in (("Files you are expected to touch", "files"), ("Read first", "docs"),
                          ("Needs", "requires")):
         if task.get(field):
@@ -111,14 +124,14 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
     earlier = _builds_on(project, ws, task, rows)
     if earlier:
         parts += ["", "## Builds on", "", *earlier]
-    cited, missing = _plan_sections(project, ws, task)
-    if cited or missing:
+    sections, missing = _plan_sections(project, ws, task) if cited else ([], [])
+    if sections or missing:
         parts += ["", "## From the plan"]
-        for section in cited:
+        for section in sections:
             parts += ["", section]
         if missing:
             parts += ["", f"Cited but not found in PLAN.md: {', '.join(missing)}"]
-    parts += ["", (TEMPLATES_DIR / RULES_FILE).read_text().rstrip(), "", *_finish_lines(ws, task)]
+    parts += ["", "## Rules", "", protocol.section("worker"), "", *_finish_lines(ws, task)]
     text = "\n".join(parts)
     return _with_decisions(project, ws, task, text, max_chars) + "\n"
 

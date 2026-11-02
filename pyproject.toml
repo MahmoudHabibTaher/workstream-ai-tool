@@ -17,4 +17,4 @@ ws = "workstream.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-workstream = ["templates/*.md"]
+workstream = ["templates/*.md", "assets/*.md", "assets/skills/*/*.md"]

@@ -472,7 +472,7 @@ class RecoveryTests(SettleTestCase):
 
     def test_a_failed_tracking_commit_restores_every_file(self) -> None:
         self.arrange(self.t("T1"))
-        self.work(evidence=evidence_text("T1", proposals="### P1: a call\nWhy."))
+        self.work(evidence=evidence_text("T1", proposals="### P1: a call\nWhy. Rejected: b."))
         with mock.patch.object(act, "commit", side_effect=act.Refused("hook said no")):
             self.assertIn("hook said no", self.fails("settle", "T1"))
         self.assertEqual(self.git("status", "--porcelain"), "")
@@ -507,9 +507,9 @@ class BookkeepingTests(SettleTestCase):
     def test_decisions_are_numbered_across_a_batch_in_merge_order(self) -> None:
         self.arrange(self.t("T1"), self.t("T2", 20))
         one, two = self.claim("T1", "T2")
-        self.finish(one, "T1", evidence=evidence_text("T1", proposals="### P1: alpha\nWhy.\n\n"
-                                                                      "### P2: beta\nWhy."))
-        self.finish(two, "T2", evidence=evidence_text("T2", proposals="### P1: gamma\nWhy."))
+        self.finish(one, "T1", evidence=evidence_text("T1", proposals="### P1: alpha\nWhy. Rejected: x.\n\n"
+                                                                      "### P2: beta\nWhy. Rejected: y."))
+        self.finish(two, "T2", evidence=evidence_text("T2", proposals="### P1: gamma\nWhy. Rejected: z."))
         out = self.ok("settle", "T1", "T2")
         self.assertIn("numbered D001, D002, D003", out)
         log = (self.ws_dir / "alpha" / "DECISIONS.md").read_text()

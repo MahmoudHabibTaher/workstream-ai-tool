@@ -14,3 +14,4 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: make test
+      - run: make audit

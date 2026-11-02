@@ -217,6 +217,9 @@ def commit_claim(project: Project, ws: dict, ids: list[str], base: str | None,
     check_checkout(project, snapshot.git_facts(project, rows), "claim", ws["id"], rows)
     base = base or gitutil.rev_parse(project.root, "HEAD")
     queue = project.tasks_path(ws)
+    problems = tasks.batch_problems(tasks.load(queue, project.config)["tasks"], ids)
+    if problems:
+        raise Refused("claimed nothing:\n" + "\n".join(f"  - {p}" for p in problems))
     originals = {path: path.read_bytes() for path in (queue, project.registry_path)}
     try:
         tasks.claim(queue, ids, base, by, project.config)

@@ -8,7 +8,8 @@ nothing, so an approved plan carries its tasks in a fenced block and the CLI spl
     [{"id": "T-01", "phase": 1, "priority": 10, "title": "..."}]
     ```
 
-An optional ```text ws-decisions``` block holds what the user decided while the plan was
+The block may instead be `{"scope": {...}, "tasks": [...]}`, adding the workstream's boundary,
+which every brief then shows. An optional ```text ws-decisions``` block holds what the user decided while the plan was
 discussed. It becomes the first entry in DECISIONS.md. Neither block stays in PLAN.md.
 """
 
@@ -29,6 +30,7 @@ TASKS_BLOCK = "ws-tasks"
 DECISIONS_BLOCK = "ws-decisions"
 SLOT_RE = r"\{\{%s[^}]*\}\}"
 PLACEHOLDER = "{{"
+SCOPE_KEYS = {"inScope", "outOfScope", "rule"}
 NO_SCOPE_DECISIONS = "No scope decisions were recorded with the plan."
 
 
@@ -109,8 +111,8 @@ def split_blocks(text: str) -> tuple[str, dict[str, str]]:
     return "\n".join(kept).strip() + "\n", blocks
 
 
-def parse_plan(text: str) -> tuple[str, list[dict], str]:
-    """(plan body, task objects, scope decisions) from an approved plan."""
+def parse_plan(text: str) -> tuple[str, list[dict], str, dict | None]:
+    """(plan body, task objects, the user's decisions, scope) from an approved plan."""
     body, blocks = split_blocks(text)
     if TASKS_BLOCK not in blocks:
         raise WsError(f"the plan has no ```json {TASKS_BLOCK}``` block")
@@ -118,10 +120,16 @@ def parse_plan(text: str) -> tuple[str, list[dict], str]:
         new_tasks = json.loads(blocks[TASKS_BLOCK])
     except json.JSONDecodeError as e:
         raise WsError(f"the {TASKS_BLOCK} block is not valid JSON: {e}") from None
+    scope = None
+    if isinstance(new_tasks, dict):
+        scope = new_tasks.get("scope")
+        new_tasks = new_tasks.get("tasks")
+    if scope is not None and (not isinstance(scope, dict) or set(scope) - SCOPE_KEYS):
+        raise WsError(f"scope may only hold {', '.join(sorted(SCOPE_KEYS))}")
     if not isinstance(new_tasks, list) or not new_tasks \
             or not all(isinstance(t, dict) for t in new_tasks):
         raise WsError(f"the {TASKS_BLOCK} block must be a non-empty array of task objects")
-    return body, new_tasks, blocks.get(DECISIONS_BLOCK, "").strip()
+    return body, new_tasks, blocks.get(DECISIONS_BLOCK, "").strip(), scope
 
 
 def _fill(path, slots: dict[str, str]) -> None:
@@ -143,7 +151,7 @@ def seed_from_plan(project: Project, ws: dict, text: str, force: bool = False
     if plan_path.exists() and PLACEHOLDER not in plan_path.read_text() and not force:
         raise Refused(f"{project.rel(plan_path)} is already written; a plan is immutable once "
                       "approved (a change belongs in DECISIONS.md, --force overrides)")
-    body, new_tasks, scope = parse_plan(text)
+    body, new_tasks, user_decisions, scope = parse_plan(text)
     if PLACEHOLDER in body:
         raise WsError("the plan still has a {{...}} placeholder")
     queue_path = project.tasks_path(ws)
@@ -156,13 +164,15 @@ def seed_from_plan(project: Project, ws: dict, text: str, force: bool = False
     if errors:
         raise WsError("the plan's tasks have problems:\n" + "\n".join(f"  - {e}" for e in errors))
     tasks.seed(queue_path, new_tasks, project.config)
+    if scope:
+        tasks.set_scope(queue_path, scope, project.config)
     plan_path.write_text(body)
     decisions_path = folder / "DECISIONS.md"
     if decisions_path.exists():
-        _fill(decisions_path, {"SCOPE_DECISIONS": scope or NO_SCOPE_DECISIONS})
-    elif scope:
+        _fill(decisions_path, {"SCOPE_DECISIONS": user_decisions or NO_SCOPE_DECISIONS})
+    elif user_decisions:
         decisions.append(decisions_path, [decisions.render_entry(1, today(), decisions.USER,
-                                                                 "scope approved", scope)])
+                                                                 "scope approved", user_decisions)])
     rows = tasks.load(queue_path, project.config)["tasks"]
     _fill(folder / handoff.FILE_NAME, {"NEXT": " ".join(handoff.next_lines(rows)),
                                        "GOTCHAS": "None."})

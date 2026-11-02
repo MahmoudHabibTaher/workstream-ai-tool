@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from workstream import gitutil, tasks
+from workstream import decisions, gitutil, tasks
 from workstream.project import Project
 
 DONE, BLOCKED = "done", "blocked"
@@ -29,6 +29,7 @@ SECTION_RE = re.compile(r"^## +(.+?)\s*$", re.MULTILINE)
 ITEM_RE = re.compile(r"^\s*(\d+)[.)]\s+(.*)$")
 PROPOSAL_RE = re.compile(r"^### +(P\d+)\s*:\s*(.*?)\s*$", re.MULTILINE)
 ARROW_RE = re.compile(r"(?:->|→)\s*(\S.*)$")
+REJECTED_RE = re.compile(r"\brejected\b", re.IGNORECASE)
 PLACEHOLDER = "{{"
 
 
@@ -126,7 +127,13 @@ def problems(text: str | None, task: dict) -> list[str]:
             found.append(f"acceptance item {n} has nothing quoted after `->`")
     ids = [p["id"] for p in parsed["proposals"]]
     found += [f"{i} is proposed twice" for i in sorted({i for i in ids if ids.count(i) > 1})]
-    found += [f"{p['id']} has no reason under it" for p in parsed["proposals"] if not p["body"]]
+    for proposal in parsed["proposals"]:
+        body = proposal["body"]
+        if not body:
+            found.append(f"{proposal['id']} has no reason under it")
+        elif not REJECTED_RE.search(body) and not decisions.is_open(body):
+            # The one thing a later session can't work out from the code.
+            found.append(f"{proposal['id']} doesn't say what was rejected (`Rejected: ...`)")
     return found
 
 
@@ -139,8 +146,8 @@ def skeleton(task: dict) -> str:
     if not task.get("acceptance"):
         lines.append("No acceptance items.")
     lines += ["", "## Proposed decisions", "",
-              "None. (A reversible call goes here as `### P1: the call`, with the reason and "
-              "the rejected alternative. `ws settle` numbers it.)", "",
+              "None. (A reversible call goes here as `### P1: the call`, with the reason, then "
+              "`Rejected: the alternative`. `ws settle` numbers it.)", "",
               "## Gotchas and follow-ups", "", "None.", ""]
     return "\n".join(lines)
 

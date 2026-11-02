@@ -28,7 +28,7 @@ import shutil
 from pathlib import Path
 
 from workstream import gitutil, tasks
-from workstream.errors import WsError
+from workstream.errors import Refused, WsError
 from workstream.fsutil import today, write_json
 from workstream.project import TASKS_NAME, TEMPLATES_DIR, Project
 
@@ -183,6 +183,29 @@ def set_status(project: Project, ws_id: str, status: str, notes: str | None = No
     return ws
 
 
+def check_claimable(project: Project, ws: dict) -> None:
+    """A claim needs a workstream that is open for work, and whatever it depends on finished."""
+    if ws.get("status") not in ("planned", "active"):
+        raise Refused(f"{ws['id']} is {ws.get('status')}; `ws set-status active` resumes it")
+    rows = load(project)["workstreams"]
+    status = {w["id"]: w.get("status") for w in rows}
+    waiting = [d for d in ws.get("dependsOn", []) if status.get(d) != "done"]
+    if waiting:
+        raise Refused(f"{ws['id']} depends on {', '.join(waiting)}, not done yet")
+
+
+RELEASE_ORDER = ("none", "patch", "minor", "major")
+
+
+def release_bump(task_list: list[dict]) -> tuple[str, list[str]]:
+    """(the highest releaseImpact among done tasks, the done tasks that don't say). A deferred
+    task shipped nothing, so it doesn't count."""
+    done = [t for t in task_list if t.get("status") == "done"]
+    known = [t["releaseImpact"] for t in done if t.get("releaseImpact") in RELEASE_ORDER]
+    bump = max(known, key=RELEASE_ORDER.index, default="none")
+    return bump, [t["id"] for t in done if t.get("releaseImpact") is None]
+
+
 def sync(project: Project) -> list[str]:
     """Refresh every row's progress, moving planned to active once a task has started.
     Returns one line per thing worth saying. Never closes anything."""
@@ -257,6 +280,14 @@ def _queue_problems(project: Project, ws: dict, path: Path, problems: list[str],
     errors, task_warnings = tasks.validate_tasks(queue["tasks"], project.root, project.config)
     problems += [f"{wid}: {e}" for e in errors]
     warnings += [f"{wid}: {w}" for w in task_warnings]
+    planned_with = queue.get("protocolVersion")
+    if planned_with and planned_with != tasks.PROTOCOL_VERSION:
+        warnings.append(f"{wid}: planned against protocol {planned_with}; "
+                        f"this is {tasks.PROTOCOL_VERSION}")
+    warnings += [f"{wid}: {t['id']}: commit {t['commit']} isn't in this repository; "
+                 "was it rewritten?" for t in queue["tasks"]
+                 if t.get("status") == "done" and isinstance(t.get("commit"), str)
+                 and t["commit"] and not gitutil.rev_parse(project.root, f"{t['commit']}^{{commit}}")]
     prefix = ws.get("taskPrefix")
     if prefix:
         for t in queue["tasks"]:

@@ -9,7 +9,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M0 Bootstrap | Done, except CI has not run: the repo has no remote yet |
 | M1 State and core CLI | Done |
 | M2 Execution engine | Done: a scripted fake agent finishes a workstream sequentially and in parallel. No real agent has run it yet |
-| M3 onward | Not started |
+| M3 Protocol and skills | Done: every role is within budget and [every old rule is mapped](rule-map.md). No real agent has followed the skills yet, which is M5 |
+| M4 onward | Not started |
 
 
 ## Design principles
@@ -57,8 +58,8 @@ Repo root: `<repo root>` (empty today; needs `git init`).
 src/workstream/   cli, state, schema, graph, gates, verify, baseline, worktree,
                   brief, settle, snapshot, act, review, init, adapt, audit, serve
 schema/           JSON Schemas (tasks, registry, config, snapshot)
-protocol/         PROTOCOL.md, addressable by section via `ws protocol <section>`
-skills/           ws-plan, ws-run, ws-coordinate, ws-review (capability-worded source)
+src/workstream/assets/   PROTOCOL.md, addressable by section via `ws protocol <section>`,
+                  and skills/: ws-plan, ws-run, ws-coordinate, ws-review (capability-worded source)
 profiles/         cargo, gradle-kmp, node, python, go, generic
 adapters/         claude-code (plugin, ws-worker agent, hooks), copilot-cli
 ui/               mod, web, vscode, jetbrains

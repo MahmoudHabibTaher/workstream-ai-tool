@@ -185,7 +185,7 @@ class RepoTestCase(WsTestCase):
         (self.folder / "evidence").mkdir()
         (self.folder / "evidence" / "AL-01.md").write_text("# AL-01 evidence\n")
         self.write_queue([
-            task("AL-01", 10, status="done", commit="abc"),
+            task("AL-01", 10, status="done", commit=self.git("rev-parse", "HEAD").strip()),
             task("AL-02", 20, status="in-progress", branch="task/al-two",
                  startedAt="2026-10-01T00:00:00Z"),
             task("AL-03", 30, status="todo", branch="task/al-three"),

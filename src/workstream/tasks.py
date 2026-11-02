@@ -487,6 +487,30 @@ def claim(path: Path, ids: list[str], base: str, by: str | None, config: Config)
     return ids
 
 
+def batch_problems(rows: list[dict], ids: list[str]) -> list[str]:
+    """Why these tasks shouldn't run together. Each phase lands and goes green before anything
+    builds on it, a foreground task needs the session to itself, and two workers on one file
+    only find out at the merge."""
+    chosen = [t for t in rows if t["id"] in set(ids)]
+    problems = []
+    phases = sorted({t["phase"] for t in chosen})
+    if len(phases) > 1:
+        problems.append(f"a batch is one phase; these span {phases}")
+    foreground = [t["id"] for t in chosen if t["mode"] == "foreground"]
+    if foreground and len(chosen) > 1:
+        problems.append(f"foreground tasks run alone: {', '.join(foreground)}")
+    problems += [f"{a} and {b} both name {path}: claim one now, or chain them with blockedBy"
+                 for a, b, path in graph.file_overlaps(chosen)]
+    return problems
+
+
+def set_scope(path: Path, scope: dict, config: Config) -> None:
+    data = load(path, config)
+    data["scope"] = scope
+    data["updated"] = today()
+    save(path, data)
+
+
 def unclaim(path: Path, ids: list[str], config: Config) -> list[str]:
     """Put started tasks back in the queue: todo, with startedAt and the claim cleared."""
     data = load(path, config)

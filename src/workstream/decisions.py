@@ -13,6 +13,7 @@ from pathlib import Path
 
 ENTRY_RE = re.compile(r"^## (D(\d+))\s*(?:\(([^)]*)\))?\s*:?\s*(.*)$", re.MULTILINE)
 USER = "user"
+OPEN_MARK = "**Open.**"
 HEADER = "# Decisions\n\nSettled judgment calls. Append, never rewrite.\n\n---\n"
 
 
@@ -47,8 +48,14 @@ def relevant(entries: list[dict], task: dict) -> list[dict]:
                  or any(_mentions(e["text"], n) for n in needles))]
 
 
+def is_open(text: str) -> bool:
+    return OPEN_MARK in text
+
+
 def render_entry(number: int, date: str, who: str, title: str, body: str) -> str:
-    return f"## D{number:03d} ({date}, {who}): {title}\n\n{body.strip()} **Closed.**\n"
+    """One entry. Closed, unless its author marked it open for someone to settle."""
+    ending = "" if is_open(body) else " **Closed.**"
+    return f"## D{number:03d} ({date}, {who}): {title}\n\n{body.strip()}{ending}\n"
 
 
 def append(path: Path, entries: list[str]) -> None:

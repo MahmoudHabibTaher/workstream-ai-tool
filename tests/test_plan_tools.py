@@ -59,7 +59,7 @@ class SectionTests(unittest.TestCase):
 
 class SplitTests(unittest.TestCase):
     def test_splits_the_blocks_out(self) -> None:
-        body, new_tasks, scope = plan.parse_plan(PLAN)
+        body, new_tasks, scope, _ = plan.parse_plan(PLAN)
         self.assertNotIn("ws-tasks", body)
         self.assertNotIn("ws-decisions", body)
         self.assertIn("## not a heading", body)
@@ -79,7 +79,7 @@ class SplitTests(unittest.TestCase):
 
     def test_a_block_named_inside_another_fence_stays_text(self) -> None:
         text = "````md\n```json ws-tasks\n[]\n```\n````\n```json ws-tasks\n[{\"id\": \"A\"}]\n```\n"
-        body, new_tasks, _ = plan.parse_plan(text)
+        body, new_tasks, _, _ = plan.parse_plan(text)
         self.assertIn("````md", body)
         self.assertEqual(new_tasks, [{"id": "A"}])
 
@@ -210,7 +210,8 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual((parsed["status"], parsed["reason"]), ("blocked", "no key"))
 
     def test_proposals(self) -> None:
-        text = evidence_text("T-01", 2, proposals="### P1: a call\nWhy. Rejected: b.\n\n### P2: c\nD.")
+        text = evidence_text("T-01", 2, proposals="### P1: a call\nWhy. Rejected: b.\n\n"
+                                                    "### P2: c\nD. Rejected: e.")
         parsed = evidence.parse(text)
         self.assertEqual([p["id"] for p in parsed["proposals"]], ["P1", "P2"])
         self.assertEqual(parsed["proposals"][0]["body"], "Why. Rejected: b.")

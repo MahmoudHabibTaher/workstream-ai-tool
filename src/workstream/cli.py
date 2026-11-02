@@ -11,8 +11,9 @@ import json
 import sys
 from pathlib import Path
 
-from workstream import act, baseline, brief, decisions, evidence, gates, graph, gitutil, handoff
-from workstream import plan, registry, review, settle, snapshot, tasks, verify, worktree
+from workstream import act, audit, baseline, brief, decisions, evidence, gates, graph, gitutil
+from workstream import handoff, plan, protocol, registry, review, settle, snapshot, tasks, verify
+from workstream import worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
 from workstream.project import Project, init_project, open_project
@@ -383,6 +384,11 @@ def cmd_status(args: argparse.Namespace) -> int:
     else:
         print(wave["state"])
     _print_leftovers(rows)
+    if project.config.release_mode != "none":
+        bump, unset = registry.release_bump(rows)
+        print(f"release: {bump}, runbook {project.config.release_runbook or '(none named)'}")
+        if unset:
+            print(f"  done without a releaseImpact: {', '.join(unset)}")
     return 0
 
 
@@ -419,6 +425,7 @@ def cmd_graph(args: argparse.Namespace) -> int:
 def cmd_claim(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
+    registry.check_claimable(project, ws)
     if args.commit:
         base, short = act.commit_claim(project, ws, args.ids, args.base, args.by)
         print(f"claimed {', '.join(args.ids)} at {base}; committed {short}")
@@ -504,7 +511,8 @@ def cmd_brief(args: argparse.Namespace) -> int:
     ws, path = _queue(project, args)
     data = tasks.load(path, project.config)
     task = tasks.find_task_by_prefix(data, args.id)
-    print(brief.render(project, ws, task, data["tasks"], args.max_chars), end="")
+    print(brief.render(project, ws, task, data["tasks"], args.max_chars, scope=data.get("scope")),
+          end="")
     return 0
 
 
@@ -560,8 +568,6 @@ def cmd_worktree(args: argparse.Namespace) -> int:
         for w in rows:
             print(f"{w['path']}  {w.get('branch') or 'detached'}")
         return 0
-    if not args.ids:
-        raise WsError(f"worktree {args.action} needs a task id")
     ws, _ = _queue(project, args)
     for task_id in args.ids:
         if args.action == "create":
@@ -610,6 +616,43 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     if not handoff.write(project, ws, [], args.note):
         raise WsError(f"{ws['id']} keeps no {handoff.FILE_NAME} at this tier")
     print(f"wrote {handoff.FILE_NAME}; commit it")
+    return 0
+
+
+# --- the protocol and what it costs -------------------------------------------------------
+
+
+def cmd_protocol(args: argparse.Namespace) -> int:
+    if args.section:
+        print(protocol.section(args.section))
+        return 0
+    print(f"protocol version {protocol.version()}; `ws protocol <section>` prints one of:")
+    for name, body in protocol.sections().items():
+        print(f"  {name:<12} {audit.tokens(body):>5} tokens")
+    return 0
+
+
+def cmd_audit(args: argparse.Namespace) -> int:
+    rows = audit.role_rows()
+    try:
+        project = _project(args)
+    except WsError:  # the tool's own limits don't need a project around them
+        project = None
+    if project is not None and project.registry_path.exists():
+        data = registry.load(project)
+        named = getattr(args, "workstream", None)
+        chosen = [registry.find(data, named)] if named else [
+            w for w in data["workstreams"] if w.get("status") in registry.OPEN_STATUSES]
+        for ws in chosen:
+            rows += audit.project_rows(project, ws)
+    if args.json:
+        print(json.dumps(rows, indent=2))
+    else:
+        print("\n".join(audit.format_rows(rows)))
+    over = [r["role"] for r in rows if not r["ok"]]
+    if over:
+        print(f"FAIL: over budget: {', '.join(over)}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -777,9 +820,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--key", action="append", help="only this one of its commands; repeatable")
     p.add_argument("--json", action="store_true")
 
+    # Real subcommands, not an action plus a list: before 3.12, argparse fills both at once, so
+    # `ws worktree create -w x T1` would be refused.
     p = command("baseline", cmd_baseline, "what the commands report before any work starts")
-    p.add_argument("action", choices=("record", "show"))
-    p.add_argument("keys", nargs="*", metavar="KEY", help="default: what open tasks verify with")
+    actions = p.add_subparsers(dest="action", required=True)
+    q = actions.add_parser("record", parents=[common], help="run the commands and record it")
+    q.add_argument("keys", nargs="*", metavar="KEY", help="default: what open tasks verify with")
+    actions.add_parser("show", parents=[common], help="what was recorded")
 
     p = command("brief", cmd_brief, "everything a worker needs for one task")
     p.add_argument("id", help="task id, or a unique prefix of one")
@@ -795,10 +842,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("id")
 
     p = command("worktree", cmd_worktree, "a worktree per claimed task")
-    p.add_argument("action", choices=("create", "remove", "list"))
-    p.add_argument("ids", nargs="*", metavar="ID")
-    p.add_argument("--force", action="store_true", help="remove: discard uncommitted work")
-    p.add_argument("--delete-branch", action="store_true", help="remove: also a merged branch")
+    actions = p.add_subparsers(dest="action", required=True)
+    q = actions.add_parser("create", parents=[common], help="on the task's branch, set up")
+    q.add_argument("ids", nargs="+", metavar="ID")
+    q = actions.add_parser("remove", parents=[common], help="refuses to lose uncommitted work")
+    q.add_argument("ids", nargs="+", metavar="ID")
+    q.add_argument("--force", action="store_true", help="discard uncommitted work")
+    q.add_argument("--delete-branch", action="store_true", help="also a merged branch")
+    actions.add_parser("list", parents=[common], help="every linked worktree")
 
     p = command("settle", cmd_settle, "land finished tasks: gates, merge, numbered decisions, "
                                       "progress, handoff, registry, one commit")
@@ -812,6 +863,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = command("handoff", cmd_handoff, "rewrite session_handoff.md from the current state")
     p.add_argument("--note", help="a line for the next session")
+
+    p = command("protocol", cmd_protocol, "the protocol, one section at a time")
+    p.add_argument("section", nargs="?")
+
+    p = command("audit", cmd_audit, "context each role costs, against its limit (exit 1 if over)")
+    p.add_argument("what", choices=("context",))
+    p.add_argument("--json", action="store_true")
 
     p = command("snapshot", cmd_snapshot, "the read model as JSON; with -w also that workstream's "
                                           "tasks, wave and narrative paths")

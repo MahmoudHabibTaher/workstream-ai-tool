@@ -1,0 +1,27 @@
+# This tool builds itself with itself, from M4 on.
+schema = 1
+
+[branches]
+integration = "main"
+production = "main"
+task = "task/{slug}"
+merge = "no-ff"
+
+# The commands a task's `verify` names. Add your project's own, for example:
+#   test = "make test"
+#   lint = "make lint"
+[commands]
+test = "make test"
+audit = "make audit"
+
+# Task kind -> the command keys it must verify with, enforced by `ws validate`:
+#   behaviour = ["test"]
+[adequacy]
+behaviour = ["test"]
+prompts = ["test", "audit"]
+
+[parallel]
+max_workers = 3
+
+[release]
+mode = "none"
