@@ -25,3 +25,7 @@ A failure says more than a tool not being installed. Rejected: always showing th
 ## D005 (2026-11-02, AD-03): a standard workstream doesn't ask for releaseImpact either
 
 Only `full` ships, so the field means nothing elsewhere. This changes M1, where any project with a runbook required it. Rejected: requiring it on standard in a releasing project, which makes the tier choice mean nothing. **Closed.**
+
+## D006 (2026-11-02, AD-04): a warning never changes doctor's exit code
+
+A missing tool may be fine on this machine and needed on another, and scripts need a clear signal for what is really broken. Rejected: a strict flag, since nothing needs it yet. **Closed.**

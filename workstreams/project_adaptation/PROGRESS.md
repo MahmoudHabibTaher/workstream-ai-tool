@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `5ed73b7`.
 
 ---
 
+## 2026-11-02: AD-04: ws doctor
+
+Merged as `704b262a6b`. Verified: test pass, audit pass. [Evidence](evidence/AD-04.md).
+
 ## 2026-11-02: AD-03: Tiers
 
 Merged as `bd3c1f6b73`. Verified: test pass, audit pass. [Evidence](evidence/AD-03.md).
