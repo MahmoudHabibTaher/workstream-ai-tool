@@ -207,7 +207,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/pi-04",
       "blockedBy": [
         "PI-01",
         "PI-02",
@@ -220,10 +220,10 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-02T19:43:52Z",
+      "baseCommit": "f8335a296bba8acdcbfab0959bf3f468d20d96d2",
+      "claimedBy": "m6-session",
       "completedAt": null,
       "commit": null,
       "verification": null
