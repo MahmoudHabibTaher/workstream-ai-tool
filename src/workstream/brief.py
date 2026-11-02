@@ -62,7 +62,7 @@ def _start_lines(project: Project, task: dict) -> list[str]:
 
 
 def _verify_lines(project: Project, ws: dict, task: dict) -> list[str]:
-    record = baseline.load(project.folder(ws))
+    record = baseline.load_for(project, project.folder(ws))
     lines = []
     for label, command in tasks.verify_commands(task, project.config):
         known = len(baseline.known_findings(record, label))

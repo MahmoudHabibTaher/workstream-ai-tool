@@ -6,8 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from workstream import gitutil
-from workstream.config import CONFIG_REL, Config, load_config, render_default
+from workstream.config import CONFIG_REL, Config, load_config
 from workstream.errors import WsError
 
 REGISTRY_NAME = "workstreams.json"
@@ -76,27 +75,3 @@ def open_project(root: Path | None = None, start: Path | None = None) -> Project
         if root is None:
             raise WsError(f"no {CONFIG_REL} here or in any parent (run `ws init`)")
     return Project(root=root, config=load_config(root / CONFIG_REL))
-
-
-def init_project(root: Path, integration: str | None = None) -> tuple[Project, list[str]]:
-    """Write a default config and an empty registry where they don't exist yet.
-
-    Returns the project and what was created. Existing files are left alone, so running it
-    twice is safe.
-    """
-    root = Path(root).resolve()
-    created = []
-    config_path = root / CONFIG_REL
-    if not config_path.exists():
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        branch = integration or gitutil.default_branch(root)
-        config_path.write_text(render_default(branch))
-        created.append(CONFIG_REL)
-    project = Project(root=root, config=load_config(config_path))
-    if not project.registry_path.exists():
-        from workstream import registry  # registry imports this module
-
-        project.workstreams_dir.mkdir(parents=True, exist_ok=True)
-        registry.save(project, registry.new_registry())
-        created.append(project.rel(project.registry_path))
-    return project, created
