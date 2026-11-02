@@ -72,17 +72,23 @@ def _verify_lines(project: Project, ws: dict, task: dict) -> list[str]:
     return lines
 
 
-def _finish_lines(ws: dict, task: dict) -> list[str]:
+def _finish_lines(project: Project, ws: dict, task: dict) -> list[str]:
     tid = f"{task['id']} -w {ws['id']}"
-    return [
+    lines = [
         "## When the work is done", "",
         f"1. `ws verify {tid}` runs the checks above and records the result. Use it rather than "
         "running them by hand: its output stays short, and only its record counts.",
         f"2. `ws evidence new {tid}`, then fill in what it wrote: quote the proof for each item.",
         "3. Commit the code and the evidence together on your branch.",
         f"4. `ws evidence check {tid}` must say OK. If you changed code, verify again first.",
-        "5. Report: done or blocked, the branch, and any proposed decisions. Nothing more.",
     ]
+    if task["mode"] == "foreground":
+        # No separate coordinator is coming to land this, so the rule against switching back,
+        # which is there to keep workers apart, doesn't apply.
+        return lines + [f"5. This task runs in the foreground, so you land it too: `git switch "
+                        f"{project.config.integration}`, then `ws settle {tid}`."]
+    return lines + ["5. Report: done or blocked, the branch, and any proposed decisions. "
+                    "Nothing more."]
 
 
 def _scope_lines(scope: dict | None) -> list[str]:
@@ -131,7 +137,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
             parts += ["", section]
         if missing:
             parts += ["", f"Cited but not found in PLAN.md: {', '.join(missing)}"]
-    parts += ["", "## Rules", "", protocol.section("worker"), "", *_finish_lines(ws, task)]
+    parts += ["", "## Rules", "", protocol.section("worker"), "", *_finish_lines(project, ws, task)]
     text = "\n".join(parts)
     return _with_decisions(project, ws, task, text, max_chars) + "\n"
 

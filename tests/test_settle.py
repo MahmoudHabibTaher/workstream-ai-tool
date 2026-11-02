@@ -642,6 +642,18 @@ class BriefTests(SettleTestCase):
         self.arrange(self.t("T1"))
         self.assertIn("git switch -c task/t1", self.ok("brief", "T1"))
 
+    def test_a_background_worker_reports_and_stops(self) -> None:
+        self.arrange(self.t("T1"))
+        brief = self.ok("brief", "T1")
+        self.assertIn("5. Report: done or blocked", brief)
+        self.assertNotIn("ws settle", brief)
+
+    def test_a_foreground_task_says_to_land_it_too(self) -> None:
+        self.arrange(self.t("T1", mode="foreground"))
+        brief = self.ok("brief", "T1")
+        self.assertIn("`git switch main`, then `ws settle T1 -w alpha`", brief)
+        self.assertNotIn("5. Report:", brief)
+
     def test_a_citation_with_no_section_is_flagged(self) -> None:
         self.arrange(self.t("T1", findings=["T9"]))
         self.assertIn("not found in PLAN.md: T9", self.ok("brief", "T1"))
@@ -662,6 +674,23 @@ class BriefTests(SettleTestCase):
         brief = self.ok("brief", "T1", "--max-chars", "10")
         self.assertIn("1. works", brief)
         self.assertIn("When the work is done", brief)
+
+    def test_decide_takes_the_next_number(self) -> None:
+        self.arrange(self.t("T1"))
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text("## D004 (2026-01-01, user): old\n\nA.\n")
+        self.assertIn("D005", self.ok("decide", "keep it", "--why", "Because. Rejected: no."))
+        text = (self.ws_dir / "alpha" / "DECISIONS.md").read_text()
+        self.assertIn("coordinator): keep it", text)
+        self.assertIn("Because. Rejected: no. **Closed.**", text)
+
+    def test_decide_works_where_there_is_no_log_yet(self) -> None:
+        self.ok("new", "small", "--title", "S", "--summary", "s", "--tier", "lite")
+        self.assertIn("D001", self.ok("decide", "x", "--why", "y", "--by", "user", "-w", "small"))
+
+    def test_a_users_decision_reaches_every_brief(self) -> None:
+        self.arrange(self.t("T1"))
+        self.ok("decide", "no new endpoints", "--why", "Scope.", "--by", "user")
+        self.assertIn("no new endpoints", self.ok("brief", "T1"))
 
     def test_decisions_command(self) -> None:
         self.arrange(self.t("T1"))

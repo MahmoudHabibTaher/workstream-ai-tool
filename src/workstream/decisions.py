@@ -58,6 +58,13 @@ def render_entry(number: int, date: str, who: str, title: str, body: str) -> str
     return f"## D{number:03d} ({date}, {who}): {title}\n\n{body.strip()}{ending}\n"
 
 
+def record(path: Path, date: str, who: str, title: str, body: str) -> str:
+    """Add one entry with the next free number. Returns its id."""
+    number = next_number(parse(path.read_text()) if path.exists() else [])
+    append(path, [render_entry(number, date, who, title, body)])
+    return f"D{number:03d}"
+
+
 def append(path: Path, entries: list[str]) -> None:
     """Add rendered entries at the end, creating the file on a tier that started without one."""
     text = path.read_text() if path.exists() else HEADER

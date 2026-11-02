@@ -9,7 +9,7 @@ description: Manage workstreams over their life: choose what's next, add a task,
 
 - **Something seems off:** `ws doctor` changes nothing and says what is wrong. `ws doctor --run` also runs each command against the baseline.
 - **Where things stand:** `ws list` and `ws status -w <id>`. `ws snapshot` has the health findings: stale claims, orphan branches, missing evidence.
-- **A task the plan didn't foresee:** `ws add`, with a `DECISIONS.md` entry saying why. `PLAN.md` stays as approved.
+- **A task the plan didn't foresee:** `ws add`, then `ws decide "..." --why "..."` to say why. `PLAN.md` stays as approved.
 - **A `verify` a worker found wrong:** `ws update <task> --verify <key>`, after reading their proposal.
 - **Pause, resume, abandon:** `ws set-status`, only on the user's say-so. Abandoning needs `--notes`.
 - **Replay:** `ws reset --dry-run` first, since it discards the record of what ran.

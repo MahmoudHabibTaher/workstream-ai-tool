@@ -65,7 +65,7 @@ class ProtocolTests(unittest.TestCase):
             argv = fill_in(command)
             # A reference like `ws set-status` names a command, and its arguments follow in prose.
             with self.subTest(command=command), mock.patch("sys.stderr"):
-                if argv[0] in ("set-status", "add", "protocol", "seed"):
+                if argv[0] in ("set-status", "add", "protocol", "seed", "decide"):
                     self.assertIn(argv[0], parser.format_help())
                     continue
                 if len(argv) == 1 and argv[0] in ("settle", "verify", "claim", "review", "update",

@@ -179,7 +179,7 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | kotlin | Reset clears run-time state and never the definitions | code | tasks.reset |
 | kotlin | Clear a queue to re-plan the same folder | deleted | Decision record 0004 |
 | both | Each fact has one home | protocol | files: "Each fact has one home" |
-| subsonic | A task the plan missed needs a decision saying why | skill | ws-coordinate: "with a `DECISIONS.md` entry saying why" |
+| subsonic | A task the plan missed needs a decision saying why | skill | ws-coordinate: "`ws decide "..." --why "..."` to say why" |
 | subsonic | Correct a `verify` after reading the proposal | skill | ws-coordinate: "A `verify` a worker found wrong" |
 | subsonic | Pausing or abandoning is the user's say-so | skill | ws-coordinate: "only on the user's say-so" |
 | subsonic | Closing walks the plan's end-to-end checks | skill | ws-coordinate: "Walk the end-to-end section" |
