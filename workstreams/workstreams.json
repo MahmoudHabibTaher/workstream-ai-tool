@@ -6,13 +6,13 @@
       "id": "project_adaptation",
       "title": "Project adaptation",
       "summary": "ws init finds out what works by running it, ws doctor says what's wrong, and small work can stay small.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "AD",
       "path": "workstreams/project_adaptation",
       "tier": "standard",
       "created": "2026-11-02",
       "startedAt": "2026-11-02",
-      "completedAt": null,
+      "completedAt": "2026-11-02",
       "baseCommit": "5ed73b7",
       "dependsOn": [],
       "progress": {
@@ -23,7 +23,11 @@
         "done": 6,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "918819bf0906160a3ece0e81b0ce4ac94d7b8c56",
+        "pruned": false
+      }
     }
   ]
 }
