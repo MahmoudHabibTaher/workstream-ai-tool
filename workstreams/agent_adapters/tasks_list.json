@@ -293,7 +293,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/aa-05",
       "blockedBy": [
         "AA-04"
       ],
@@ -304,10 +304,10 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-02T15:48:59Z",
+      "baseCommit": "24611bd1b41f222a54c93228842f1f7f14ee5537",
+      "claimedBy": "m5-session",
       "completedAt": null,
       "commit": null,
       "verification": null
