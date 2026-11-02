@@ -28,6 +28,29 @@
         "commit": "918819bf0906160a3ece0e81b0ce4ac94d7b8c56",
         "pruned": false
       }
+    },
+    {
+      "id": "agent_adapters",
+      "title": "Agent adapters",
+      "summary": "ws adapt gives each agent the skills from one source, and real agents can be judged by what they leave in the repo.",
+      "status": "planned",
+      "taskPrefix": "AA",
+      "path": "workstreams/agent_adapters",
+      "tier": "standard",
+      "created": "2026-11-02",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "132ac54",
+      "dependsOn": [],
+      "progress": {
+        "total": 0,
+        "todo": 0,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }

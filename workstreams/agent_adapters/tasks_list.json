@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/agent_adapters/PLAN.md",
+  "updated": "2026-11-02",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "AA-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "ws adapt, manifest and drift check",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T7",
+        "T8",
+        "D-ADAPTER",
+        "D-MANIFEST"
+      ],
+      "summary": "Add agent data files and an engine that writes each agent's skills and pointer block, records hashes, refreshes, refuses hand edits, and reports drift through --check and doctor.",
+      "files": [
+        "src/workstream/adapt.py",
+        "src/workstream/assets/adapters",
+        "src/workstream/cli.py",
+        "src/workstream/doctor.py",
+        "tests/test_adapt.py",
+        "pyproject.toml"
+      ],
+      "docs": [],
+      "acceptance": [
+        "ws adapt writes each agent's skills where its docs say",
+        "the pointer is a marked block that keeps a file's other text and doesn't repeat",
+        "running it again changes nothing, and a new tool version's change is refreshed",
+        "a hand-edited file is refused without --force",
+        "--check exits 1 on stale, edited or missing files and doctor warns",
+        "no agent's name appears in Python or the skills"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AA-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Worker agent, per-agent notes and audit",
+      "kind": "prompts",
+      "findings": [
+        "T2",
+        "T5",
+        "T6"
+      ],
+      "summary": "Generate a worker agent with explicit tools, add per-agent notes to skills saying how to start workers and that built-in worktree isolation isn't used, allow the ws and git commands workers need, make a plugin for the agent that has one, and audit each agent's load.",
+      "files": [
+        "src/workstream/adapt.py",
+        "src/workstream/audit.py",
+        "src/workstream/assets",
+        "tests/test_adapt.py",
+        "tests/test_protocol.py",
+        "docs/rule-map.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "each agent's worker has an explicit tool list without spawning",
+        "the coordinator's load is measured per agent and within budget",
+        "generated ws-run says how to start a worker and not to use built-in isolation",
+        "permissions are merged into settings without losing what was there",
+        "a plugin directory is generated, and passes the agent's own validator where it is installed"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AA-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AA-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "ws hook and its settings",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "T4",
+        "T8",
+        "D-HOOK"
+      ],
+      "summary": "Add ws hook pre-edit for both payloads and decision formats, with ws adapt --hook merging it into settings, and doctor checking ws is on PATH.",
+      "files": [
+        "src/workstream/hook.py",
+        "src/workstream/adapt.py",
+        "src/workstream/cli.py",
+        "src/workstream/doctor.py",
+        "tests/test_hook.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "edits to the queue, registry, baseline, decisions, progress and handoff are denied with a reason naming the command, in each format",
+        "a worker's evidence and ordinary code are allowed",
+        "PLAN.md is allowed until filled in",
+        "a path inside a worktree is judged the same",
+        "bad input, no project or a crash exits 0 and allows",
+        "toolArgs as an object, a string and a patch are all read",
+        "--hook merges into settings without losing other hooks, and running it twice adds nothing"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AA-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AA-04",
+      "phase": 1,
+      "priority": 40,
+      "title": "Eval harness, proven with a stub agent",
+      "kind": "behaviour",
+      "findings": [
+        "T9",
+        "D-EVAL"
+      ],
+      "summary": "Build evals/: scratch repo, scenarios judged by final state, a spend cap, and a stub agent proving passes and failures, with real agents only through make eval.",
+      "files": [
+        "evals",
+        "tests/test_evals.py",
+        "Makefile"
+      ],
+      "docs": [],
+      "acceptance": [
+        "a stub agent that behaves passes each scenario",
+        "a stub that chains tasks, widens scope, skips verify or edits tracking files fails that scenario",
+        "the real command lines carry a spend cap",
+        "make test starts no real agent"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AA-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AA-05",
+      "phase": 2,
+      "priority": 50,
+      "title": "A real small workstream on each agent",
+      "kind": "docs",
+      "findings": [],
+      "summary": "Run the scenarios on each real agent, fix what they find, and report the results and the plan's status. Needs the user's logins and a decision about which account runs each agent.",
+      "files": [
+        "evals",
+        "docs/plan.md",
+        "docs/decisions",
+        "README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "the full-workstream scenario passes on each agent with its real CLI",
+          "kind": "manual"
+        },
+        {
+          "text": "the temptation scenarios are reported per agent, including any that fail",
+          "kind": "manual"
+        },
+        "docs say what is true"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AA-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ws adapt",
+      "worker agent",
+      "ws hook",
+      "eval harness"
+    ],
+    "outOfScope": [
+      "the mod",
+      "migrating real repos",
+      "agents other than the two chosen",
+      "handling anyone's login"
+    ],
+    "rule": "No agent's name in Python or the skills, and nothing in make test may start a real agent."
+  }
+}
