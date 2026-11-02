@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/pilots/PLAN.md",
+  "updated": "2026-11-02",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "PI-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "ws audit usage",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "D-USAGE"
+      ],
+      "summary": "Read real transcripts through two format readers and report per-role context medians, as numbers only.",
+      "files": [
+        "src/workstream/usage.py",
+        "src/workstream/cli.py",
+        "src/workstream/adapt.py",
+        "src/workstream/assets/adapters",
+        "tests/test_usage.py",
+        "README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "ws audit usage reports turn 1, turn 5, growth, peak and cumulative medians per role, from synthetic transcripts in both shapes",
+        "a secret planted in a fixture transcript does not appear in its output",
+        "core names no agent"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "PI-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "ws import for both shapes",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "T5",
+        "D-IMPORT"
+      ],
+      "summary": "Convert both older formats to schema v3 in place, dry run by default, and idempotent.",
+      "files": [
+        "src/workstream/importer.py",
+        "src/workstream/cli.py",
+        "tests/test_import.py",
+        "README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "both shapes convert from synthetic fixtures and pass ws validate",
+        "a dry run changes nothing and a second write changes nothing",
+        "closed work stays readable without being re-judged"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "PI-03",
+      "phase": 2,
+      "priority": 30,
+      "title": "Before numbers from real transcripts",
+      "kind": "docs",
+      "findings": [
+        "T2",
+        "T4",
+        "D-REPORT"
+      ],
+      "summary": "Run ws audit usage over both real projects' existing transcripts and write down the before figures.",
+      "files": [
+        "docs/pilot-results.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "docs/pilot-results.md holds before figures per role for each agent, and says how they differ from the earlier estimates (manual)"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PI-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "PI-04",
+      "phase": 3,
+      "priority": 40,
+      "title": "Migrate the real project on a branch and run a real pilot",
+      "kind": "docs",
+      "findings": [
+        "T6",
+        "T7",
+        "D-REPORT"
+      ],
+      "summary": "In its own worktree and branch: init, import, adapt, doctor, then a piece of real work the user picks, under a cap they set.",
+      "files": [
+        "docs/pilot-results.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the migrated branch passes ws doctor and ws validate, with the integration checkout untouched (manual)",
+        "the real work completes or its failure is reported (manual)"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PI-01",
+        "PI-02",
+        "PI-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "PI-05",
+      "phase": 3,
+      "priority": 50,
+      "title": "Replay on the Kotlin harness's repo in a scratch clone",
+      "kind": "docs",
+      "findings": [
+        "T2",
+        "T7",
+        "D-REPORT"
+      ],
+      "summary": "A scratch clone with no remote, on the agent and account the user chooses. Only aggregate numbers come back here.",
+      "files": [
+        "docs/pilot-results.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the replay's aggregate numbers are recorded, with nothing pushed and no content copied (manual)"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PI-02",
+        "PI-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "PI-06",
+      "phase": 4,
+      "priority": 60,
+      "title": "Measure, and report the gate",
+      "kind": "docs",
+      "findings": [
+        "T4",
+        "D-REPORT"
+      ],
+      "summary": "Compare after with before against the targets, and write the decision: targets met, or budgets revised on evidence.",
+      "files": [
+        "docs/pilot-results.md",
+        "docs/decisions",
+        "docs/plan.md",
+        "README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the gate is written down with its numbers, including any missed target (manual)",
+        "docs say what is true"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PI-04",
+        "PI-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ws import",
+      "ws audit usage",
+      "pilot runs on a branch or scratch clone",
+      "results and the gate"
+    ],
+    "outOfScope": [
+      "any UI",
+      "merging the pilot branch",
+      "adopting the tool in the Kotlin harness's repo",
+      "pushing anywhere"
+    ],
+    "rule": "M6 measures whether the tool saves context on real work and reports it; it builds only what that measurement needs."
+  }
+}

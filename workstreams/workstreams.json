@@ -55,6 +55,29 @@
         "commit": "a3c4db7de6e5a40a5078e44612fb06f1e8325c51",
         "pruned": false
       }
+    },
+    {
+      "id": "pilots",
+      "title": "Pilots and measurement",
+      "summary": "Import both formats, measure real transcripts, run a real pilot, report the gate.",
+      "status": "planned",
+      "taskPrefix": "PI",
+      "path": "workstreams/pilots",
+      "tier": "standard",
+      "created": "2026-11-02",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "2fd93bc",
+      "dependsOn": [],
+      "progress": {
+        "total": 6,
+        "todo": 6,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }
