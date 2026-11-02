@@ -99,6 +99,9 @@ def cmd_init(args: argparse.Namespace) -> int:
         print(f"  on   {key}: {command}" + (f" ({known} known finding(s) recorded)" if known else ""))
     for key, (command, why) in result["unverified"].items():
         print(f"  off  {key}: {command}: {why}")
+    if result["left"]:
+        shown = ", ".join(result["left"][:8])
+        print(f"the commands left new files: {shown}; commit or ignore them before starting work")
     for path in result["created"]:
         print(f"created {path}")
     if not result["created"]:

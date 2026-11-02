@@ -36,20 +36,30 @@ def tool_problem(command: str, root: Path) -> str:
     return "" if shutil.which(tool) else f"{tool} isn't on PATH"
 
 
+def _tracked_changes(root: Path) -> str:
+    """Every edit to a tracked file. A new file isn't one: a first build may well write a lockfile,
+    which is no reason to think it rewrites sources."""
+    return gitutil.run(root, "diff", "--no-ext-diff").stdout
+
+
+def _untracked(root: Path) -> set[str]:
+    proc = gitutil.run(root, "ls-files", "--others", "--exclude-standard")
+    return set(proc.stdout.splitlines())
+
+
 def _try_one(project: Project, key: str, command: str, entry: dict) -> tuple[str, list[str]]:
     """Run one candidate. ("", its findings) if it works, else (why not, [])."""
     root = project.root
     problem = tool_problem(command, root)
     if problem:
         return problem, []
-    before = verify.code_tree(project)
+    before = _tracked_changes(root)
     log_path = verify.runs_dir(project, "_init", key) / "candidate.log"
     started = time.time()
     code, _ = verify.run_command(command, root, log_path, project.config.verify_timeout)
     if code is None:
         return "timed out on a clean tree", []
-    after = verify.code_tree(project)
-    if before and after and before != after:
+    if _tracked_changes(root) != before:
         return "it changes tracked files, so it can't check them; review what it left", []
     found, parser_problem = baseline.read_findings(entry, verify.read_log(log_path), root, started)
     if parser_problem:
@@ -86,6 +96,12 @@ def try_commands(project: Project, profile: profiles.Profile, candidates: dict[s
     return active, unverified, known
 
 
+def _left_behind(before: set[str], root: Path) -> list[str]:
+    """New files the commands wrote and git would pick up. A later `git add -A` would commit them,
+    and `ws verify` would see the code change, so someone should decide."""
+    return sorted(_untracked(root) - before)
+
+
 def _dirty(root: Path) -> list[str]:
     return gitutil.run(root, "status", "--porcelain", "--untracked-files=no").stdout.splitlines()
 
@@ -93,7 +109,7 @@ def _dirty(root: Path) -> list[str]:
 def adopt(root: Path, integration: str | None, production: str | None, profile_name: str | None,
           *, run: bool = True, timeout: int | None = None, say=lambda line: None) -> dict:
     """Write a config for this repository, and an empty registry. {project, created, profile,
-    others, active, unverified, known}. An existing config is never touched: to start again,
+    others, active, unverified, known, left}. An existing config is never touched: to start again,
     delete it. Refuses uncommitted changes before running anything, as findings from work in
     progress would be recorded as known for good."""
     root = Path(root).resolve()
@@ -104,7 +120,7 @@ def adopt(root: Path, integration: str | None, production: str | None, profile_n
     project = Project(root=root, config=config)
     created: list[str] = []
     out = {"created": created, "profile": None, "others": [], "active": {}, "unverified": {},
-           "known": {}}
+           "known": {}, "left": []}
     if config_path.exists():
         project = Project(root=root, config=load_config(config_path))
         _ensure_registry(project, created)
@@ -121,8 +137,11 @@ def adopt(root: Path, integration: str | None, production: str | None, profile_n
             raise Refused("`ws init` runs commands on a clean tree; commit or stash first "
                           "(--no-run writes them unverified):\n" + "\n".join(dirty[:10]))
     _ensure_registry(project, created)
+    untracked = _untracked(root)
+    left: list[str] = []
     if run:
         active, unverified, known = try_commands(project, profile, candidates, say)
+        left = _left_behind(untracked, root)
     else:
         active, known = {}, {}
         unverified = {key: (commands[0], NOT_RUN) for key, commands in candidates.items()}
@@ -139,7 +158,7 @@ def adopt(root: Path, integration: str | None, production: str | None, profile_n
         created.append(project.rel(baseline.write(project, baseline.project_folder(project),
                                                   recorded)))
     return {**out, "project": project, "profile": profile.name, "others": others, "active": active,
-            "unverified": unverified, "known": known}
+            "unverified": unverified, "known": known, "left": left}
 
 
 def _ensure_registry(project: Project, created: list[str]) -> None:
