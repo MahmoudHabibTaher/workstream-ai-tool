@@ -13,7 +13,7 @@ from pathlib import Path
 
 from workstream import act, adapt, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
 from workstream import gitutil, handoff, hook, plan, protocol, registry, review, settle, snapshot, tasks, verify
-from workstream import worktree
+from workstream import usage, worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
 from workstream.fsutil import today
@@ -772,7 +772,23 @@ def cmd_protocol(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_audit_usage(args: argparse.Namespace) -> int:
+    agents = [args.agent] if args.agent else usage.agents_with_transcripts()
+    project = Path(args.project) if args.project else _project(args).root
+    results = [usage.report(agent, project, since=args.since, until=args.until,
+                            transcripts=Path(args.transcripts) if args.transcripts else None,
+                            worker_marker=args.worker_marker) for agent in agents]
+    if args.json:
+        print(json.dumps(results, indent=2))
+    else:
+        for result in results:
+            print("\n".join(usage.format_report(result)))
+    return 0
+
+
 def cmd_audit(args: argparse.Namespace) -> int:
+    if args.what == "usage":
+        return _cmd_audit_usage(args)
     rows = audit.role_rows()
     try:
         project = _project(args)
@@ -1040,9 +1056,16 @@ def build_parser() -> argparse.ArgumentParser:
     p = command("protocol", cmd_protocol, "the protocol, one section at a time")
     p.add_argument("section", nargs="?")
 
-    p = command("audit", cmd_audit, "context each role costs, against its limit (exit 1 if over)")
-    p.add_argument("what", choices=("context",))
+    p = command("audit", cmd_audit, "context each role costs against its limit (exit 1 if over), or real usage")
+    p.add_argument("what", choices=("context", "usage"), help="usage reads real transcripts: numbers only")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--agent", help="usage: one agent's transcripts, rather than every agent's")
+    p.add_argument("--project", help="usage: the project to count (default: this one)")
+    p.add_argument("--since", help="usage: sessions from this day, YYYY-MM-DD")
+    p.add_argument("--until", help="usage: sessions up to this day, YYYY-MM-DD")
+    p.add_argument("--transcripts", help="usage: read from this folder, not the agent's own")
+    p.add_argument("--worker-marker", default=usage.DEFAULT_WORKER_MARKER,
+                   help="usage: a regex: a session opening with a match is a worker's")
 
     p = command("snapshot", cmd_snapshot, "the read model as JSON; with -w also that workstream's "
                                           "tasks, wave and narrative paths")
