@@ -29,3 +29,7 @@ Only `full` ships, so the field means nothing elsewhere. This changes M1, where 
 ## D006 (2026-11-02, AD-04): a warning never changes doctor's exit code
 
 A missing tool may be fine on this machine and needed on another, and scripts need a clear signal for what is really broken. Rejected: a strict flag, since nothing needs it yet. **Closed.**
+
+## D007 (2026-11-02, AD-05): real toolchains run only under `make test-real`
+
+They add a dependency and time to every run, and a machine without them can't run them anyway. Rejected: running them whenever the tool is on PATH, which makes a suite's duration and result depend on the machine. **Closed.**

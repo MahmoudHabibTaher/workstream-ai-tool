@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `5ed73b7`.
 
 ---
 
+## 2026-11-02: AD-05: End-to-end proof on all six profiles
+
+Merged as `c8be683532`. Verified: test pass, audit pass. [Evidence](evidence/AD-05.md).
+
 ## 2026-11-02: AD-04: ws doctor
 
 Merged as `704b262a6b`. Verified: test pass, audit pass. [Evidence](evidence/AD-04.md).

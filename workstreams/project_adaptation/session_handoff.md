@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 4/5 done on `main` at `704b262`, as of 2026-11-02.
+**State:** 5/5 done on `main` at `c8be683`, as of 2026-11-02.
 
-**Just landed:** AD-04 (`704b262a6b`)
+**Just landed:** AD-05 (`c8be683532`)
 
-**Next:** `ws claim --commit AD-05` (phase 1).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- AD-04: An identity set only in environment variables counts as known, because that is how CI and tests commit.
+- AD-05: Following the skills for real found two defects, for AD-06. The worker rules forbid switching to the integration branch, but a foreground session has to. And `ws seed` prints a warning for each file a task will create, which is noise on every plan.
