@@ -20,7 +20,7 @@ Version 1. `ws protocol <section>` prints one section, so nobody loads the rest.
 | `PLAN.md` | The design. Immutable once approved | Planner, once |
 | `tasks_list.json` | The queue | The CLI only |
 | `baseline.json` | What commands reported before work began | `ws baseline record` |
-| `DECISIONS.md` | Settled calls. Not reopened without new evidence | `ws settle`; the coordinator for its own calls |
+| `DECISIONS.md` | Settled calls. Not reopened without new evidence | `ws settle` for workers' proposals; `ws decide` for anyone else's |
 | `PROGRESS.md` | History, newest first | `ws settle` |
 | `session_handoff.md` | Where things stand now, overwritten each time | `ws settle`, `ws handoff` |
 | `evidence/<TASK>.md` | What one task did and proved | That task's worker, on its branch |

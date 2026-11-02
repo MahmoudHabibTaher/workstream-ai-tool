@@ -16,6 +16,7 @@ from workstream import gitutil, handoff, plan, protocol, registry, review, settl
 from workstream import worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
+from workstream.fsutil import today
 from workstream.project import Project, open_project
 
 
@@ -572,6 +573,14 @@ def cmd_decisions(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_decide(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, _ = _queue(project, args)
+    path = project.folder(ws) / "DECISIONS.md"
+    print(f"{decisions.record(path, today(), args.by, args.title, args.why)}; commit it")
+    return 0
+
+
 def _print_gates(found: list[dict]) -> None:
     for g in found:
         word = "ok  " if g["ok"] else ("FAIL" if g["blocking"] else "warn")
@@ -887,6 +896,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = command("decisions", cmd_decisions, "the decisions log, or the entries one task needs")
     p.add_argument("--for", dest="for_task", metavar="ID")
+
+    p = command("decide", cmd_decide, "record a coordinator's or user's call, with the next number")
+    p.add_argument("title", help="the call, in one line")
+    p.add_argument("--why", required=True, help="the reason, and what was rejected")
+    p.add_argument("--by", default="coordinator", help="`user` makes it apply to every task")
 
     p = command("evidence", cmd_evidence, "start a task's evidence file, or check it's ready")
     p.add_argument("action", choices=("new", "check"))

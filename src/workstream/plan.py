@@ -176,4 +176,5 @@ def seed_from_plan(project: Project, ws: dict, text: str, force: bool = False
     rows = tasks.load(queue_path, project.config)["tasks"]
     _fill(folder / handoff.FILE_NAME, {"NEXT": " ".join(handoff.next_lines(rows)),
                                        "GOTCHAS": "None."})
-    return len(new_tasks), warnings
+    # Plans name files their tasks will create, so that warning would fire on nearly every line.
+    return len(new_tasks), [w for w in warnings if not w.endswith(tasks.MISSING_FILES_SUFFIX)]

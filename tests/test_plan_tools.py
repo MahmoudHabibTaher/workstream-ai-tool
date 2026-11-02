@@ -101,6 +101,20 @@ class SeedFromPlanTests(WsTestCase):
         self.assertIn("X-01", (self.folder / "session_handoff.md").read_text())
         self.ok("validate")
 
+    def test_it_does_not_warn_about_files_tasks_will_create(self) -> None:
+        self.plan_file.write_text(PLAN.replace('"findings": ["T1"]',
+                                               '"findings": ["T1"], "files": ["later.py"]'))
+        self.assertNotIn("does not exist", self.ok("seed", "--from-plan", str(self.plan_file)))
+
+    def test_it_still_passes_on_other_warnings(self) -> None:
+        two = ('[{"id": "X-01", "phase": 1, "priority": 10, "title": "a", "files": ["README"]},'
+               ' {"id": "X-02", "phase": 1, "priority": 20, "title": "b", "files": ["README"]}]')
+        start = PLAN.index('[{"id"')
+        end = PLAN.index("]\n```\n\n```text") + 1
+        self.plan_file.write_text(PLAN[:start] + two + PLAN[end:])
+        (self.root / "README").write_text("x")
+        self.assertIn("warning:", self.ok("seed", "--from-plan", str(self.plan_file)))
+
     def test_a_task_with_problems_changes_nothing(self) -> None:
         self.plan_file.write_text(PLAN.replace('"X-01"', '"WRONG-01"'))
         self.assertIn("lacks the prefix", self.fails("seed", "--from-plan", str(self.plan_file)))
