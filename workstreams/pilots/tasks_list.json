@@ -272,13 +272,29 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-02T20:45:01Z",
       "baseCommit": "5c8663cac4a2eddc8d3832b217f7546e593314e1",
       "claimedBy": "m6-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-02T21:10:51Z",
+      "commit": "e57c9a4f72b9f6ed8cfa9dbdea21ff681a69aa5b",
+      "verification": {
+        "tree": "a036bba0cf214615db7c2bc3b6d97944c7eaf58a",
+        "at": "2026-11-02T21:10:50Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "PI-04",

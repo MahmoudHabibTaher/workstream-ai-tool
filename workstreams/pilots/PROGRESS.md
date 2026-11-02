@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `2fd93bc`.
 
 ---
 
+## 2026-11-02: PI-08: Keep long headless runs alive, and unclaim in sync
+
+Merged as `e57c9a4f72`. Verified: test pass, audit pass. [Evidence](evidence/PI-08.md).
+
 ## 2026-11-02: PI-07: Fixes the first real pilot run found
 
 Merged as `2a304d8ad3`. Verified: test pass, audit pass. [Evidence](evidence/PI-07.md).
