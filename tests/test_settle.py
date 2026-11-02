@@ -52,6 +52,48 @@ class SettleTestCase(WsTestCase):
         return where
 
 
+class BriefForRealWorkTests(SettleTestCase):
+    """What the first real pilot run got wrong, in a worker's own words."""
+
+    def test_a_worker_is_told_to_wait_for_verify_and_not_to_read_docs_whole(self) -> None:
+        (self.root / "guide.md").write_text("long\n")
+        self.arrange(self.t("T1", docs=["guide.md"]))
+        out = self.ok("brief", "T1", "-w", "alpha")
+        self.assertIn("foreground", out)
+        self.assertIn("Ending your turn ends you", out)
+        self.assertIn("search them", out)
+        self.assertNotIn("Read first", out)
+
+
+class LinkedCheckoutTests(SettleTestCase):
+    """A project can run from a linked checkout on its own branch, leaving the main one alone."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.t1 = self.t("T1")
+        self.arrange(self.t1)
+        self.main_root, self.root = self.root, self.root.parent / "linked"
+        self.ws_dir, self.registry = self.root / "workstreams", self.root / "workstreams" / "workstreams.json"
+        self.git_at(self.main_root, "worktree", "add", "-q", "-b", "pilot", str(self.root), "main")
+        self.edit_config('integration = "main"', 'integration = "pilot"')
+        self.commit_all("on the pilot branch")
+
+    def test_a_task_lands_on_its_branch_and_the_main_checkout_stays_put(self) -> None:
+        before = self.git_at(self.main_root, "rev-parse", "HEAD")
+        self.work("T1")
+        self.ok("settle", "T1", "-w", "alpha")
+        self.assertEqual(self.git_at(self.main_root, "rev-parse", "HEAD"), before)
+        self.assertEqual(self.git_at(self.main_root, "branch", "--show-current").strip(), "main")
+        self.assertEqual(self.by_id("T1")["status"], "done")
+        self.assertTrue((self.root / "T1.txt").exists())
+        self.assertFalse((self.main_root / "T1.txt").exists())
+
+    def test_its_own_checkout_is_not_a_leftover(self) -> None:
+        code, out, err = self.ws("doctor")
+        self.assertEqual(code, 0, out + err)
+        self.assertNotIn(str(self.root), out)
+
+
 class ClaimCommitTests(SettleTestCase):
     def test_claims_and_commits_both_files(self) -> None:
         self.arrange(self.t("T1"))

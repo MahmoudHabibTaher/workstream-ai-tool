@@ -18,7 +18,7 @@ You coordinate; workers do the tasks, each in a clean context. Never do a backgr
    ws claim --commit -w <id> --by <label> <task> <task>
    ws worktree create -w <id> <task> <task>
    ```
-4. **Start one fresh worker per task,** in parallel, on your own model unless the user named another. The whole prompt is: run `ws brief <task> -w <id>` and follow it. Wait to be notified; never poll. A finished worker's context is spent, so never give it a second task.
+4. **Start one fresh worker per task,** in parallel, on your own model unless the user named another. The whole prompt is: run `ws brief <task> -w <id>` and follow it. Wait to be notified; never poll. A finished worker's context is spent, so never give it a second task. One that ends without saying done or blocked has stopped, and won't resume: treat it as blocked.
 5. **Land them:** `ws settle -w <id> <task> <task>`. A worker's report is a claim; the gates in this command are the check. Don't redo their work to verify it.
 6. Give the user one line: what landed and what is open. Back to 1. Between rounds, do nothing else: work outside a claimed task can't be attributed.
 

@@ -78,7 +78,8 @@ def _finish_lines(project: Project, ws: dict, task: dict) -> list[str]:
     lines = [
         "## When the work is done", "",
         f"1. `ws verify {tid}` runs the checks above and records the result. Use it rather than "
-        "running them by hand: its output stays short, and only its record counts.",
+        "running them by hand: its output stays short, and only its record counts. Run it in the "
+        "foreground with the longest timeout your shell allows, and wait for it.",
         f"2. `ws evidence new {tid}`, then fill in what it wrote: quote the proof for each item.",
         f"3. `ws commit {tid} -m \"<what changed>\"` commits the code and the evidence together on "
         "your branch.",
@@ -116,7 +117,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
     if task.get("summary"):
         parts += ["", task["summary"]]
     parts += ["", *_start_lines(project, task), *_scope_lines(scope)]
-    for label, field in (("Files you are expected to touch", "files"), ("Read first", "docs"),
+    for label, field in (("Files you are expected to touch", "files"), ("Docs that bear on this (search them, as they may be long)", "docs"),
                          ("Needs", "requires")):
         if task.get(field):
             parts += ["", f"**{label}:** " + ", ".join(f"`{v}`" for v in task[field])]

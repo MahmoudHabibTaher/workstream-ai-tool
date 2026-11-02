@@ -18,6 +18,9 @@ ws-run = "Start each worker with the Agent tool: `subagent_type: \"{worker}\"`, 
 path = ".claude/settings.json"
 # What a background worker needs without stopping to ask. Never a push.
 allow = ["Bash(ws *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git status*)", "Bash(git branch --show-current)", "Bash(git diff*)", "Bash(git log*)", "Bash(git switch *)"]
+# `ws verify` on a real project outlasts the default limit, and a worker that backgrounds it to get
+# past that limit ends its turn with the check still running.
+env = { BASH_MAX_TIMEOUT_MS = "3600000" }
 
 [hook]
 command = "ws hook pre-edit --format exit-code"

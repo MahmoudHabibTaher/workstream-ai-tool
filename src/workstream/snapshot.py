@@ -219,9 +219,11 @@ def _orphan_worktrees(ctx: _Context) -> list[dict]:
     if not ctx.git_ok:
         return []
     claimed = {t.get("branch") for _, t in ctx.tasks(("in-progress",))}
+    here = ctx.project.root.resolve()  # a project can itself be run from a linked checkout
     out = []
     for wt in ctx.facts.get("worktrees", []):
-        if wt.get("main") or (wt.get("branch") and wt["branch"] in claimed):
+        if (wt.get("main") or Path(wt["path"]).resolve() == here
+                or (wt.get("branch") and wt["branch"] in claimed)):
             continue
         on = wt.get("branch") or "a detached HEAD"
         out.append(finding("orphan-worktree", "warning", None, None,

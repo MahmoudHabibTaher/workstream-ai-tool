@@ -214,6 +214,17 @@ class NoteTests(AdaptCase):
 class SettingsTests(AdaptCase):
     settings = ".claude/settings.json"
 
+    def test_a_long_verify_can_stay_in_the_foreground(self) -> None:
+        self.ok("adapt", "claude-code")
+        self.assertIn("BASH_MAX_TIMEOUT_MS", json.loads(self.path(self.settings).read_text())["env"])
+
+    def test_a_timeout_already_set_stays(self) -> None:
+        self.path(self.settings).parent.mkdir(parents=True, exist_ok=True)
+        self.path(self.settings).write_text(json.dumps({"env": {"BASH_MAX_TIMEOUT_MS": "5", "OTHER": "x"}}))
+        self.ok("adapt", "claude-code")
+        self.assertEqual(json.loads(self.path(self.settings).read_text())["env"],
+                         {"BASH_MAX_TIMEOUT_MS": "5", "OTHER": "x"})
+
     def test_it_allows_what_a_background_worker_needs_and_no_push(self) -> None:
         self.ok("adapt", CLAUDE)
         allow = json.loads(self.path(self.settings).read_text())["permissions"]["allow"]
