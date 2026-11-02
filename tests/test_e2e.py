@@ -258,6 +258,72 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("Use the other one.", brief)
         self.assertLess(len(brief) / 4, 2500, "over the worker budget")
 
+    def test_verify_and_evidence_follow_a_task_to_its_worktree(self) -> None:
+        """A real worker's shell left its worktree: its evidence landed in the main checkout and
+        its checks ran against code without its change."""
+        self.plan(self.sample_tasks()[:1])
+        self.ws("claim", "--commit", "S-01")
+        self.ws("worktree", "create", "S-01")
+        self.ws("evidence", "new", "S-01")
+        wrote = self.root / self.folder.relative_to(self.root) / "evidence" / "S-01.md"
+        self.assertFalse(wrote.exists(), "evidence went to the main checkout")
+        place = self.root / ".workstream" / "worktrees" / "s-01"
+        self.assertTrue((place / wrote.relative_to(self.root)).exists())
+        run = json.JSONDecoder().raw_decode(self.ws("verify", "S-01", "--json", code=None))[0]
+        self.assertEqual(run["branch"], "task/s-01")
+        self.assertIn(str(place), self.ws("brief", "S-01"))
+        (place / "src").mkdir(exist_ok=True)
+        (place / "src" / "made.txt").write_text("ok\n")
+        committed = self.ws("commit", "S-01", "-m", "the work")
+        self.assertIn("src/made.txt", committed)
+        self.assertEqual(subprocess.run(["git", "log", "-1", "--format=%s", "task/s-01"], cwd=self.root,
+                                        capture_output=True, text=True).stdout.strip(), "the work")
+        self.assertIn("nothing to commit", self.ws("commit", "S-01", code=1))
+
+    def test_commit_refuses_a_workers_tracking_edit_and_keeps_it_unstaged(self) -> None:
+        self.plan(self.sample_tasks()[:1])
+        self.ws("claim", "--commit", "S-01")
+        self.ws("worktree", "create", "S-01")
+        place = self.root / ".workstream" / "worktrees" / "s-01"
+        progress = place / self.folder.relative_to(self.root) / "PROGRESS.md"
+        progress.write_text(progress.read_text() + "marked done\n")
+        self.assertIn("PROGRESS.md", self.ws("commit", "S-01", code=1))
+        staged = subprocess.run(["git", "diff", "--cached", "--name-only"], cwd=place,
+                                capture_output=True, text=True).stdout
+        self.assertEqual(staged, "")
+
+    def test_commit_leaves_out_what_worktree_setup_made(self) -> None:
+        config = self.root / ".workstream" / "config.toml"
+        config.write_text(config.read_text() + '\n[worktree]\nsetup = ["ln -s {main}/src linked"]\n')
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "setup")
+        self.plan(self.sample_tasks()[:1])
+        self.ws("claim", "--commit", "S-01")
+        self.ws("worktree", "create", "S-01")
+        place = self.root / ".workstream" / "worktrees" / "s-01"
+        self.assertTrue((place / "linked").is_symlink())
+        (place / "made.txt").write_text("ok\n")
+        committed = self.ws("commit", "S-01")
+        self.assertIn("made.txt", committed)
+        self.assertNotIn("linked", committed)
+
+    def test_a_task_can_not_be_marked_done_before_it_has_landed(self) -> None:
+        """A real worker, told to mark its own task done, found `ws update` and did."""
+        self.plan(self.sample_tasks()[:1])
+        self.ws("claim", "--commit", "S-01")
+        self.ws("worktree", "create", "S-01")
+        place = self.root / ".workstream" / "worktrees" / "s-01"
+        (place / "made.txt").write_text("ok\n")
+        self.ws("commit", "S-01")
+        unlanded = self.git("rev-parse", "task/s-01").strip()
+        self.assertIn("`ws settle S-01`", self.ws("update", "S-01", "--status", "done",
+                                                  "--commit", unlanded, code=1))
+        self.assertEqual(self.queue()["S-01"]["status"], "in-progress")
+
+    def test_evidence_starts_on_the_task_branch_and_not_on_integration(self) -> None:
+        self.plan(self.sample_tasks()[:1])
+        self.assertIn("goes on S-01's branch", self.ws("evidence", "new", "S-01", code=1))
+
     def test_a_blocked_worker_leaves_its_branch_for_later(self) -> None:
         tasks = self.sample_tasks()[:1]
         tasks[0]["notes"] = json.dumps({"block": "the API key is missing"})

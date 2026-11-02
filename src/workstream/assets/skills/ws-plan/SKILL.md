@@ -1,6 +1,6 @@
 ---
 name: ws-plan
-description: Plan large work as a workstream of verifiable tasks: traps, design, baseline. Never implements it.
+description: Plan large work as a workstream of verifiable tasks (traps, design, baseline). Never implements it.
 ---
 
 # Plan a workstream

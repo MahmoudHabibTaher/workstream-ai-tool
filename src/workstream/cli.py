@@ -269,6 +269,7 @@ def cmd_seed(args: argparse.Namespace) -> int:
         for w in warnings:
             print(f"warning: {w}")
         print(f"seeded {added} task(s) and PLAN.md into {ws['id']}")
+        registry.sync(project)  # or `ws reconcile`, a coordinator's first check, starts out failing
         return 0
     try:
         with open(args.seed_file) as f:
@@ -277,6 +278,7 @@ def cmd_seed(args: argparse.Namespace) -> int:
         raise WsError(f"cannot read {args.seed_file}: {e}") from None
     total = tasks.seed(path, new_tasks, project.config)
     print(f"seeded {len(new_tasks)} task(s) into {ws['id']} ({total} total)")
+    registry.sync(project)
     return 0
 
 
@@ -295,6 +297,7 @@ def cmd_add(args: argparse.Namespace) -> int:
     if args.mode:
         fields["mode"] = args.mode
     task = tasks.add(path, fields, project.config)
+    registry.sync(project)
     print(f"added {task['id']}")
     return 0
 
@@ -303,6 +306,11 @@ def cmd_update(args: argparse.Namespace) -> int:
     project = _project(args)
     _, path = _queue(project, args)
     requires = _split(args.requires) if args.requires is not None else None
+    if args.status == "done":
+        landed = args.commit or tasks.find_task(tasks.load(path, project.config), args.id).get("commit")
+        if landed and not gitutil.is_ancestor(project.root, landed, project.config.integration):
+            raise Refused(f"{args.id} isn't on {project.config.integration} yet: `ws settle {args.id}` "
+                          "lands a task and marks it done")
     task = tasks.update(path, args.id, project.config, status=args.status, commit=args.commit,
                         notes=args.notes, requires=requires, mode=args.mode,
                         release_impact=args.release_impact, verify=args.verify)
@@ -545,10 +553,23 @@ def cmd_reset(args: argparse.Namespace) -> int:
 # --- running a task -----------------------------------------------------------------------
 
 
-def cmd_verify(args: argparse.Namespace) -> int:
+def _at_task(args: argparse.Namespace) -> tuple[Project, dict, dict]:
+    """The project, workstream and task, opened where the task's work is. A worker's shell doesn't
+    always stay in its worktree, and a check of the wrong checkout looks just like a real one."""
     project = _project(args)
     ws, path = _queue(project, args)
     task = tasks.find_task(tasks.load(path, project.config), args.id)
+    where = worktree.for_branch(project, task.get("branch") or project.config.branch_for(task["id"]))
+    if not where or Path(where).resolve() == project.root.resolve():
+        return project, ws, task
+    print(f"(in {where})", file=sys.stderr)
+    project = open_project(Path(where))
+    ws, path = _queue(project, args)
+    return project, ws, tasks.find_task(tasks.load(path, project.config), args.id)
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    project, ws, task = _at_task(args)
     run = verify.verify_task(project, ws, task, keys=args.key)
     if args.json:
         print(json.dumps(run, indent=2))
@@ -626,11 +647,12 @@ def _print_gates(found: list[dict]) -> None:
 
 
 def cmd_evidence(args: argparse.Namespace) -> int:
-    project = _project(args)
-    ws, path = _queue(project, args)
-    task = tasks.find_task(tasks.load(path, project.config), args.id)
+    project, ws, task = _at_task(args)
     file = evidence.path_for(project, ws, task["id"])
     if args.action == "new":
+        if gitutil.current_branch(project.root) == project.config.integration:
+            raise Refused(f"evidence goes on {task['id']}'s branch, not "
+                          f"{project.config.integration}: claim it and make its worktree first")
         if file.exists():
             raise Refused(f"{project.rel(file)} already exists")
         file.parent.mkdir(parents=True, exist_ok=True)
@@ -644,6 +666,36 @@ def cmd_evidence(args: argparse.Namespace) -> int:
         print("FAIL")
         return 1
     print("OK")
+    return 0
+
+
+def cmd_commit(args: argparse.Namespace) -> int:
+    """A worker's commit, wherever its shell is. An agent's rules may refuse git aimed at another
+    directory, and a shell that left the worktree would otherwise commit on the wrong branch."""
+    project, ws, task = _at_task(args)
+    branch = task.get("branch") or project.config.branch_for(task["id"])
+    current = gitutil.current_branch(project.root)
+    if current != branch:
+        raise Refused(f"{task['id']} commits on {branch}; this checkout is on {current}")
+    gitutil.run(project.root, "add", "-A")
+    staged = gitutil.run(project.root, "diff", "--cached", "--name-only", "--no-renames").stdout.splitlines()
+    if not staged:
+        raise Refused("nothing to commit")
+    rows = registry.load(project)["workstreams"]
+    bad = gates.tracking_violations(staged, project.rel(project.registry_path),
+                                    list(snapshot.folders_by_id(project, rows).values()),
+                                    project.rel(evidence.path_for(project, ws, task["id"])))
+    if bad:
+        gitutil.run(project.root, "reset", "-q")
+        raise Refused("committed nothing: these belong to the coordinator: " + ", ".join(bad[:8]))
+    done = gitutil.run(project.root, "commit", "-q", "-m", args.message or f"{task['id']}: {task['title']}")
+    if done.returncode != 0:
+        gitutil.run(project.root, "reset", "-q")
+        detail = (done.stderr or done.stdout).strip().splitlines()
+        raise Refused(f"commit failed: {detail[-1] if detail else f'exit {done.returncode}'}")
+    print(f"committed {gitutil.rev_parse(project.root, 'HEAD', short=True)} on {branch}:")
+    for path in staged:
+        print(f"  {path}")
     return 0
 
 
@@ -957,6 +1009,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = command("evidence", cmd_evidence, "start a task's evidence file, or check it's ready")
     p.add_argument("action", choices=("new", "check"))
     p.add_argument("id")
+
+    p = command("commit", cmd_commit, "commit a task's work on its branch, from anywhere")
+    p.add_argument("id")
+    p.add_argument("-m", "--message", help="default: the task's id and title")
 
     p = command("worktree", cmd_worktree, "a worktree per claimed task")
     actions = p.add_subparsers(dest="action", required=True)

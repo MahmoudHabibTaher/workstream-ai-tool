@@ -56,7 +56,8 @@ def _start_lines(project: Project, task: dict) -> list[str]:
     branch = task.get("branch") or project.config.branch_for(task["id"])
     path = worktree.for_branch(project, branch)
     if path:
-        return [f"Work in `{path}`, on `{branch}`. It is already set up."]
+        return [f"Work in `{path}`, on `{branch}`. It is already set up. Your shell may not stay "
+                "there, so give file paths in full. `ws` finds the worktree itself."]
     return [f"Work on `{branch}`: `git switch -c {branch}` "
             f"(or `git switch {branch}` if it exists), from `{project.config.integration}`."]
 
@@ -79,7 +80,8 @@ def _finish_lines(project: Project, ws: dict, task: dict) -> list[str]:
         f"1. `ws verify {tid}` runs the checks above and records the result. Use it rather than "
         "running them by hand: its output stays short, and only its record counts.",
         f"2. `ws evidence new {tid}`, then fill in what it wrote: quote the proof for each item.",
-        "3. Commit the code and the evidence together on your branch.",
+        f"3. `ws commit {tid} -m \"<what changed>\"` commits the code and the evidence together on "
+        "your branch.",
         f"4. `ws evidence check {tid}` must say OK. If you changed code, verify again first.",
     ]
     if task["mode"] == "foreground":

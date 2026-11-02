@@ -5,6 +5,7 @@ Version 1. `ws protocol <section>` prints one section, so nobody loads the rest.
 ## worker
 
 - Do this task only, then stop. Other work you find goes under Gotchas.
+- Create and change files with your edit tools, and give the shell one command per call: a background worker can't ask permission for anything else. A denied call isn't a block until you've tried it that way.
 - Write code, docs and your own evidence file. Every other file in a workstream folder, and the registry, belongs to the coordinator.
 - Check each acceptance item for real and quote what you saw. "Done" isn't proof.
 - Findings in the baseline aren't yours: don't fix them, and don't add to them.

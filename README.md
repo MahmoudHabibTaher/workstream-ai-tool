@@ -2,7 +2,7 @@
 
 A tool for running large bodies of work with coding agents: a task graph kept in your repo, executed in clean contexts, verified by commands rather than claims. It works with any project and framework.
 
-**Status:** early development. The CLI runs a workstream end to end, driven by a scripted agent in the tests, and the protocol and skills are written. Adapters that install them for a real agent, and the UIs, are not built yet, so no real agent has used it.
+**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. It hasn't run on a real project yet, and the UIs are not built.
 
 ## Try it
 
@@ -17,6 +17,24 @@ make test
 ```
 
 `make test-real` also adopts small real projects with whichever toolchains you have installed.
+
+## Set up your agent
+
+`ws` must be on your PATH, for example with `uv tool install .` from this repo. Then, in your project:
+
+```bash
+ws adapt claude-code
+```
+
+```bash
+ws adapt copilot-cli
+```
+
+Add `--hook` to deny direct edits to tracking files.
+
+Claude Code ignores a project's `.claude/settings.json` until someone has accepted the trust dialog there, so open the project interactively once before running it headless. Without those rules, background workers are denied the commands they need.
+
+`make eval AGENT=<agent>` runs real agents against a sample repo, under your own login and with a spend cap per scenario. It defaults to Opus 5.5 on medium effort, which took about $0.80 or 53 Copilot credits for the full scenario. [Decision 0008](docs/decisions/0008-agent-adapters.md) has the results.
 
 ## How a workstream runs
 

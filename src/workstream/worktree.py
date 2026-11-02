@@ -41,20 +41,32 @@ def for_branch(project: Project, branch: str) -> str | None:
     return None
 
 
-def _exclude(project: Project) -> None:
-    """Keep the worktree dir out of `git status`, without touching a tracked file."""
+def _exclude_lines(project: Project, lines: list[str]) -> None:
     common = gitutil.common_dir(project.root)
-    root = project.root.resolve()
-    target = (project.root / project.config.worktree_dir).resolve()
-    if common is None or root not in target.parents:
+    if common is None:
         return
-    line = "/" + str(target.relative_to(root)) + "/"
     path = common / "info" / "exclude"
     existing = path.read_text() if path.exists() else ""
-    if line not in existing.splitlines():
+    new = [line for line in lines if line not in existing.splitlines()]
+    if new:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(existing + ("" if existing.endswith("\n") or not existing else "\n")
-                        + line + "\n")
+                        + "\n".join(new) + "\n")
+
+
+def _exclude(project: Project) -> None:
+    """Keep the worktree dir out of `git status`, without touching a tracked file."""
+    root = project.root.resolve()
+    target = (project.root / project.config.worktree_dir).resolve()
+    if root in target.parents:
+        _exclude_lines(project, ["/" + str(target.relative_to(root)) + "/"])
+
+
+def _exclude_setup_output(project: Project, path: Path) -> None:
+    """What setup made (a linked node_modules, say) isn't the task's work: `ws commit` adds every
+    change, and a symlink slips past a `node_modules/` ignore rule."""
+    made = gitutil.run(path, "ls-files", "--others", "--exclude-standard", "--directory").stdout
+    _exclude_lines(project, ["/" + line.rstrip("/") for line in made.splitlines()])
 
 
 def _run_setup(project: Project, path: Path) -> None:
@@ -118,6 +130,7 @@ def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool]:
         if made_branch:
             gitutil.run(project.root, "branch", "-D", branch)
         raise
+    _exclude_setup_output(project, path)
     return path, True
 
 
