@@ -10,7 +10,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M1 State and core CLI | Done |
 | M2 Execution engine | Done: a scripted fake agent finishes a workstream sequentially and in parallel. No real agent has run it yet |
 | M3 Protocol and skills | Done: every role is within budget and [every old rule is mapped](rule-map.md). No real agent has followed the skills yet, which is M5 |
-| M4 onward | Not started |
+| M4 Project adaptation | Done, and built as a workstream on this tool. `init` is proven on fixture repos for all six profiles, and on real cargo, npm, gradle and python projects. Real go, ruff, pytest and detekt have not run |
+| M5 onward | Not started |
 
 
 ## Design principles

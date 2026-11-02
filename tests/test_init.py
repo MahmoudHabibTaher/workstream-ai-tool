@@ -139,6 +139,17 @@ class InactiveKeyTests(AdoptCase):
         self.assertIn("it changes tracked files", self.init())
         self.assertNotIn("lint", self.config().commands)
 
+    def test_a_new_file_is_not_a_changed_one(self) -> None:
+        self.cargo(clippy="echo locked > Cargo.lock; exit 0")
+        out = self.init()
+        self.assertIn("lint", self.config().commands)
+        self.assertIn("the commands left new files: Cargo.lock", out)
+
+    def test_ignored_output_is_not_mentioned(self) -> None:
+        self.file(".gitignore", "target/\n")
+        self.cargo(clippy="mkdir -p target; echo x > target/out; exit 0")
+        self.assertNotIn("left new files", self.init())
+
     def test_a_timeout_is_reported(self) -> None:
         self.cargo()
         self.stub("cargo", 'case "$1" in\ntest) sleep 5;;\nesac')

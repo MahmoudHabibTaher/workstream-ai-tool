@@ -16,11 +16,15 @@ PYTHONPATH=src python3 -m workstream --help
 make test
 ```
 
+`make test-real` also adopts small real projects with whichever toolchains you have installed.
+
 ## How a workstream runs
 
 ```bash
 ws init
 ```
+
+That detects the stack, runs its likely commands on your clean tree, and writes to the config only what it saw work. Existing lint findings are recorded so they don't block anyone, and anything broken stays as a comment with the reason. `ws doctor` checks the setup at any time.
 
 ```bash
 ws new my_work --title "My work" --summary "The outcome." --prefix MW
@@ -34,7 +38,7 @@ ws seed --from-plan approved-plan.md
 ws baseline record
 ```
 
-Commit that, then repeat until `ws wave` exits 2. The coordinator runs these:
+A small job can use `--tier lite`, and one that ships a release `--tier full`. Commit that, then repeat until `ws wave` exits 2. The coordinator runs these:
 
 ```bash
 ws claim --commit MW-01 MW-02
