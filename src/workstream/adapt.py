@@ -94,11 +94,13 @@ def with_block(existing: str, block: str) -> str:
     return (existing.rstrip() + "\n\n" if existing.strip() else "") + block + "\n"
 
 
-def generated(adapter: Adapter) -> dict[str, str]:
+def generated(adapter: Adapter, hook: bool = False) -> dict[str, str]:
     """{relative path: content} for every file this adapter owns outright."""
     files = {adapter.skill.format(name=name): skill_text(adapter, name)
              for name in protocol.skill_names()}
     files[adapter.raw["worker"]["path"]] = worker_text(adapter)
+    if hook and "file" in adapter.raw.get("hook", {}):
+        files[adapter.raw["hook"]["file"]] = adapter.raw["hook"]["file_content"]
     return files
 
 
@@ -128,13 +130,64 @@ def merged_permissions(data: dict, allow: list[str]) -> dict:
                                     "allow": existing + [a for a in allow if a not in existing]}}
 
 
-def _settings_current(project: Project, adapter: Adapter) -> bool:
+def _hook_entry(adapter: Adapter) -> dict:
+    hook = adapter.raw["hook"]
+    return {"matcher": hook["matcher"],
+            "hooks": [{"type": "command", "command": hook["command"]}]}
+
+
+def _merges_hook(adapter: Adapter) -> bool:
+    return "event" in adapter.raw.get("hook", {})
+
+
+def _has_hook(data: dict, adapter: Adapter) -> bool:
+    command = adapter.raw["hook"]["command"]
+    entries = (data.get("hooks") or {}).get(adapter.raw["hook"]["event"]) or []
+    return any(h.get("command") == command for e in entries for h in e.get("hooks", []))
+
+
+def merged_hook(data: dict, adapter: Adapter) -> dict:
+    """This hook added to the settings, once, beside whatever hooks are already there."""
+    if _has_hook(data, adapter):
+        return data
+    hooks = data.get("hooks")
+    if hooks is None:
+        hooks = {}
+    event = adapter.raw["hook"]["event"]
+    if not isinstance(hooks, dict) or not isinstance(hooks.get(event, []), list):
+        raise Refused(f"the settings' `hooks.{event}` isn't a list; add this by hand: "
+                      + adapter.raw["hook"]["command"])
+    return {**data, "hooks": {**hooks, event: hooks.get(event, []) + [_hook_entry(adapter)]}}
+
+
+def without_hook(data: dict, adapter: Adapter) -> dict:
+    """The settings with only our hook taken out."""
+    command = adapter.raw["hook"]["command"]
+    event = adapter.raw["hook"]["event"]
+    hooks = data.get("hooks")
+    if not isinstance(hooks, dict) or not isinstance(hooks.get(event), list):
+        return data
+    kept = []
+    for entry in hooks[event]:
+        remaining = [h for h in entry.get("hooks", []) if h.get("command") != command]
+        if remaining:
+            kept.append({**entry, "hooks": remaining})
+    rest = {k: v for k, v in hooks.items() if k != event}
+    hooks_after = {**rest, event: kept} if kept else rest
+    if hooks_after:
+        return {**data, "hooks": hooks_after}
+    return {k: v for k, v in data.items() if k != "hooks"}
+
+
+def _settings_current(project: Project, adapter: Adapter, hook: bool) -> bool:
     settings = adapter.raw.get("settings")
     if not settings:
         return True
     data = read_settings(project.root / settings["path"])
     allowed = (data.get("permissions") or {}).get("allow") or []
-    return all(rule in allowed for rule in settings.get("allow", []))
+    if not all(rule in allowed for rule in settings.get("allow", [])):
+        return False
+    return not (hook and _merges_hook(adapter)) or _has_hook(data, adapter)
 
 
 def _manifest_path(project: Project) -> Path:
@@ -158,13 +211,16 @@ def _hash(text: str) -> str:
     return sha256(text.encode())
 
 
-def file_states(project: Project, adapter: Adapter) -> dict[str, str]:
+def file_states(project: Project, adapter: Adapter, hook: bool | None = None
+                ) -> dict[str, str]:
     """{path: state} for this adapter's files, and the block: is each what this `ws` would write?
     A file differing from what was recorded was edited by hand; one matching the record but not the
     current text just comes from an older `ws`."""
-    recorded = load_manifest(project)["adapters"].get(adapter.name, {}).get("files", {})
+    entry = load_manifest(project)["adapters"].get(adapter.name, {})
+    recorded = entry.get("files", {})
+    hook = entry.get("hook", False) if hook is None else hook
     states = {}
-    for rel, content in generated(adapter).items():
+    for rel, content in generated(adapter, hook).items():
         path = project.root / rel
         if not path.exists():
             states[rel] = MISSING
@@ -184,7 +240,7 @@ def file_states(project: Project, adapter: Adapter) -> dict[str, str]:
                                     else STALE if BLOCK_RE.search(text) else MISSING)
     settings = adapter.raw.get("settings")
     if settings:
-        states[settings["path"]] = CURRENT if _settings_current(project, adapter) else MISSING
+        states[settings["path"]] = CURRENT if _settings_current(project, adapter, hook) else MISSING
     return states
 
 
@@ -209,18 +265,28 @@ def drift(project: Project) -> dict[str, list[str]]:
     return out
 
 
-def adapt(project: Project, name: str, *, force: bool = False) -> dict[str, list[str]]:
+def adapt(project: Project, name: str, *, force: bool = False, hook: bool | None = None
+          ) -> dict[str, list[str]]:
     """Write this agent's files. {"wrote": [...], "same": [...]}. All or nothing on edited files:
-    it refuses before writing anything, so a refusal leaves no half-updated set."""
+    it refuses before writing anything, so a refusal leaves no half-updated set.
+
+    `hook` turns the guard on or off; None keeps it as it was. It is opt-in because it depends on
+    `ws` being on PATH wherever the agent runs.
+    """
     adapter = load(name)
-    states = file_states(project, adapter)
+    if hook and "hook" not in adapter.raw:
+        raise WsError(f"{name} has no hook")
+    manifest = load_manifest(project)
+    was_on = manifest["adapters"].get(name, {}).get("hook", False)
+    hook = was_on if hook is None else hook
+    states = file_states(project, adapter, hook)
     edited = [rel for rel, state in states.items() if state == EDITED]
     if edited and not force:
         raise Refused("edited by hand, or not ours (--force overwrites):\n"
                       + "\n".join(f"  {rel}" for rel in edited))
     wrote, same = [], []
     hashes = {}
-    for rel, content in generated(adapter).items():
+    for rel, content in generated(adapter, hook).items():
         hashes[rel] = _hash(content)
         if states[rel] == CURRENT:
             same.append(rel)
@@ -229,6 +295,9 @@ def adapt(project: Project, name: str, *, force: bool = False) -> dict[str, list
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
         wrote.append(rel)
+    if was_on and not hook and "file" in adapter.raw.get("hook", {}):
+        (project.root / adapter.raw["hook"]["file"]).unlink(missing_ok=True)
+        wrote.append(adapter.raw["hook"]["file"])
     instructions = project.root / adapter.instructions
     if states[adapter.instructions] == CURRENT:
         same.append(adapter.instructions)
@@ -239,22 +308,29 @@ def adapt(project: Project, name: str, *, force: bool = False) -> dict[str, list
         wrote.append(adapter.instructions)
     settings = adapter.raw.get("settings")
     if settings:
-        if states[settings["path"]] == CURRENT:
+        path = project.root / settings["path"]
+        before = read_settings(path)
+        after = merged_permissions(before, settings.get("allow", []))
+        if _merges_hook(adapter):
+            after = merged_hook(after, adapter) if hook else without_hook(after, adapter)
+        if after == before and path.exists():
             same.append(settings["path"])
         else:
-            path = project.root / settings["path"]
             path.parent.mkdir(parents=True, exist_ok=True)
-            write_json(path, merged_permissions(read_settings(path), settings.get("allow", [])))
+            write_json(path, after)
             wrote.append(settings["path"])
-    manifest = load_manifest(project)
-    manifest["adapters"][name] = {"toolVersion": __version__, "files": hashes}
+    manifest["adapters"][name] = {"toolVersion": __version__, "hook": hook, "files": hashes}
     path = _manifest_path(project)
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, manifest)
     return {"wrote": wrote, "same": same}
 
 
-def write_plugin(name: str, out: Path) -> list[str]:
+def hook_is_on(project: Project) -> bool:
+    return any(a.get("hook") for a in load_manifest(project)["adapters"].values())
+
+
+def write_plugin(name: str, out: Path, hook: bool = False) -> list[str]:
     """This agent's plugin form, for an agent that has one: the same text, with names as a plugin
     namespaces them. Nothing here is tracked: a plugin is rebuilt, not edited."""
     adapter = load(name)
@@ -268,6 +344,10 @@ def write_plugin(name: str, out: Path) -> list[str]:
     files[plugin["manifest"]] = json.dumps(
         {"name": plugin["name"], "version": __version__, "description": plugin["description"]},
         indent=2) + "\n"
+    if hook:
+        event = adapter.raw["hook"]["event"]
+        files[adapter.raw["hook"]["plugin_file"]] = json.dumps(
+            {"hooks": {event: [_hook_entry(adapter)]}}, indent=2) + "\n"
     for rel, content in files.items():
         path = out / rel
         path.parent.mkdir(parents=True, exist_ok=True)

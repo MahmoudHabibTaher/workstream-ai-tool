@@ -14,3 +14,23 @@ frontmatter = "tools: [\"read\", \"grep\", \"glob\", \"edit\", \"execute\"]\nstr
 [notes]
 ws-plan = "Ask with the question tool, one at a time. The plan file you write is what `ws seed --from-plan` reads."
 ws-run = "Start each worker with the `task` tool: agent type `{worker}`, `mode: background`, and `model` set to the model you are running as, because a default may be weaker. Each runs in a worktree `ws worktree create` already made. You are notified as each finishes; read its result once."
+
+[hook]
+command = "ws hook pre-edit --format json"
+# A whole file of its own, in this agent's format. It denies on any crash, so a short timeout
+# (which fails open) is the safe side.
+file = ".github/hooks/ws.json"
+file_content = """{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "matcher": "edit|create|str_replace_editor|apply_patch",
+        "bash": "ws hook pre-edit --format json",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}
+"""

@@ -19,6 +19,13 @@ path = ".claude/settings.json"
 # What a background worker needs without stopping to ask. Never a push.
 allow = ["Bash(ws *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git switch *)"]
 
+[hook]
+command = "ws hook pre-edit --format exit-code"
+event = "PreToolUse"
+matcher = "Edit|Write|MultiEdit|NotebookEdit"
+# Merged into [settings] path. A plugin writes the same thing to its own file.
+plugin_file = "hooks/hooks.json"
+
 [plugin]
 name = "workstream"
 description = "Run large bodies of work as a task graph in your repo."
