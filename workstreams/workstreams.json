@@ -1,5 +1,29 @@
 {
   "schemaVersion": 1,
   "updated": "2026-11-02",
-  "workstreams": []
+  "workstreams": [
+    {
+      "id": "project_adaptation",
+      "title": "Project adaptation",
+      "summary": "ws init finds out what works by running it, ws doctor says what's wrong, and small work can stay small.",
+      "status": "planned",
+      "taskPrefix": "AD",
+      "path": "workstreams/project_adaptation",
+      "tier": "standard",
+      "created": "2026-11-02",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "5ed73b7",
+      "dependsOn": [],
+      "progress": {
+        "total": 0,
+        "todo": 0,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
+    }
+  ]
 }

@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/project_adaptation/PLAN.md",
+  "updated": "2026-11-02",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "AD-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Profiles and config rendering",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "D-PROFILE"
+      ],
+      "summary": "Add the six profile files and the engine that picks one and lists candidates, and render a config holding active keys, commented keys, adequacy, baseline tables and worktree setup.",
+      "files": [
+        "src/workstream/profiles.py",
+        "src/workstream/assets/profiles",
+        "src/workstream/config.py",
+        "tests/test_profiles.py",
+        "pyproject.toml"
+      ],
+      "docs": [],
+      "acceptance": [
+        "test_profiles covers marker detection, conditions and candidate order for all six",
+        "a rendered config parses back through parse_config, including a regex with backslashes",
+        "the generic profile with no markers renders the same default tables as before",
+        "each profile's regex matches a sample of its tool's output"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AD-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "ws init runs and records commands",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "T4",
+        "T5",
+        "D-INIT"
+      ],
+      "summary": "Make ws init try candidates on a clean tree, write only what it verified, keep the rest visible as comments, and record known findings in a project baseline that tasks read.",
+      "files": [
+        "src/workstream/project.py",
+        "src/workstream/profiles.py",
+        "src/workstream/baseline.py",
+        "src/workstream/verify.py",
+        "src/workstream/cli.py",
+        "tests/test_init.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "a passing command becomes an active key",
+        "a lint that fails with parsed findings becomes active and its findings are recorded",
+        "a failing test becomes a comment with the reason",
+        "a missing tool is not run and becomes a comment",
+        "a command that changes the tree becomes a comment",
+        "a later candidate is used when the first fails",
+        "a task passes on known findings from the project baseline and a workstream baseline overrides it",
+        "a dirty tree is refused, and --no-run writes only comments",
+        "an existing config is left alone"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AD-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AD-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "Tiers",
+      "kind": "prompts",
+      "findings": [
+        "T6",
+        "T8",
+        "D-TIER"
+      ],
+      "summary": "Make lite, standard and full mean something: a lite plan template, releaseImpact and the bump keyed on the full tier, and lines in ws-plan and ws-coordinate.",
+      "files": [
+        "src/workstream/registry.py",
+        "src/workstream/tasks.py",
+        "src/workstream/cli.py",
+        "src/workstream/templates",
+        "src/workstream/assets/skills",
+        "tests/test_tiers.py",
+        "tests/test_tasks.py",
+        "tests/test_protocol.py",
+        "docs/rule-map.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "a lite workstream has only a plan and a queue, and settles",
+        "a full workstream needs a runbook and requires releaseImpact",
+        "status and close report the bump only for a full workstream",
+        "a lite workstream in a releasing project doesn't ask for releaseImpact",
+        "the audit still passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AD-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AD-04",
+      "phase": 1,
+      "priority": 40,
+      "title": "ws doctor",
+      "kind": "prompts",
+      "findings": [
+        "T7",
+        "D-DOCTOR"
+      ],
+      "summary": "Add a read-only health check, and --run to judge the commands against the baseline.",
+      "files": [
+        "src/workstream/doctor.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets/skills/ws-coordinate/SKILL.md",
+        "tests/test_doctor.py",
+        "docs/rule-map.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "doctor passes on a good repo and writes nothing",
+        "it fails on a broken config, a missing integration branch and an invalid queue",
+        "it warns on a missing tool, an uncommitted config and a stray adequacy key",
+        "--run fails on a new finding and passes on known ones",
+        "it works outside a project and says to run init"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AD-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "AD-05",
+      "phase": 1,
+      "priority": 50,
+      "title": "End-to-end proof on all six profiles",
+      "kind": "prompts",
+      "findings": [
+        "D-TEST"
+      ],
+      "summary": "Prove init on a fixture repo per profile and with real tools where installed, take one through a full run with the fake agent, and update the docs.",
+      "files": [
+        "tests/test_adoption.py",
+        "README.md",
+        "docs/plan.md",
+        "docs/decisions"
+      ],
+      "docs": [],
+      "acceptance": [
+        "init works on a fixture repo for each of the six profiles",
+        "a repo with failing lint adopts, and a task then passes on the known findings and fails on a new one",
+        "real cargo, npm and gradle repos adopt where those tools exist",
+        "a stubbed repo goes from init to close with the fake agent",
+        "the plan's status table and README say what is true"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "AD-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ws init",
+      "ws doctor",
+      "profiles",
+      "tiers"
+    ],
+    "outOfScope": [
+      "migrating other repos",
+      "installing skills for an agent",
+      "combining profiles in one repo"
+    ],
+    "rule": "Nothing here may name a stack in Python or depend on a tool being installed."
+  }
+}
