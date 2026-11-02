@@ -7,7 +7,7 @@ waiting for someone to notice.
 Static roles are read from the shipped files, and a skill's load includes every protocol section
 it names. What a task costs is measured: a sample workstream runs through the real CLI in a
 throwaway repository and its output is counted. Tokens are estimated at four characters each.
-That is enough to catch growth; `ws audit usage` (a later milestone) reads real transcripts.
+That is enough to catch growth; `ws audit usage` reads real transcripts.
 """
 
 from __future__ import annotations

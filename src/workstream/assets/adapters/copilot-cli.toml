@@ -34,3 +34,8 @@ file_content = """{
   }
 }
 """
+
+[transcripts]
+# Read by `ws audit usage`. Numbers come out, and nothing else.
+root = "~/.copilot/session-state"
+reader = "event-lines"

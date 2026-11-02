@@ -33,3 +33,8 @@ manifest = ".claude-plugin/plugin.json"
 skill = "skills/{name}/SKILL.md"
 worker = "agents/ws-worker.md"
 worker_name = "workstream:ws-worker"
+
+[transcripts]
+# Read by `ws audit usage`. Numbers come out, and nothing else.
+root = "~/.claude/projects"
+reader = "message-lines"

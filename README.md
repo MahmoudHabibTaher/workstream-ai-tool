@@ -36,6 +36,8 @@ Claude Code ignores a project's `.claude/settings.json` until someone has accept
 
 `make eval AGENT=<agent>` runs real agents against a sample repo, under your own login and with a spend cap per scenario. It defaults to Opus 5.5 on medium effort, which took about $0.80 or 53 Copilot credits for the full scenario. [Decision 0008](docs/decisions/0008-agent-adapters.md) has the results.
 
+`ws audit usage` reads your agents' own transcripts and reports what sessions really carried, per role, as numbers only.
+
 ## How a workstream runs
 
 ```bash
