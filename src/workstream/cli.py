@@ -119,6 +119,10 @@ def cmd_adapt(args: argparse.Namespace) -> int:
         print(f"agents: {', '.join(adapt.names())}; adapted here: "
               f"{', '.join(adapt.adapted(project)) or 'none'}")
         return 0
+    if args.plugin:
+        for rel in adapt.write_plugin(args.agent, Path(args.plugin)):
+            print(f"wrote {rel}")
+        return 0
     if args.check:
         wrong = [f"{rel}: {state}" for rel, state
                  in adapt.file_states(project, adapt.load(args.agent)).items()
@@ -802,6 +806,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("agent", nargs="?")
     p.add_argument("--check", action="store_true", help="exit 1 if its files aren't current")
     p.add_argument("--force", action="store_true", help="overwrite files edited by hand")
+    p.add_argument("--plugin", metavar="DIR", help="write its plugin form to DIR instead")
 
     p = command("doctor", cmd_doctor, "what is wrong with this setup; changes nothing")
     p.add_argument("--run", action="store_true", help="also run each command against the baseline")

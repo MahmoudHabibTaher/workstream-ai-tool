@@ -139,7 +139,7 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | subsonic | Wait to be notified; never poll | skill | ws-run: "never poll" |
 | kotlin | Never give a finished worker a second task | skill | ws-run: "never give it a second task" |
 | kotlin | Workers run on the coordinator's model unless told otherwise | skill | ws-run: "on your own model" |
-| subsonic | The coordinator must be the main session | project | An agent fact, for the generated adapter |
+| subsonic | The coordinator must be the main session | project | An agent fact, in the generated adapter's notes |
 | subsonic | Evidence must exist, with proof per item | code | evidence.problems |
 | subsonic | A claimed `verify` must really have run | code | gates.verification_gates |
 | kotlin | Validation is judged against what actually landed | code | gates.verification_gates |

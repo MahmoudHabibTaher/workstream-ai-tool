@@ -121,6 +121,14 @@ class AuditTests(unittest.TestCase):
         text = audit.role_text(audit.SKILLS_BY_ROLE[audit.COORDINATOR])
         self.assertEqual(text.count(protocol.section("stop")), 1)
 
+    def test_each_agent_is_measured_with_what_it_really_loads(self) -> None:
+        for agent in ("claude-code", "copilot-cli"):
+            on_agent = self.row(f"{audit.COORDINATOR} on {agent}")
+            self.assertGreater(on_agent["tokens"], self.row(audit.COORDINATOR)["tokens"], agent)
+            self.assertGreater(self.row(f"{audit.ALWAYS_ON} on {agent}")["tokens"],
+                               self.row(audit.ALWAYS_ON)["tokens"], agent)
+            self.assertTrue(self.row(f"{audit.ALWAYS_ON} on {agent}")["ok"], agent)
+
     def test_growth_past_a_limit_is_caught(self) -> None:
         with mock.patch.dict(audit.BUDGETS, {audit.PLANNER: 10}):
             self.assertFalse(self.row(audit.PLANNER)["ok"])

@@ -22,7 +22,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-from workstream import brief, protocol, tasks
+from workstream import adapt, brief, protocol, tasks
 from workstream.errors import WsError
 from workstream.project import Project
 
@@ -58,9 +58,11 @@ def always_on_text() -> str:
     return "\n".join(lines)
 
 
-def role_text(skills: tuple[str, ...]) -> str:
-    """These skills in full, plus every protocol section they name, each counted once."""
-    texts = [protocol.skill_text(name) for name in skills]
+def role_text(skills: tuple[str, ...], adapter: adapt.Adapter | None = None) -> str:
+    """These skills in full, plus every protocol section they name, each counted once. With an
+    adapter, as that agent gets them, with its notes."""
+    texts = [adapt.skill_text(adapter, name) if adapter else protocol.skill_text(name)
+             for name in skills]
     named = list(dict.fromkeys(s for text in texts for s in protocol.referenced_sections(text)))
     return "\n".join(texts + [protocol.section(s) for s in named])
 
@@ -174,8 +176,23 @@ def role_rows(measured: dict[str, str] | None = None) -> list[dict]:
             PER_TASK: math.ceil(tokens(measured[PER_TASK]) / len(BATCH))}
     for role, skills in SKILLS_BY_ROLE.items():
         used[role] = tokens(role_text(skills))
-    return [{"role": role, "tokens": used[role], "budget": budget, "ok": used[role] <= budget}
+    rows = [{"role": role, "tokens": used[role], "budget": budget, "ok": used[role] <= budget}
             for role, budget in BUDGETS.items()]
+    return rows + adapter_rows(measured)
+
+
+def adapter_rows(measured: dict[str, str]) -> list[dict]:
+    """What each role costs as one agent gets it: the pointer block, its notes, its worker file."""
+    rows = []
+    for name in adapt.names():
+        adapter = adapt.load(name)
+        used = {ALWAYS_ON: tokens(adapt.always_on_text(adapter)),
+                WORKER: tokens(measured[WORKER] + adapt.worker_text(adapter))}
+        for role, skills in SKILLS_BY_ROLE.items():
+            used[role] = tokens(role_text(skills, adapter))
+        rows += [{"role": f"{role} on {name}", "tokens": count, "budget": BUDGETS[role],
+                  "ok": count <= BUDGETS[role]} for role, count in used.items()]
+    return rows
 
 
 def project_rows(project: Project, ws: dict) -> list[dict]:

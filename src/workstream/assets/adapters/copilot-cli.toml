@@ -2,3 +2,15 @@ name = "copilot-cli"
 label = "Copilot CLI"
 instructions = ".github/copilot-instructions.md"
 skill = ".github/skills/{name}/SKILL.md"
+
+[worker]
+path = ".github/agents/ws-worker.agent.md"
+name = "ws-worker"
+description = "One workstream task: runs `ws brief`, follows it."
+# Subagents skip custom instructions by default, and may need the project's own rules. The list
+# leaves out the task tool, so a worker can't start workers of its own.
+frontmatter = "tools: [\"read\", \"grep\", \"glob\", \"edit\", \"execute\"]\nstrict-tools-list: true\ninclude-custom-instructions: true"
+
+[notes]
+ws-plan = "Ask with the question tool, one at a time. The plan file you write is what `ws seed --from-plan` reads."
+ws-run = "Start each worker with the `task` tool: agent type `{worker}`, `mode: background`, and `model` set to the model you are running as, because a default may be weaker. Each runs in a worktree `ws worktree create` already made. You are notified as each finishes; read its result once."
