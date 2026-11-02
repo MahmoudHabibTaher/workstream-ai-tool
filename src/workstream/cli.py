@@ -528,6 +528,7 @@ def cmd_unclaim(args: argparse.Namespace) -> int:
     project = _project(args)
     _, path = _queue(project, args)
     ids = tasks.unclaim(path, args.ids, project.config)
+    registry.sync(project)
     print(f"unclaimed {', '.join(ids)}: back to todo")
     return 0
 
