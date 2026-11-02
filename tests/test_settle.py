@@ -52,6 +52,14 @@ class SettleTestCase(WsTestCase):
         return where
 
 
+class UnclaimTests(SettleTestCase):
+    def test_the_registry_follows_it(self) -> None:
+        self.arrange(self.t("T1"))
+        self.ok("claim", "--commit", "T1")
+        self.ok("unclaim", "T1", "-w", "alpha")
+        self.assertIn("no differences", self.ok("reconcile"))
+
+
 class BriefForRealWorkTests(SettleTestCase):
     """What the first real pilot run got wrong, in a worker's own words."""
 

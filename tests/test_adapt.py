@@ -216,7 +216,9 @@ class SettingsTests(AdaptCase):
 
     def test_a_long_verify_can_stay_in_the_foreground(self) -> None:
         self.ok("adapt", "claude-code")
-        self.assertIn("BASH_MAX_TIMEOUT_MS", json.loads(self.path(self.settings).read_text())["env"])
+        env = json.loads(self.path(self.settings).read_text())["env"]
+        self.assertIn("BASH_MAX_TIMEOUT_MS", env)
+        self.assertEqual(env["CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS"], "0")
 
     def test_a_timeout_already_set_stays(self) -> None:
         self.path(self.settings).parent.mkdir(parents=True, exist_ok=True)
