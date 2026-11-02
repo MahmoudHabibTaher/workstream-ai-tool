@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help test test-real audit
+.PHONY: help test test-real audit eval
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -12,3 +12,6 @@ test-real: ## Also adopt small real projects with the toolchains installed here
 
 audit: ## Check every role's context against its limit
 	PYTHONPATH=src python3 -B -m workstream audit context
+
+eval: ## Run real agents against a sample repo: make eval AGENT=<agent> [SCENARIOS=a,b] [CAP=n] [ACCOUNT=login]
+	PYTHONPATH=src python3 -B -m evals.harness --agent $(AGENT) $(if $(SCENARIOS),--scenarios $(SCENARIOS)) $(if $(CAP),--cap $(CAP)) $(if $(ACCOUNT),--account $(ACCOUNT)) $(if $(KEEP),--keep $(KEEP))
