@@ -7,6 +7,7 @@ description: Manage workstreams over their life: choose what's next, add a task,
 
 `ws-run` lands tasks. This is everything around that. You are the only writer of tracking state, through the CLI and never by hand; `ws protocol files` says who writes what.
 
+- **Something seems off:** `ws doctor` changes nothing and says what is wrong. `ws doctor --run` also runs each command against the baseline.
 - **Where things stand:** `ws list` and `ws status -w <id>`. `ws snapshot` has the health findings: stale claims, orphan branches, missing evidence.
 - **A task the plan didn't foresee:** `ws add`, with a `DECISIONS.md` entry saying why. `PLAN.md` stays as approved.
 - **A `verify` a worker found wrong:** `ws update <task> --verify <key>`, after reading their proposal.
