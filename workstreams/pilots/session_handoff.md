@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 2/6 done on `main` at `23b64ae`, as of 2026-11-02.
+**State:** 3/6 done on `main` at `9b1e3f3`, as of 2026-11-02.
 
-**Just landed:** PI-02 (`23b64aefa6`)
+**Just landed:** PI-03 (`9b1e3f364f`)
 
-**Next:** `ws claim --commit PI-03` (phase 2).
+**Next:** `ws claim --commit PI-04 PI-05` (phase 3).
 
 **Gotchas:**
-- PI-02: A root-shape queue's top-level `validation` commands are dropped: its open tasks' keys come back as needing a person, and they go in [commands] by hand. Its old baselines don't convert: run `ws baseline record`. The old queues have no recorded verification, so open imported tasks start fresh.
+- PI-03: The Copilot worker row depends on a rough marker and covers only sessions with per-call records. Aggregate numbers only: no content from either project.

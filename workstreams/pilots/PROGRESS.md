@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `2fd93bc`.
 
 ---
 
+## 2026-11-02: PI-03: Before numbers from real transcripts
+
+Merged as `9b1e3f364f`. Verified: test pass, audit pass. [Evidence](evidence/PI-03.md).
+
 ## 2026-11-02: PI-02: ws import for both shapes
 
 Merged as `23b64aefa6`. Verified: test pass, audit pass. [Evidence](evidence/PI-02.md).
