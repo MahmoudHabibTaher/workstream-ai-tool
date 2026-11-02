@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 1/6 done on `main` at `c2a79aa`, as of 2026-11-02.
+**State:** 2/6 done on `main` at `23b64ae`, as of 2026-11-02.
 
-**Just landed:** PI-01 (`c2a79aa1a3`)
+**Just landed:** PI-02 (`23b64aefa6`)
 
-**Next:** `ws claim --commit PI-02` (phase 1).
+**Next:** `ws claim --commit PI-03` (phase 2).
 
 **Gotchas:**
-- PI-01: Only 65 of the Copilot sessions for that project have per-call records: older ones don't. An older harness's workers need `--worker-marker`, and that is a rough text match. Claude Code's slug prefix can match a sibling folder that shares its start.
+- PI-02: A root-shape queue's top-level `validation` commands are dropped: its open tasks' keys come back as needing a person, and they go in [commands] by hand. Its old baselines don't convert: run `ws baseline record`. The old queues have no recorded verification, so open imported tasks start fresh.

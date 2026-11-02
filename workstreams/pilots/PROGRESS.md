@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `2fd93bc`.
 
 ---
 
+## 2026-11-02: PI-02: ws import for both shapes
+
+Merged as `23b64aefa6`. Verified: test pass, audit pass. [Evidence](evidence/PI-02.md).
+
 ## 2026-11-02: PI-01: ws audit usage
 
 Merged as `c2a79aa1a3`. Verified: test pass, audit pass. [Evidence](evidence/PI-01.md).

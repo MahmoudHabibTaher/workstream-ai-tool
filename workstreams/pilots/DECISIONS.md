@@ -13,3 +13,11 @@ The user asked to start M6. Standing limits: the Kotlin harness's repo gets noth
 ## D002 (2026-11-02, PI-01): A checkout elsewhere counts when it names the same remote
 
 The real sessions' worktrees sit beside the project on disk, so a path match found 37 of the sessions and none with per-call figures. Rejected: a folder-name prefix, which matches unrelated siblings. **Closed.**
+
+## D003 (2026-11-02, PI-02): Conversion is one-way, in `ws import`, and `tasks.load` still refuses old versions
+
+Otherwise the old shapes stay supported for good. Rejected: reading them on the fly. **Closed.**
+
+## D004 (2026-11-02, PI-02): A frozen protocol copy is removed from open work and kept in closed work
+
+Open work reads `ws protocol` now, and closed work is a record. Rejected: removing all of them, which rewrites history for no gain. **Closed.**
