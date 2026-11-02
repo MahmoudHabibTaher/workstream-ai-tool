@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 1/5 done on `main` at `fa7c825`, as of 2026-11-02.
+**State:** 2/5 done on `main` at `334053b`, as of 2026-11-02.
 
-**Just landed:** AD-01 (`fa7c825085`)
+**Just landed:** AD-02 (`334053b1da`)
 
-**Next:** `ws claim --commit AD-02` (phase 1).
+**Next:** `ws claim --commit AD-03` (phase 1).
 
 **Gotchas:**
-- AD-01: node's stylish eslint output has no usable regex, since the file sits on its own line. The profile's pattern needs `--format unix`, so a project on stylish gets a comment at init rather than known findings.
+- AD-02: A command that changes tracked files at init leaves those changes in the tree: `ws init` reports it and doesn't undo them, because undoing could lose something. It says to review what's left.
