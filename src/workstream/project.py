@@ -13,6 +13,7 @@ from workstream.errors import WsError
 REGISTRY_NAME = "workstreams.json"
 TASKS_NAME = "tasks_list.json"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 
 
 @dataclass(frozen=True)

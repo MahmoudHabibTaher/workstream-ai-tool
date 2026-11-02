@@ -1,0 +1,55 @@
+name = "python"
+priority = 40
+markers = ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"]
+
+[[command]]
+key = "test"
+run = "python3 -m pytest -q"
+if_files = ["pytest.ini"]
+
+[[command]]
+key = "test"
+run = "python3 -m pytest -q"
+if_files = ["conftest.py"]
+
+[[command]]
+key = "test"
+run = "python3 -m pytest -q"
+if_regex = ["pyproject.toml", "pytest"]
+
+[[command]]
+key = "test"
+run = "python3 -m unittest discover"
+
+[[command]]
+key = "lint"
+run = "ruff check --output-format=concise ."
+if_files = ["ruff.toml"]
+
+[[command]]
+key = "lint"
+run = "ruff check --output-format=concise ."
+if_regex = ["pyproject.toml", "ruff"]
+
+[[command]]
+key = "compile"
+run = "mypy ."
+if_files = ["mypy.ini"]
+
+[[command]]
+key = "compile"
+run = "mypy ."
+if_regex = ["pyproject.toml", "mypy"]
+
+[adequacy]
+declarations = ["compile"]
+behaviour = ["compile", "test"]
+tests = ["test"]
+
+# ruff's concise format: src/a.py:1:8: F401 `os` imported but unused
+[baseline.lint]
+parser = "regex"
+pattern = '^(?P<file>\S+?\.pyi?):\d+:\d+: (?P<rule>\S+) (?P<message>.*)$'
+
+[worktree]
+setup = ["test ! -d {main}/.venv || ln -s {main}/.venv .venv"]

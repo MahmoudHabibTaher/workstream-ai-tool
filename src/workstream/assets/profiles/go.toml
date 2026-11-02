@@ -1,0 +1,30 @@
+name = "go"
+priority = 30
+markers = ["go.mod"]
+
+[[command]]
+key = "compile"
+run = "go build ./..."
+
+[[command]]
+key = "test"
+run = "go test ./..."
+
+[[command]]
+key = "lint"
+run = "golangci-lint run --output.text.path=stdout"
+if_files = [".golangci.yml"]
+
+[[command]]
+key = "lint"
+run = "go vet ./..."
+
+[adequacy]
+declarations = ["compile"]
+behaviour = ["compile", "test"]
+tests = ["test"]
+
+# go vet and golangci-lint: ./a.go:3:2: message
+[baseline.lint]
+parser = "regex"
+pattern = '^(?:\./|vet: )?(?P<file>\S+?\.go):\d+:\d+: (?P<message>.*)$'

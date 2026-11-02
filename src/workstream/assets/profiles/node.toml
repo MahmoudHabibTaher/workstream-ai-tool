@@ -1,0 +1,86 @@
+name = "node"
+priority = 50
+markers = ["package.json"]
+
+# Each script is offered only if package.json has it, through the lockfile's runner.
+[[command]]
+key = "compile"
+run = "pnpm run typecheck"
+if_files = ["pnpm-lock.yaml"]
+if_regex = ["package.json", '"typecheck"\s*:']
+
+[[command]]
+key = "compile"
+run = "yarn run typecheck"
+if_files = ["yarn.lock"]
+if_regex = ["package.json", '"typecheck"\s*:']
+
+[[command]]
+key = "compile"
+run = "npm run typecheck"
+if_regex = ["package.json", '"typecheck"\s*:']
+
+[[command]]
+key = "compile"
+run = "pnpm run build"
+if_files = ["pnpm-lock.yaml"]
+if_regex = ["package.json", '"build"\s*:']
+
+[[command]]
+key = "compile"
+run = "yarn run build"
+if_files = ["yarn.lock"]
+if_regex = ["package.json", '"build"\s*:']
+
+[[command]]
+key = "compile"
+run = "npm run build"
+if_regex = ["package.json", '"build"\s*:']
+
+[[command]]
+key = "test"
+run = "pnpm test"
+if_files = ["pnpm-lock.yaml"]
+if_regex = ["package.json", '"test"\s*:']
+
+[[command]]
+key = "test"
+run = "yarn test"
+if_files = ["yarn.lock"]
+if_regex = ["package.json", '"test"\s*:']
+
+[[command]]
+key = "test"
+run = "npm test"
+if_regex = ["package.json", '"test"\s*:']
+
+[[command]]
+key = "lint"
+run = "pnpm run lint"
+if_files = ["pnpm-lock.yaml"]
+if_regex = ["package.json", '"lint"\s*:']
+
+[[command]]
+key = "lint"
+run = "yarn run lint"
+if_files = ["yarn.lock"]
+if_regex = ["package.json", '"lint"\s*:']
+
+[[command]]
+key = "lint"
+run = "npm run lint"
+if_regex = ["package.json", '"lint"\s*:']
+
+[adequacy]
+declarations = ["compile"]
+behaviour = ["compile", "test"]
+tests = ["test"]
+
+# eslint's stylish format has no parser here: its file sits on a line of its own, so a project
+# wanting known findings sets `--format unix` in its script: src/a.js:3:5: message [Error/rule]
+[baseline.lint]
+parser = "regex"
+pattern = '^(?P<file>\S+?\.[cm]?[jt]sx?):\d+:\d+: (?P<message>.*)$'
+
+[worktree]
+setup = ["test ! -d {main}/node_modules || ln -s {main}/node_modules node_modules"]

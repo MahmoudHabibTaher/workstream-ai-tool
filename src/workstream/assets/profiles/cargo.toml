@@ -1,0 +1,25 @@
+name = "cargo"
+priority = 20
+markers = ["Cargo.toml"]
+
+[[command]]
+key = "compile"
+run = "cargo check --all-targets"
+
+[[command]]
+key = "test"
+run = "cargo test"
+
+[[command]]
+key = "lint"
+run = "cargo clippy --all-targets --message-format=short -- -D warnings"
+
+[adequacy]
+declarations = ["compile"]
+behaviour = ["compile", "test"]
+tests = ["test"]
+
+# rustc's short format: src/main.rs:2:9: warning: unused variable: `x`
+[baseline.lint]
+parser = "regex"
+pattern = '^(?P<file>\S+?):\d+:\d+: (?P<level>warning|error)(?P<code>\[\w+\])?: (?P<message>.*)$'

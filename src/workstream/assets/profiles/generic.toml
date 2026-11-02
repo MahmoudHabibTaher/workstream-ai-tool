@@ -1,0 +1,22 @@
+name = "generic"
+priority = 90
+markers = []
+
+# What a Makefile says it can do. With no Makefile this proposes nothing, and the config says
+# how to add commands by hand.
+[[command]]
+key = "compile"
+run = "make build"
+if_regex = ["Makefile", '(?m)^build:']
+
+[[command]]
+key = "test"
+run = "make test"
+if_regex = ["Makefile", '(?m)^test:']
+
+[[command]]
+key = "lint"
+run = "make lint"
+if_regex = ["Makefile", '(?m)^lint:']
+
+[adequacy]

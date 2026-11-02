@@ -1,0 +1,50 @@
+name = "gradle-kmp"
+priority = 10
+markers = ["gradlew", "settings.gradle.kts", "settings.gradle", "build.gradle.kts", "build.gradle"]
+
+# A build may not expose the task you'd expect, so the wrapper's tasks come first and each
+# fallback is tried when the one before it fails.
+[[command]]
+key = "compile"
+run = "./gradlew assemble --console=plain"
+if_files = ["gradlew"]
+
+[[command]]
+key = "compile"
+run = "gradle assemble --console=plain"
+
+[[command]]
+key = "test"
+run = "./gradlew allTests --console=plain"
+if_files = ["gradlew"]
+if_regex = ["build.gradle.kts", "multiplatform"]
+
+[[command]]
+key = "test"
+run = "./gradlew test --console=plain"
+if_files = ["gradlew"]
+
+[[command]]
+key = "test"
+run = "gradle test --console=plain"
+
+[[command]]
+key = "lint"
+run = "./gradlew detekt --console=plain"
+if_files = ["gradlew"]
+if_regex = ["build.gradle.kts", "detekt"]
+
+[[command]]
+key = "lint"
+run = "./gradlew detekt --console=plain"
+if_files = ["gradlew", "detekt.yml"]
+
+[adequacy]
+declarations = ["compile"]
+behaviour = ["compile", "test"]
+tests = ["test"]
+
+# detekt's plain output: /repo/src/File.kt:11:1: Unused import. [UnusedImports]
+[baseline.lint]
+parser = "regex"
+pattern = '^(?P<file>\S+?\.kts?):\d+:\d+: (?P<message>.*)$'
