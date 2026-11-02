@@ -42,6 +42,7 @@ Example:
 
 from __future__ import annotations
 
+import json
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -220,29 +221,56 @@ def load_config(path: Path) -> Config:
         raise WsError(f"{CONFIG_REL}: {e}") from None
 
 
-def render_default(integration: str, production: str | None = None) -> str:
-    """The file `ws init` writes for a project with nothing configured yet."""
-    return f"""# Project facts for the `ws` CLI. Every key is optional.
-schema = {SCHEMA}
+def _toml_string(value: str) -> str:
+    """A TOML basic string. JSON's escapes are the same, including for a regex's backslashes."""
+    return json.dumps(value)
 
-[branches]
-integration = "{integration}"
-production = "{production or integration}"
-task = "task/{{slug}}"
-merge = "no-ff"
 
-# The commands a task's `verify` names. Add your project's own, for example:
-#   test = "make test"
-#   lint = "make lint"
-[commands]
+def _command_lines(commands: dict[str, str], unverified: dict[str, tuple[str, str]]) -> list[str]:
+    lines = [f"{key} = {_toml_string(run)}" for key, run in commands.items()]
+    for key, (run, why) in unverified.items():
+        lines.append(f"# {key} = {_toml_string(run)}  # {why}")
+    return lines
 
-# Task kind -> the command keys it must verify with, enforced by `ws validate`:
-#   behaviour = ["test"]
-[adequacy]
 
-[parallel]
-max_workers = 3
-
-[release]
-mode = "none"
-"""
+def render_default(integration: str, production: str | None = None, *,
+                   commands: dict[str, str] | None = None,
+                   unverified: dict[str, tuple[str, str]] | None = None,
+                   adequacy: dict[str, list[str]] | None = None,
+                   baseline: dict[str, dict] | None = None,
+                   worktree_setup: tuple[str, ...] = ()) -> str:
+    """The file `ws init` writes. `commands` were seen to work; `unverified` maps a key to its
+    command and why it isn't active, and stays visible as a comment for someone to fix."""
+    command_lines = _command_lines(commands or {}, unverified or {})
+    if not command_lines:
+        command_lines = ["# Add your project's own, for example:", '#   test = "make test"',
+                         '#   lint = "make lint"']
+    adequacy_lines = [f"{kind} = {json.dumps(keys)}" for kind, keys in (adequacy or {}).items()]
+    if not adequacy_lines:
+        adequacy_lines = ['#   behaviour = ["test"]']
+    active = commands or {}
+    baseline_lines = []
+    for key, entry in (baseline or {}).items():
+        if key in active:
+            baseline_lines += ["", f"[baseline.{key}]"]
+            baseline_lines += [f"{k} = {_toml_string(v)}" for k, v in entry.items()]
+    worktree_lines = []
+    if worktree_setup:
+        worktree_lines = ["", "[worktree]", f"setup = {json.dumps(list(worktree_setup))}"]
+    return "\n".join([
+        "# Project facts for the `ws` CLI. Every key is optional.",
+        f"schema = {SCHEMA}", "",
+        "[branches]",
+        f'integration = "{integration}"',
+        f'production = "{production or integration}"',
+        'task = "task/{slug}"',
+        'merge = "no-ff"', "",
+        "# The commands a task's `verify` names. `ws init` only makes active what it saw work.",
+        "[commands]", *command_lines, "",
+        "# Task kind -> the command keys it must verify with, enforced by `ws validate`:",
+        "[adequacy]", *adequacy_lines, *worktree_lines, *baseline_lines, "",
+        "[parallel]",
+        "max_workers = 3", "",
+        "[release]",
+        'mode = "none"', "",
+    ])

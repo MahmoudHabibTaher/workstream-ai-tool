@@ -11,11 +11,11 @@ import re
 from pathlib import Path
 
 from workstream.errors import WsError
+from workstream.project import ASSETS_DIR
 
-ASSETS = Path(__file__).resolve().parent / "assets"
-PROTOCOL_FILE = ASSETS / "PROTOCOL.md"
-POINTER_FILE = ASSETS / "POINTER.md"
-SKILLS_DIR = ASSETS / "skills"
+PROTOCOL_FILE = ASSETS_DIR / "PROTOCOL.md"
+POINTER_FILE = ASSETS_DIR / "POINTER.md"
+SKILLS_DIR = ASSETS_DIR / "skills"
 SECTION_RE = re.compile(r"^## +(\S+)\s*$", re.MULTILINE)
 VERSION_RE = re.compile(r"^Version (\S+?)\.", re.MULTILINE)
 REFERENCE_RE = re.compile(r"`ws protocol ([a-z-]+)`")
