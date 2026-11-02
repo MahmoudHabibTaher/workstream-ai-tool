@@ -243,6 +243,44 @@
       }
     },
     {
+      "id": "PI-08",
+      "phase": 3,
+      "priority": 36,
+      "title": "Keep long headless runs alive, and unclaim in sync",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "claude -p stops background workers 10 minutes after the last turn, and ws unclaim left the registry out of step with the queue, which the next ws reconcile reported.",
+      "files": [
+        "src/workstream/cli.py",
+        "src/workstream/assets/adapters/claude-code.toml",
+        "tests/test_settle.py",
+        "tests/test_adapt.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "ws adapt writes the setting that lets a headless run wait for its workers",
+        "ws reconcile reports no difference after ws unclaim"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
       "id": "PI-04",
       "phase": 3,
       "priority": 40,
