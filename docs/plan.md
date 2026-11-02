@@ -8,7 +8,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 |---|---|
 | M0 Bootstrap | Done, except CI has not run: the repo has no remote yet |
 | M1 State and core CLI | Done |
-| M2 onward | Not started |
+| M2 Execution engine | Done: a scripted fake agent finishes a workstream sequentially and in parallel. No real agent has run it yet |
+| M3 onward | Not started |
 
 
 ## Design principles

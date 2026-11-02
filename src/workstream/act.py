@@ -27,7 +27,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from workstream import registry, snapshot, tasks
+from workstream import gitutil, registry, snapshot, tasks
 from workstream.errors import Refused, WsError
 from workstream.fsutil import sha256
 from workstream.project import Project
@@ -203,3 +203,27 @@ def act(project: Project, action: str, ws_id: str, *, task: str | None = None,
         restore(originals)
         raise
     return f"committed {short}: {commit_message(ws_id, action, task)}"
+
+
+def commit_claim(project: Project, ws: dict, ids: list[str], base: str | None,
+                 by: str | None) -> tuple[str, str]:
+    """Claim a batch and commit it on the integration branch, in one step. (base, commit).
+
+    Workers branch from this commit, since their queue and registry come from it. Nothing else
+    can be mid-write here: uncommitted tracking files are refused, and a claim that can't be
+    committed is undone.
+    """
+    rows = registry.load(project)["workstreams"]
+    check_checkout(project, snapshot.git_facts(project, rows), "claim", ws["id"], rows)
+    base = base or gitutil.rev_parse(project.root, "HEAD")
+    queue = project.tasks_path(ws)
+    originals = {path: path.read_bytes() for path in (queue, project.registry_path)}
+    try:
+        tasks.claim(queue, ids, base, by, project.config)
+        registry.sync(project)
+        short = commit(project, changed_paths(originals),
+                       f"{ws['id']}: claim {', '.join(ids)}")
+    except BaseException:
+        restore(originals)
+        raise
+    return base, short

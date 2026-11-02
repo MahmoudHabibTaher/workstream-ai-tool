@@ -1,4 +1,4 @@
-"""Read-only git helpers. A failure comes back as data or None, never an exception."""
+"""Small git helpers that read. A failure comes back as data or None, never an exception."""
 
 from __future__ import annotations
 
@@ -6,8 +6,9 @@ import subprocess
 from pathlib import Path
 
 
-def run(repo_root: Path, *argv: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *argv], cwd=repo_root, capture_output=True, text=True)
+def run(repo_root: Path, *argv: str, env: dict | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *argv], cwd=repo_root, capture_output=True, text=True,
+                          errors="replace", env=env)
 
 
 def rev_parse(repo_root: Path, rev: str, short: bool = False) -> str:
@@ -18,6 +19,32 @@ def rev_parse(repo_root: Path, rev: str, short: bool = False) -> str:
     except OSError:
         return ""
     return proc.stdout.strip() if proc.returncode == 0 else ""
+
+
+def common_dir(repo_root: Path) -> Path | None:
+    """The .git directory every worktree of this repository shares, or None outside one."""
+    try:
+        proc = run(repo_root, "rev-parse", "--git-common-dir")
+    except OSError:
+        return None
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None
+    return (Path(repo_root) / proc.stdout.strip()).resolve()
+
+
+def is_ancestor(repo_root: Path, older: str, newer: str) -> bool:
+    return run(repo_root, "merge-base", "--is-ancestor", older, newer).returncode == 0
+
+
+def current_branch(repo_root: Path) -> str:
+    """The branch checked out here; "HEAD" when detached, "" when git can't say."""
+    proc = run(repo_root, "rev-parse", "--abbrev-ref", "HEAD")
+    return proc.stdout.strip() if proc.returncode == 0 else ""
+
+
+def branch_exists(repo_root: Path, branch: str) -> bool:
+    return run(repo_root, "rev-parse", "--verify", "--quiet",
+               f"refs/heads/{branch}").returncode == 0
 
 
 def toplevel(start: Path) -> Path | None:

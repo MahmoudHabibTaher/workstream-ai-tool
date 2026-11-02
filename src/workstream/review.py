@@ -8,7 +8,8 @@
   `--no-ff` merge, whose `git show` is an empty combined diff, so a merge is reviewed
   against its first parent (`<commit>^1..<commit>`), a single-parent commit against its
   parent (`<commit>^..<commit>`). An in-progress task with no commit but an existing branch
-  is reviewed before merge as `<baseCommit>...<branch>`. Anything else is `none`.
+  is reviewed before merge from where it left the integration branch, which leaves out the
+  commit that claimed it. Anything else is `none`.
 - parse_numstat(text) and cap_hunks(text, max_lines): pure. The hunks are cut at the last
   whole hunk that fits under the cap, since a hunk cut mid-way does not parse as a diff.
 - The git calls sit at the edge, in build_review. They only read, and a git failure comes
@@ -143,6 +144,10 @@ def build_review(project: Project, ws_id: str, task_id: str, file: str | None = 
     evidence = project.folder(ws) / "evidence" / f"{task_id}.md"
     rng = review_range(task, lambda rev: git_parents(root, rev),
                        lambda name: git_branch_exists(root, name))
+    if rng["kind"] == "branch":
+        fork = _git(root, "merge-base", project.config.integration, rng["to"]).stdout.strip()
+        if fork and not fork.startswith(rng["from"]):
+            rng["from"] = fork
     out = {"task": task_id, "evidence": str(evidence) if evidence.is_file() else None,
            "range": rng, "files": []}
     spec = diff_spec(rng)

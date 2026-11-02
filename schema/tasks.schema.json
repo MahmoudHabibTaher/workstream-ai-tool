@@ -196,8 +196,81 @@
             "string",
             "null"
           ]
+        },
+        "verification": {
+          "description": "Written by `ws settle`: what `ws verify` recorded for the tree that landed.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/verification"
+            }
+          ]
         }
       }
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "tree",
+        "at",
+        "results"
+      ],
+      "properties": {
+        "tree": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "postMerge": {
+          "type": "string",
+          "enum": [
+            "same-tree",
+            "ran",
+            "skipped",
+            "not-applicable"
+          ]
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "exit",
+              "verdict"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "exit": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "verdict": {
+                "enum": [
+                  "pass",
+                  "known-only",
+                  "fail"
+                ]
+              },
+              "new": {
+                "type": "integer"
+              },
+              "known": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

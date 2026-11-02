@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "baseline.json",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "keys"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "commit": {
+      "type": "string"
+    },
+    "recordedAt": {
+      "type": "string"
+    },
+    "keys": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

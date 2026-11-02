@@ -142,3 +142,27 @@ class WsTestCase(unittest.TestCase):
     def entry(self, ws_id: str = "alpha") -> dict:
         rows = json.loads(self.registry.read_text())["workstreams"]
         return next(w for w in rows if w["id"] == ws_id)
+
+    # --- running from a worktree ----------------------------------------------------------
+
+    def ws_at(self, where: Path, *argv: str) -> tuple[int, str, str]:
+        """`ws <argv>` as run from another checkout of this repository."""
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            try:
+                code = main(["--root", str(where), *argv])
+            except SystemExit as e:
+                code = e.code if isinstance(e.code, int) else 1
+        return code, out.getvalue(), err.getvalue()
+
+    def git_at(self, where: Path, *argv: str) -> str:
+        return subprocess.run(["git", *argv], cwd=where, capture_output=True, text=True,
+                              check=True).stdout
+
+
+def evidence_text(task_id: str, items: int = 1, status: str = "done",
+                  proposals: str = "None.", gotchas: str = "None.") -> str:
+    """An evidence file that passes the check, for a task with this many acceptance items."""
+    lines = "\n".join(f"{n}. item {n} -> ran it: `ok`" for n in range(1, items + 1))
+    return (f"# {task_id} evidence\n\n- **Status:** {status}\n\n## Acceptance\n\n{lines}\n\n"
+            f"## Proposed decisions\n\n{proposals}\n\n## Gotchas and follow-ups\n\n{gotchas}\n")

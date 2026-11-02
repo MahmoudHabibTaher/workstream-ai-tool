@@ -11,7 +11,8 @@ import json
 import sys
 from pathlib import Path
 
-from workstream import act, graph, gitutil, registry, review, snapshot, tasks
+from workstream import act, baseline, brief, decisions, evidence, gates, graph, gitutil, handoff
+from workstream import plan, registry, review, settle, snapshot, tasks, verify, worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
 from workstream.project import Project, init_project, open_project
@@ -180,6 +181,18 @@ def cmd_close(args: argparse.Namespace) -> int:
 def cmd_seed(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
+    if bool(args.seed_file) == bool(args.from_plan):
+        raise WsError("seed takes a JSON file or --from-plan <plan.md>, one of them")
+    if args.from_plan:
+        try:
+            text = Path(args.from_plan).read_text()
+        except OSError as e:
+            raise WsError(f"cannot read {args.from_plan}: {e}") from None
+        added, warnings = plan.seed_from_plan(project, ws, text, force=args.force)
+        for w in warnings:
+            print(f"warning: {w}")
+        print(f"seeded {added} task(s) and PLAN.md into {ws['id']}")
+        return 0
     try:
         with open(args.seed_file) as f:
             new_tasks = json.load(f)
@@ -240,13 +253,6 @@ def cmd_tasks(args: argparse.Namespace) -> int:
     return 0
 
 
-def _acceptance_text(item: object) -> str:
-    if isinstance(item, dict):
-        suffix = " (manual)" if item.get("kind") == "manual" else ""
-        return f"{item.get('text', '')}{suffix}"
-    return str(item)
-
-
 def _print_task(task: dict, all_tasks: list[dict], config) -> None:
     """One task for a reader about to work on it. Empty fields are left out."""
     print(f"{task['id']}  {task['status']}  phase {task['phase']}  priority {task['priority']}"
@@ -270,7 +276,7 @@ def _print_task(task: dict, all_tasks: list[dict], config) -> None:
     if task.get("acceptance"):
         print("acceptance:")
         for n, item in enumerate(task["acceptance"], 1):
-            print(f"  {n}. {_acceptance_text(item)}")
+            print(f"  {n}. {tasks.acceptance_text(item)}")
     commands = tasks.verify_commands(task, config)
     if commands:
         print("verify:")
@@ -412,7 +418,11 @@ def cmd_graph(args: argparse.Namespace) -> int:
 
 def cmd_claim(args: argparse.Namespace) -> int:
     project = _project(args)
-    _, path = _queue(project, args)
+    ws, path = _queue(project, args)
+    if args.commit:
+        base, short = act.commit_claim(project, ws, args.ids, args.base, args.by)
+        print(f"claimed {', '.join(args.ids)} at {base}; committed {short}")
+        return 0
     base = args.base if args.base is not None else gitutil.rev_parse(project.root, "HEAD")
     ids = tasks.claim(path, args.ids, base, args.by, project.config)
     print(f"claimed {', '.join(ids)} at {base}" + (f" for {args.by}" if args.by else ""))
@@ -442,6 +452,164 @@ def cmd_reset(args: argparse.Namespace) -> int:
         raise Refused("not reset (needs confirmation or --yes)")
     tasks.reset(path, args.ids, args.cascade, project.config)
     print(f"reset {len(planned)} task(s) to todo")
+    return 0
+
+
+# --- running a task -----------------------------------------------------------------------
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, path = _queue(project, args)
+    task = tasks.find_task(tasks.load(path, project.config), args.id)
+    run = verify.verify_task(project, ws, task, keys=args.key)
+    if args.json:
+        print(json.dumps(run, indent=2))
+    else:
+        print("\n".join(verify.format_run(run, project.config.tail_lines)))
+    return 1 if run["problems"] else 0
+
+
+def cmd_baseline(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, _ = _queue(project, args)
+    if args.action == "show":
+        record = baseline.load(project.folder(ws))
+        if not record["keys"]:
+            print("(no baseline recorded; everything a command reports counts as new)")
+            return 0
+        print(f"recorded at {record.get('commit', '?')[:10]} on {record.get('recordedAt', '?')}")
+        for key, entry in sorted(record["keys"].items()):
+            print(f"  {key}: exit {entry.get('exit')}, {len(entry.get('findings', []))} known, "
+                  f"parser {entry.get('parser')}")
+        return 0
+    results = verify.record_baseline(project, ws, args.keys)
+    if not results:
+        print("nothing to record: no open task verifies with a named command")
+        return 0
+    for r in results:
+        print(f"  {r['key']}: exit {r['exit']}, {r['findings']} finding(s), {r['seconds']}s")
+        if r["problem"]:
+            print(f"    warning: {r['problem']}")
+        elif r["exit"] != 0 and r["parser"] == baseline.EXIT_CODE:
+            print(f"    warning: it fails, and the exit-code parser can't tell new failures from "
+                  f"old, so a task verifying with {r['key']} can't pass. Fix it, or configure "
+                  f"[baseline.{r['key']}]. Log: {r['log']}")
+    print(f"wrote {project.rel(baseline.path_for(project.folder(ws)))}; commit it")
+    return 0
+
+
+def cmd_brief(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, path = _queue(project, args)
+    data = tasks.load(path, project.config)
+    task = tasks.find_task_by_prefix(data, args.id)
+    print(brief.render(project, ws, task, data["tasks"], args.max_chars), end="")
+    return 0
+
+
+def cmd_decisions(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, path = _queue(project, args)
+    file = project.folder(ws) / "DECISIONS.md"
+    entries = decisions.parse(file.read_text()) if file.exists() else []
+    if args.for_task:
+        task = tasks.find_task_by_prefix(tasks.load(path, project.config), args.for_task)
+        entries = decisions.relevant(entries, task)
+    if not entries:
+        print("(no matching decisions)")
+    for entry in entries:
+        print(entry["text"] + "\n")
+    return 0
+
+
+def _print_gates(found: list[dict]) -> None:
+    for g in found:
+        word = "ok  " if g["ok"] else ("FAIL" if g["blocking"] else "warn")
+        print(f"  {word} {g['name']}" + (f": {g['detail']}" if not g["ok"] and g["detail"] else ""))
+
+
+def cmd_evidence(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, path = _queue(project, args)
+    task = tasks.find_task(tasks.load(path, project.config), args.id)
+    file = evidence.path_for(project, ws, task["id"])
+    if args.action == "new":
+        if file.exists():
+            raise Refused(f"{project.rel(file)} already exists")
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(evidence.skeleton(task))
+        print(f"wrote {project.rel(file)}; fill in each {{{{...}}}}")
+        return 0
+    rows = registry.load(project)["workstreams"]
+    found = gates.ready_gates(project, ws, task, list(snapshot.folders_by_id(project, rows).values()))
+    _print_gates(found)
+    if gates.blockers(found):
+        print("FAIL")
+        return 1
+    print("OK")
+    return 0
+
+
+def cmd_worktree(args: argparse.Namespace) -> int:
+    project = _project(args)
+    if args.action == "list":
+        rows = [w for w in worktree.live(project) if not w.get("main")]
+        if not rows:
+            print("(no linked worktrees)")
+        for w in rows:
+            print(f"{w['path']}  {w.get('branch') or 'detached'}")
+        return 0
+    if not args.ids:
+        raise WsError(f"worktree {args.action} needs a task id")
+    ws, _ = _queue(project, args)
+    for task_id in args.ids:
+        if args.action == "create":
+            path, created = worktree.create(project, ws, task_id)
+            print(f"{task_id}: {path}" + ("" if created else " (already there)"))
+        else:
+            print(f"{task_id}: " + worktree.remove(project, ws, task_id, force=args.force,
+                                                   delete_branch=args.delete_branch))
+    return 0
+
+
+def cmd_settle(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, _ = _queue(project, args)
+    result = settle.settle(project, ws["id"], args.ids, commit=args.commit,
+                           skip_post_verify=args.skip_post_verify, keep=args.keep,
+                           dry_run=args.dry_run, note=args.note)
+    stopped = False
+    for out in result["outcomes"]:
+        if out["gates"] and (out["state"] != settle.MERGED or args.dry_run):
+            print(f"{out['id']}:")
+            _print_gates(out["gates"])
+        warned = [g for g in out["gates"] if not g["ok"] and not g["blocking"]]
+        if out["state"] == settle.MERGED:
+            for g in warned:
+                print(f"{out['id']}: warning: {g['name']}: {g['detail']}")
+            print(f"{out['id']}: done, merged as {out['commit'][:10]} "
+                  f"(after merge: {out['postMerge']})")
+        elif out["state"] == settle.BLOCKED:
+            print(f"{out['id']}: blocked: {out['why']}; its branch {out['branch']} stays")
+        elif out["state"] == settle.STOPPED:
+            stopped = True
+            print(f"{out['id']}: NOT settled: {out['why']}")
+        else:
+            print(f"{out['id']}: ready to settle")
+    if result["decisions"]:
+        print(f"numbered {', '.join(result['decisions'])}")
+    for warning in result["warnings"]:
+        print(f"warning: {warning}")
+    return 1 if stopped else 0
+
+
+def cmd_handoff(args: argparse.Namespace) -> int:
+    project = _project(args)
+    ws, _ = _queue(project, args)
+    if not handoff.write(project, ws, [], args.note):
+        raise WsError(f"{ws['id']} keeps no {handoff.FILE_NAME} at this tier")
+    print(f"wrote {handoff.FILE_NAME}; commit it")
     return 0
 
 
@@ -539,8 +707,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("-y", "--yes", action="store_true")
 
-    p = command("seed", cmd_seed, "bulk-load an array of task objects from a JSON file")
-    p.add_argument("seed_file")
+    p = command("seed", cmd_seed, "bulk-load tasks from a JSON file, or split an approved plan "
+                                  "into PLAN.md and the queue")
+    p.add_argument("seed_file", nargs="?")
+    p.add_argument("--from-plan", metavar="PLAN", help="a plan with a ```json ws-tasks``` block")
+    p.add_argument("--force", action="store_true", help="overwrite a PLAN.md already written")
 
     p = command("add", cmd_add, "append a single task")
     p.add_argument("--id", required=True)
@@ -587,6 +758,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = command("claim", cmd_claim, "start a batch: every id must be actionable or nothing changes")
     p.add_argument("--base", help="the commit the tasks branch from (default: HEAD)")
     p.add_argument("--by", help="who works the batch, e.g. a session or agent label")
+    p.add_argument("--commit", action="store_true",
+                   help="also sync the registry and commit: what a worktree needs to branch from")
     p.add_argument("ids", nargs="+", metavar="ID")
 
     p = command("unclaim", cmd_unclaim, "requeue in-progress or blocked tasks (all-or-nothing)")
@@ -597,6 +770,48 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cascade", action="store_true", help="and everything that depends on them")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("-y", "--yes", action="store_true")
+
+    p = command("verify", cmd_verify, "run a task's verify commands, record the result against "
+                                      "the code tree, print a bounded report (exit 1 on failure)")
+    p.add_argument("id")
+    p.add_argument("--key", action="append", help="only this one of its commands; repeatable")
+    p.add_argument("--json", action="store_true")
+
+    p = command("baseline", cmd_baseline, "what the commands report before any work starts")
+    p.add_argument("action", choices=("record", "show"))
+    p.add_argument("keys", nargs="*", metavar="KEY", help="default: what open tasks verify with")
+
+    p = command("brief", cmd_brief, "everything a worker needs for one task")
+    p.add_argument("id", help="task id, or a unique prefix of one")
+    p.add_argument("--role", choices=("worker",), default="worker")
+    p.add_argument("--max-chars", type=int, default=brief.DEFAULT_MAX_CHARS,
+                   help="trim decisions past this length; the task itself is never trimmed")
+
+    p = command("decisions", cmd_decisions, "the decisions log, or the entries one task needs")
+    p.add_argument("--for", dest="for_task", metavar="ID")
+
+    p = command("evidence", cmd_evidence, "start a task's evidence file, or check it's ready")
+    p.add_argument("action", choices=("new", "check"))
+    p.add_argument("id")
+
+    p = command("worktree", cmd_worktree, "a worktree per claimed task")
+    p.add_argument("action", choices=("create", "remove", "list"))
+    p.add_argument("ids", nargs="*", metavar="ID")
+    p.add_argument("--force", action="store_true", help="remove: discard uncommitted work")
+    p.add_argument("--delete-branch", action="store_true", help="remove: also a merged branch")
+
+    p = command("settle", cmd_settle, "land finished tasks: gates, merge, numbered decisions, "
+                                      "progress, handoff, registry, one commit")
+    p.add_argument("ids", nargs="+", metavar="ID")
+    p.add_argument("--commit", help="the task landed another way (a PR, say): record this commit")
+    p.add_argument("--skip-post-merge-verify", dest="skip_post_verify", action="store_true",
+                   help="don't re-run verify when others landed first; recorded as skipped")
+    p.add_argument("--keep", action="store_true", help="leave the worktree and branch")
+    p.add_argument("--dry-run", action="store_true", help="print the gates, change nothing")
+    p.add_argument("--note", help="a line for the handoff")
+
+    p = command("handoff", cmd_handoff, "rewrite session_handoff.md from the current state")
+    p.add_argument("--note", help="a line for the next session")
 
     p = command("snapshot", cmd_snapshot, "the read model as JSON; with -w also that workstream's "
                                           "tasks, wave and narrative paths")

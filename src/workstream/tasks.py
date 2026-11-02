@@ -19,6 +19,7 @@ verification is the project's call.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from workstream import graph
@@ -38,7 +39,7 @@ MODE_VALUES = ("background", "foreground")
 RELEASE_IMPACT_VALUES = ("none", "patch", "minor", "major")
 ACCEPTANCE_KINDS = ("command", "manual")
 # Written by the CLI as a task runs; `reset` clears them.
-RUNTIME_FIELDS = ("startedAt", "baseCommit", "claimedBy", "completedAt", "commit")
+RUNTIME_FIELDS = ("startedAt", "baseCommit", "claimedBy", "completedAt", "commit", "verification")
 
 # Every field but id/phase/priority/title, in the order a task is written.
 TASK_FIELD_DEFAULTS = {
@@ -62,26 +63,29 @@ TASK_FIELD_DEFAULTS = {
     "claimedBy": None,
     "completedAt": None,
     "commit": None,
+    "verification": None,
 }
 FIELD_ORDER = ["id", "phase", "priority", "title", *TASK_FIELD_DEFAULTS]
 # Without one of these a task can't be queued; every other field reads as its default.
 REQUIRED_FIELDS = ("id", "phase", "priority", "title", "status")
 
-STR, OPT_STR, INT, BOOL, STR_LIST, ACCEPTANCE = (
-    "str", "str|null", "int", "bool", "str_list", "acceptance")
+STR, OPT_STR, OPT_OBJECT, INT, BOOL, STR_LIST, ACCEPTANCE = (
+    "str", "str|null", "object|null", "int", "bool", "str_list", "acceptance")
 FIELD_TYPES = {
     "id": STR, "phase": INT, "priority": INT, "title": STR, "kind": STR,
     "findings": STR_LIST, "summary": STR, "files": STR_LIST, "docs": STR_LIST,
     "acceptance": ACCEPTANCE, "verify": STR_LIST, "branch": OPT_STR, "blockedBy": STR_LIST,
     "needsUserDecision": BOOL, "notes": STR, "mode": STR, "requires": STR_LIST,
     "releaseImpact": OPT_STR, "status": STR, "startedAt": OPT_STR, "baseCommit": OPT_STR,
-    "claimedBy": OPT_STR, "completedAt": OPT_STR, "commit": OPT_STR,
+    "claimedBy": OPT_STR, "completedAt": OPT_STR, "commit": OPT_STR, "verification": OPT_OBJECT,
 }
 TYPE_DESCRIPTIONS = {
-    STR: "a string", OPT_STR: "a string or null", INT: "an integer", BOOL: "a boolean",
+    STR: "a string", OPT_STR: "a string or null", OPT_OBJECT: "an object or null", INT: "an integer", BOOL: "a boolean",
     STR_LIST: "a list of strings",
     ACCEPTANCE: "a list of strings or {text, kind} objects",
 }
+# An id names a file, a worktree folder and a branch, and git may read it as an option.
+TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 # Ends the warning for an open task's `files` path that doesn't exist: expected on any task
 # that creates the file, so the health findings leave it out.
 MISSING_FILES_SUFFIX = "does not exist (yet)"
@@ -173,7 +177,7 @@ def find_task_by_prefix(data: dict, text: str) -> dict:
 def is_queueable(task: dict) -> bool:
     """Whether a task is sound enough for the graph functions. `validate` names what's wrong
     with one that isn't; everything else refuses it rather than crash or misread it."""
-    return (isinstance(task.get("id"), str)
+    return (isinstance(task.get("id"), str) and TASK_ID_RE.match(task["id"]) is not None
             and is_type(task.get("phase"), INT)
             and is_type(task.get("priority"), INT)
             and isinstance(task.get("status"), str)
@@ -196,6 +200,13 @@ def is_raw_command(entry: str) -> bool:
     return any(c.isspace() for c in entry)
 
 
+def acceptance_text(item: object) -> str:
+    if isinstance(item, dict):
+        suffix = " (manual)" if item.get("kind") == "manual" else ""
+        return f"{item.get('text', '')}{suffix}"
+    return str(item)
+
+
 # --- validation ---------------------------------------------------------------------------
 
 
@@ -204,6 +215,8 @@ def is_type(value: object, kind: str) -> bool:
         return isinstance(value, str)
     if kind == OPT_STR:
         return value is None or isinstance(value, str)
+    if kind == OPT_OBJECT:
+        return value is None or isinstance(value, dict)
     if kind == INT:
         return isinstance(value, int) and not isinstance(value, bool)
     if kind == BOOL:
@@ -258,6 +271,9 @@ def _field_errors(task: dict, label: str, config: Config) -> list[str]:
     for field in ("id", "title"):
         if task.get(field) == "":
             errors.append(f"{label}: {field} is empty")
+    if isinstance(task.get("id"), str) and task["id"] and not TASK_ID_RE.match(task["id"]):
+        errors.append(f"{label}: id must be letters, digits, '.', '_' or '-', starting with a "
+                      "letter or digit")
     status = task.get("status")
     if isinstance(status, str) and status not in STATUS_VALUES:
         errors.append(f"{label}: status {status!r} not in {list(STATUS_VALUES)}")
@@ -405,7 +421,8 @@ def add(path: Path, fields: dict, config: Config) -> dict:
 def update(path: Path, task_id: str, config: Config, *, status: str | None = None,
            commit: str | None = None, notes: str | None = None,
            requires: list[str] | None = None, mode: str | None = None,
-           release_impact: str | None = None, verify: list[str] | None = None) -> dict:
+           release_impact: str | None = None, verify: list[str] | None = None,
+           verification: dict | None = None) -> dict:
     data = load(path, config)
     task = find_task(data, task_id)
     if status is not None:
@@ -432,6 +449,8 @@ def update(path: Path, task_id: str, config: Config, *, status: str | None = Non
         task["releaseImpact"] = release_impact
     if verify is not None:
         task["verify"] = verify
+    if verification is not None:
+        task["verification"] = verification
     problems = _entry_errors([task], config)
     if problems:
         raise WsError("\n".join(problems))

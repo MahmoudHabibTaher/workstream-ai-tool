@@ -162,8 +162,9 @@ class ReviewRepoTests(WsTestCase):
         self.assertLessEqual(len(cut["hunks"]["text"].splitlines()), cap)
 
     def test_a_git_failure_comes_back_as_data(self) -> None:
-        t = {"id": "FL-02", "status": "in-progress", "branch": "task/two", "baseCommit": "f" * 40}
-        with mock.patch.object(review.tasks, "find_task", return_value=t):
+        t = {"id": "FL-02", "status": "in-progress", "branch": "task/gone", "baseCommit": "f" * 40}
+        with mock.patch.object(review.tasks, "find_task", return_value=t), \
+                mock.patch.object(review, "git_branch_exists", return_value=True):
             data = review.build_review(self.project(), WS_ID, "FL-02")
         self.assertEqual(data["range"]["kind"], "branch")
         self.assertEqual(data["files"], [])

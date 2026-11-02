@@ -30,7 +30,7 @@ class ParseTests(unittest.TestCase):
             "worktree": {"setup": ["make deps"]},
             "parallel": {"max_workers": 5},
             "release": {"mode": "runbook", "runbook": "docs/release.md"},
-            "baseline": {"lint": {"parser": "sarif"}},
+            "baseline": {"lint": {"parser": "sarif", "report": "lint.sarif"}},
         })
         self.assertEqual(config.workstreams_dir, "plans")
         self.assertEqual((config.integration, config.production, config.merge),
@@ -42,7 +42,7 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(config.max_workers, 5)
         self.assertEqual((config.release_mode, config.release_runbook),
                          ("runbook", "docs/release.md"))
-        self.assertEqual(config.baseline_parsers, {"lint": {"parser": "sarif"}})
+        self.assertEqual(config.baseline_parsers, {"lint": {"parser": "sarif", "report": "lint.sarif"}})
 
     def test_branch_for_follows_the_pattern(self) -> None:
         config = parse_config({"branches": {"task": "wip/{slug}"}})
