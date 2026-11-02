@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from workstream import act, adapt, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
-from workstream import gitutil, handoff, plan, protocol, registry, review, settle, snapshot, tasks, verify
+from workstream import gitutil, handoff, hook, plan, protocol, registry, review, settle, snapshot, tasks, verify
 from workstream import worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
@@ -120,7 +120,7 @@ def cmd_adapt(args: argparse.Namespace) -> int:
               f"{', '.join(adapt.adapted(project)) or 'none'}")
         return 0
     if args.plugin:
-        for rel in adapt.write_plugin(args.agent, Path(args.plugin)):
+        for rel in adapt.write_plugin(args.agent, Path(args.plugin), bool(args.hook)):
             print(f"wrote {rel}")
         return 0
     if args.check:
@@ -131,11 +131,23 @@ def cmd_adapt(args: argparse.Namespace) -> int:
             print(f"  {line}")
         print(f"FAIL: `ws adapt {args.agent}` refreshes these" if wrong else "OK")
         return 1 if wrong else 0
-    result = adapt.adapt(project, args.agent, force=args.force)
+    result = adapt.adapt(project, args.agent, force=args.force, hook=args.hook)
     for rel in result["wrote"]:
         print(f"wrote {rel}")
     print(f"{args.agent}: {len(result['wrote'])} written, {len(result['same'])} unchanged"
           + ("; commit them" if result["wrote"] else ""))
+    return 0
+
+
+def cmd_hook(args: argparse.Namespace) -> int:
+    """Only a real decision may stop an agent: on one of them any failure here would deny."""
+    reason = hook.decide(sys.stdin.read())
+    if reason is None:
+        return 0
+    if args.format == hook.EXIT_CODE:
+        print(reason, file=sys.stderr)
+        return 2
+    print(json.dumps({"permissionDecision": "deny", "permissionDecisionReason": reason}))
     return 0
 
 
@@ -807,6 +819,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--check", action="store_true", help="exit 1 if its files aren't current")
     p.add_argument("--force", action="store_true", help="overwrite files edited by hand")
     p.add_argument("--plugin", metavar="DIR", help="write its plugin form to DIR instead")
+    p.add_argument("--hook", action=argparse.BooleanOptionalAction, default=None,
+                   help="turn on, or off, the guard against direct edits to tracking files; "
+                        "it needs `ws` on PATH wherever the agent runs")
+
+    p = command("hook", cmd_hook, "for an agent's hook: check a file edit it is about to make")
+    p.add_argument("event", choices=("pre-edit",))
+    p.add_argument("--format", choices=hook.FORMATS, required=True)
 
     p = command("doctor", cmd_doctor, "what is wrong with this setup; changes nothing")
     p.add_argument("--run", action="store_true", help="also run each command against the baseline")
@@ -995,6 +1014,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["hook"]:
+        return _main_for_hook(argv)
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
@@ -1004,3 +1026,15 @@ def main(argv: list[str] | None = None) -> int:
     except WsError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
+
+
+def _main_for_hook(argv: list[str]) -> int:
+    """A hook's arguments are written by `ws adapt`, so a refusal here means a version skew, and a
+    version skew mustn't stop an agent's work. Exit 2 is exactly what would, so it's caught."""
+    try:
+        args = build_parser().parse_args(argv)
+        return args.func(args)
+    except SystemExit:
+        return 0
+    except Exception:
+        return 0

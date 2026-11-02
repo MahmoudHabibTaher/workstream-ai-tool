@@ -91,7 +91,13 @@ def _adapters(project: Project) -> list[dict]:
     except WsError as e:
         return [gate("the agent files are current", False, str(e), blocking=False)]
     detail = "; ".join(f"`ws adapt {name}`: {', '.join(paths[:4])}" for name, paths in wrong.items())
-    return [gate("the agent files are current", not wrong, detail, blocking=False)]
+    out = [gate("the agent files are current", not wrong, detail, blocking=False)]
+    if adapt.adapted(project):
+        hooked = adapt.hook_is_on(project)
+        why = ("agents can't run it, and one denies every edit when its hook can't start"
+               if hooked else "agents can't run it")
+        out.append(gate("`ws` is on PATH", shutil.which("ws") is not None, why, blocking=False))
+    return out
 
 
 def _run_commands(project: Project, ws: dict | None) -> list[dict]:
