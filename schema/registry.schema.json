@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "workstreams.json",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "workstreams"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "updated": {
+      "type": "string"
+    },
+    "workstreams": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workstream"
+      }
+    }
+  },
+  "$defs": {
+    "progress": {
+      "type": "object",
+      "required": [
+        "total"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer"
+        },
+        "todo": {
+          "type": "integer"
+        },
+        "in-progress": {
+          "type": "integer"
+        },
+        "blocked": {
+          "type": "integer"
+        },
+        "done": {
+          "type": "integer"
+        },
+        "deferred": {
+          "type": "integer"
+        }
+      }
+    },
+    "workstream": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "status",
+        "created"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "active",
+            "paused",
+            "done",
+            "abandoned"
+          ]
+        },
+        "taskPrefix": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            "lite",
+            "standard",
+            "full"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "completedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseCommit": {
+          "type": "string"
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "progress": {
+          "$ref": "#/$defs/progress"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "closed": {
+          "type": "object",
+          "required": [
+            "commit",
+            "pruned"
+          ],
+          "properties": {
+            "commit": {
+              "type": "string"
+            },
+            "pruned": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

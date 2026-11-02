@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "tasks_list.json",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "tasks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "source": {
+      "type": "string"
+    },
+    "updated": {
+      "type": "string"
+    },
+    "protocolVersion": {
+      "type": "string"
+    },
+    "tier": {
+      "enum": [
+        "lite",
+        "standard",
+        "full"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "inScope": {
+          "$ref": "#/$defs/strings"
+        },
+        "outOfScope": {
+          "$ref": "#/$defs/strings"
+        },
+        "rule": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    }
+  },
+  "$defs": {
+    "strings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "id",
+        "phase",
+        "priority",
+        "title",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase": {
+          "type": "integer"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string"
+        },
+        "findings": {
+          "$ref": "#/$defs/strings"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "files": {
+          "$ref": "#/$defs/strings"
+        },
+        "docs": {
+          "$ref": "#/$defs/strings"
+        },
+        "acceptance": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "command",
+                      "manual"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "verify": {
+          "$ref": "#/$defs/strings"
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "blockedBy": {
+          "$ref": "#/$defs/strings"
+        },
+        "needsUserDecision": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "background",
+            "foreground"
+          ]
+        },
+        "requires": {
+          "$ref": "#/$defs/strings"
+        },
+        "releaseImpact": {
+          "enum": [
+            "none",
+            "patch",
+            "minor",
+            "major",
+            null
+          ]
+        },
+        "status": {
+          "enum": [
+            "todo",
+            "in-progress",
+            "blocked",
+            "done",
+            "deferred"
+          ]
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseCommit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claimedBy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "completedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

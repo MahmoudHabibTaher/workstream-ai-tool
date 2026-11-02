@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ws snapshot",
+  "type": "object",
+  "required": [
+    "snapshotVersion",
+    "repoRoot",
+    "integrationBranch",
+    "registry",
+    "revisions",
+    "health",
+    "git"
+  ],
+  "properties": {
+    "snapshotVersion": {
+      "const": 1
+    },
+    "repoRoot": {
+      "type": "string"
+    },
+    "integrationBranch": {
+      "type": "string"
+    },
+    "registry": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "progress",
+          "progressStale"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "object"
+          },
+          "progressStale": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "revisions": {
+      "type": "object",
+      "required": [
+        "registry",
+        "tasks"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "registry": {
+          "type": "string"
+        },
+        "tasks": {
+          "type": "object"
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "phase",
+          "priority",
+          "title",
+          "status",
+          "mode"
+        ]
+      }
+    },
+    "wave": {
+      "type": "object",
+      "required": [
+        "state",
+        "phase",
+        "ids",
+        "open",
+        "overlaps",
+        "leftovers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "ready",
+            "finished",
+            "stuck"
+          ]
+        },
+        "phase": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "open": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "overlaps": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "leftovers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "required": [
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "plan": {
+          "type": "string"
+        },
+        "progress": {
+          "type": "string"
+        },
+        "decisions": {
+          "type": "string"
+        },
+        "handoff": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "object"
+        }
+      }
+    },
+    "health": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "level",
+          "workstream",
+          "task",
+          "message",
+          "actions"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "invalid",
+              "stale-claim",
+              "orphan-branch",
+              "orphan-worktree",
+              "missing-evidence",
+              "wrong-branch",
+              "dirty-tracking"
+            ]
+          },
+          "level": {
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "workstream": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "task": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "action",
+                "workstream",
+                "task"
+              ],
+              "properties": {
+                "action": {
+                  "enum": [
+                    "unclaim"
+                  ]
+                },
+                "workstream": {
+                  "type": "string"
+                },
+                "task": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "taskBranches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "worktrees": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "head",
+              "branch",
+              "main"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "head": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "branch": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "main": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "dirtyTracking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
