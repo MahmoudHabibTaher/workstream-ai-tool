@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `2fd93bc`.
 
 ---
 
+## 2026-11-02: PI-07: Fixes the first real pilot run found
+
+Merged as `2a304d8ad3`. Verified: test pass, audit pass. [Evidence](evidence/PI-07.md).
+
 ## 2026-11-02: PI-03: Before numbers from real transcripts
 
 Merged as `9b1e3f364f`. Verified: test pass, audit pass. [Evidence](evidence/PI-03.md).
