@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `132ac54`.
 
 ---
 
+## 2026-11-02: AA-05: A real small workstream on each agent
+
+Merged as `baba5b83fc`. Verified: test pass, audit pass. [Evidence](evidence/AA-05.md).
+
 ## 2026-11-02: AA-04: Eval harness, proven with a stub agent
 
 Merged as `b68db7e44e`. Verified: test pass, audit pass. [Evidence](evidence/AA-04.md).

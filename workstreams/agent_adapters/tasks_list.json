@@ -304,13 +304,29 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-02T15:48:59Z",
       "baseCommit": "24611bd1b41f222a54c93228842f1f7f14ee5537",
       "claimedBy": "m5-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-02T17:01:06Z",
+      "commit": "baba5b83fc8caa3fc809bfe01169a861e72ef194",
+      "verification": {
+        "tree": "9dc6f1ba4a94f0d6fe270b2e5c1d8b933fcab4b7",
+        "at": "2026-11-02T16:57:37Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     }
   ],
   "scope": {
