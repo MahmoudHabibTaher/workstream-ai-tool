@@ -21,3 +21,7 @@ All three load in every session, and counting them took always-on past 150. Each
 ## D004 (2026-11-02, AA-03): `ws hook` wraps argument errors too
 
 argparse exits 2 on bad arguments, and exit 2 is what blocks on one agent, so a version skew would stop every edit. Rejected: leaving it, since a missing flag isn't a reason to stop someone's work. **Closed.**
+
+## D005 (2026-11-02, AA-04): a run on Copilot must name its account
+
+On this machine it is logged in to a work account, and this project is kept apart from work. A flag saying which account you mean is cheap, and a wrong guess would spend someone else's credits. Rejected: a warning, which a script would scroll past. **Closed.**
