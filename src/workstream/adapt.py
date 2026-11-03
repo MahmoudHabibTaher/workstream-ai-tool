@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,10 @@ from workstream.project import ASSETS_DIR, Project
 
 ADAPTERS_DIR = ASSETS_DIR / "adapters"
 WORKER_FILE = ASSETS_DIR / "worker_agent.md"
+MAX_RULE_WORDS = 3
+NOT_A_RULE = {"cd", "true", "false", "echo", "exit"}
+# A rule from a project's commands stays as far from these as the adapter's own list does.
+NEVER_ALLOWED = {"push", "publish", "deploy", "release"}
 MANIFEST_REL = ".workstream/adapters.json"
 # These load into every session, so they stay short. `ws adapt` is what regenerates the block.
 BLOCK_START = "<!-- ws:start -->"
@@ -130,6 +135,39 @@ def merged_permissions(data: dict, allow: list[str]) -> dict:
                                     "allow": existing + [a for a in allow if a not in existing]}}
 
 
+def _prefixes(part: str) -> list[str]:
+    """What identifies one shell command: its tool and subcommand, without their flags. A rule for
+    the tool alone would allow everything it does. An environment prefix gives both forms, as an
+    agent matches it literally."""
+    try:
+        words = shlex.split(part)
+    except ValueError:
+        return []
+    env = [w for w in words if re.match(r"\w+=", w)]
+    words = words[len(env):] if words[:len(env)] == env else words
+    kept: list[str] = []
+    for word in words[:MAX_RULE_WORDS]:
+        if word.startswith("-") and len(kept) >= 2:
+            break
+        kept.append(word)
+    if not kept or kept[0] in NOT_A_RULE or NEVER_ALLOWED & set(words):
+        return []
+    plain = " ".join(kept)
+    return [plain, " ".join([*env, plain])] if env else [plain]
+
+
+def command_rules(project: Project, adapter: Adapter) -> list[str]:
+    """An allow rule per command the project declares, so a worker can run its own build tools."""
+    shape = (adapter.raw.get("settings") or {}).get("command_rule")
+    if not shape:
+        return []
+    rules: list[str] = []
+    for command in project.config.commands.values():
+        for part in re.split(r"&&|\|\||;|\|", command):
+            rules += [shape.format(p) for p in _prefixes(part) if shape.format(p) not in rules]
+    return rules
+
+
 def merged_env(data: dict, env: dict[str, str]) -> dict:
     """These variables added to the settings, in place. A value already there is the user's."""
     return {**data, "env": {**env, **(data.get("env") or {})}} if env else data
@@ -190,7 +228,7 @@ def _settings_current(project: Project, adapter: Adapter, hook: bool) -> bool:
         return True
     data = read_settings(project.root / settings["path"])
     allowed = (data.get("permissions") or {}).get("allow") or []
-    if not all(rule in allowed for rule in settings.get("allow", [])):
+    if not all(rule in allowed for rule in [*settings.get("allow", []), *command_rules(project, adapter)]):
         return False
     if not all(key in (data.get("env") or {}) for key in settings.get("env", {})):
         return False
@@ -317,7 +355,8 @@ def adapt(project: Project, name: str, *, force: bool = False, hook: bool | None
     if settings:
         path = project.root / settings["path"]
         before = read_settings(path)
-        after = merged_env(merged_permissions(before, settings.get("allow", [])), settings.get("env", {}))
+        allow = [*settings.get("allow", []), *command_rules(project, adapter)]
+        after = merged_env(merged_permissions(before, allow), settings.get("env", {}))
         if _merges_hook(adapter):
             after = merged_hook(after, adapter) if hook else without_hook(after, adapter)
         if after == before and path.exists():
