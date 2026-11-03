@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 1/4 done on `main` at `a414522`, as of 2026-11-03.
+**State:** 2/4 done on `main` at `2f951ef`, as of 2026-11-03.
 
-**Just landed:** GG-01 (`a414522b26`)
+**Just landed:** GG-02 (`2f951ef1f7`)
 
-**Next:** `ws claim --commit GG-02 GG-03` (phase 1).
+**Next:** `ws claim --commit GG-03` (phase 1).
 
 **Gotchas:**
-- GG-01: Rules are only added, so a command removed from the config leaves its rule behind until someone edits the settings.
+- GG-02: It names only what a task's files and docs list, so an edit nobody planned is still refused the usual way.
