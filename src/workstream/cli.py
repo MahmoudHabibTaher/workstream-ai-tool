@@ -840,6 +840,12 @@ def cmd_audit(args: argparse.Namespace) -> int:
 # --- the UI contract ----------------------------------------------------------------------
 
 
+def cmd_root(args: argparse.Namespace) -> int:
+    """Where a UI should read from: a session in a task's worktree would see a frozen queue."""
+    print(worktree.integration_checkout(_project(args)))
+    return 0
+
+
 def cmd_snapshot(args: argparse.Namespace) -> int:
     project = _project(args)
     data = snapshot.build_snapshot(project, getattr(args, "workstream", None), args.stale_hours)
@@ -1094,6 +1100,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--transcripts", help="usage: read from this folder, not the agent's own")
     p.add_argument("--worker-marker", default=usage.DEFAULT_WORKER_MARKER,
                    help="usage: a regex: a session opening with a match is a worker's")
+
+    command("root", cmd_root, "the checkout that holds the integration branch, or this one if none does")
 
     p = command("snapshot", cmd_snapshot, "the read model as JSON; with -w also that workstream's "
                                           "tasks, wave and narrative paths")

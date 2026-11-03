@@ -41,6 +41,16 @@ def for_branch(project: Project, branch: str) -> str | None:
     return None
 
 
+def integration_checkout(project: Project) -> Path:
+    """The checkout on the integration branch, or this one if none is. Git's main checkout may be
+    another branch, or not hold a project at all, when a project runs from a linked one."""
+    for wt in live(project):
+        path = Path(wt["path"])
+        if wt.get("branch") == project.config.integration and (path / CONFIG_REL).exists():
+            return path
+    return project.root
+
+
 def _exclude_lines(project: Project, lines: list[str]) -> None:
     common = gitutil.common_dir(project.root)
     if common is None:

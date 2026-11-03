@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
 from pathlib import Path
 from unittest import mock
 
 from tests.helpers import WsTestCase, evidence_text, task
 from tests.test_schema import load_schema, problems
+import workstream
 from workstream import act, settle
 
 
@@ -71,6 +77,40 @@ class BriefForRealWorkTests(SettleTestCase):
         self.assertIn("Ending your turn ends you", out)
         self.assertIn("search them", out)
         self.assertNotIn("Read first", out)
+
+
+class RootTests(SettleTestCase):
+    def test_from_the_checkout_itself(self) -> None:
+        self.assertEqual(self.ok("root").strip(), str(self.root))
+
+    def test_from_a_tasks_worktree_it_is_the_integration_checkout(self) -> None:
+        self.arrange(self.t("T1"))
+        where = self.claim("T1")[0]
+        code, out, err = self.ws_at(where, "root")
+        self.assertEqual((code, out.strip()), (0, str(self.root)), err)
+
+    def test_a_linked_checkout_holding_the_integration_branch_wins(self) -> None:
+        linked = self.root.parent / "linked"
+        self.git("worktree", "add", "-q", "-b", "pilot", str(linked), "main")
+        config = linked / ".workstream" / "config.toml"
+        config.write_text(config.read_text().replace('integration = "main"', 'integration = "pilot"'))
+        code, out, err = self.ws_at(linked, "root")
+        self.assertEqual((code, out.strip()), (0, str(linked)), err)
+
+    def test_with_the_branch_checked_out_nowhere_it_is_this_checkout(self) -> None:
+        self.git("switch", "-q", "-c", "elsewhere")
+        self.assertEqual(self.ok("root").strip(), str(self.root))
+
+
+class RootOutsideAProjectTests(unittest.TestCase):
+    def test_it_fails_with_one_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            done = subprocess.run([sys.executable, "-B", "-m", "workstream", "--root", tmp, "root"],
+                                  capture_output=True, text=True,
+                                  env={**os.environ, "PYTHONPATH": str(Path(workstream.__file__).parents[1])})
+        self.assertNotEqual(done.returncode, 0)
+        self.assertEqual(len(done.stderr.strip().splitlines()), 1, done.stderr)
+        self.assertEqual(done.stdout, "")
 
 
 class LandedEvidenceTests(SettleTestCase):

@@ -238,6 +238,29 @@ class GitFactsTests(RepoTestCase):
         ])
 
 
+class WhatAUICantWorkOutTests(RepoTestCase):
+    def snap(self, *argv: str) -> dict:
+        return json.loads(self.ok("snapshot", *argv))
+
+    def test_the_registry_is_always_watched(self) -> None:
+        self.assertEqual(self.snap()["watch"], [str(self.registry)])
+
+    def test_a_workstream_adds_its_queue_and_narrative(self) -> None:
+        watch = self.snap("-w", "alpha")["watch"]
+        folder = self.ws_dir / "alpha"
+        self.assertEqual(watch, [str(self.registry), str(folder / "tasks_list.json"),
+                                 str(folder / "session_handoff.md"), str(folder / "PROGRESS.md")])
+
+    def test_a_verify_key_comes_with_its_command(self) -> None:
+        self.set_commands(check="run-the-checks")
+        self.write_queue([task("AL-01", 10, status="todo", verify=["check", "echo raw"],
+                               acceptance=["x", {"text": "y", "kind": "manual"}])])
+        found = self.snap("-w", "alpha")["tasks"][0]
+        self.assertEqual(found["verifyCommands"], [{"label": "check", "command": "run-the-checks"},
+                                                   {"label": "echo raw", "command": "echo raw"}])
+        self.assertEqual(found["acceptanceText"], ["x", "y (manual)"])
+
+
 class BuildSnapshotTests(RepoTestCase):
     def build(self, ws_id: str | None = None, **kwargs) -> dict:
         return snapshot.build_snapshot(self.project(), ws_id, now=NOW, **kwargs)
