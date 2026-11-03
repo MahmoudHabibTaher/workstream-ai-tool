@@ -45,6 +45,6 @@ The pilot found four gaps, none of them UI, and the `gate_gaps` workstream close
 3. **`ws validate` was noisy on an old project.** The pilot branch went from 42 lines to 3. Prose commits and the import's marker no longer warn, and a long list of files to come collapses to one line.
 4. **`ws evidence check` called a landed task's checks "never run".** It now says the task has landed, and names the commit.
 
-These haven't been through a real agent run: scripted tests cover them, and `ws adapt`, `ws validate` and `ws evidence check` ran on the pilot branch.
+After these fixes, `make eval AGENT=claude-code` passed all five scenarios for $1.90 on Opus 5.5 at medium effort, in a sample repo. That shows the worker rules still hold. It doesn't test a real project's commands or the `.claude/` warning, which rest on scripted tests and on `ws adapt` and `ws validate` run on the pilot branch. Copilot wasn't rerun, as that spends paid work-account credits.
 
 **Cost of finding this out:** $14.54 at list price, of a $25 cap, with $4.76 of it on two runs that stopped early. Every problem that stopped a run came from real tasks taking longer than a sample's: 636 scripted tests and five evals hadn't hit them.
