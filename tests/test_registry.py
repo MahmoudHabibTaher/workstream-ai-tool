@@ -193,6 +193,37 @@ class ValidateTests(WsTestCase):
         self.write_queue([task("AL-01", 10, status="todo", docs=["docs/here.md"])])
         self.ok("validate")
 
+    def done(self, commit: str) -> None:
+        self.write_queue([task("AL-01", 10, status="done", commit=commit)])
+
+    def test_a_commit_field_holding_a_real_hash_in_a_sentence_is_quiet(self) -> None:
+        head = self.git("rev-parse", "--short", "HEAD").strip()
+        self.done(f"{head} (merge), abc1234 (implementation)")
+        self.assertNotIn("isn't in this repository", self.ok("validate"))
+
+    def test_a_marker_with_no_hash_is_quiet(self) -> None:
+        self.done("imported-without-a-commit")
+        self.assertNotIn("isn't in this repository", self.ok("validate"))
+
+    def test_a_hash_not_in_the_repository_still_warns(self) -> None:
+        self.done("abc1234")
+        self.assertIn("commit abc1234 isn't in this repository", self.ok("validate"))
+
+    def test_a_long_list_of_files_to_come_collapses(self) -> None:
+        names = [f"src/new{n}.rs" for n in range(4)]
+        self.write_queue([task("AL-01", 10, status="todo", files=names)])
+        out = self.ok("validate")
+        self.assertIn("alpha: 4 paths in `files` don't exist yet", out)
+        self.assertIn("(first: 'src/new0.rs')", out)
+        self.assertNotIn("src/new1.rs", out)
+
+    def test_a_short_list_of_files_to_come_stays(self) -> None:
+        names = [f"src/new{n}.rs" for n in range(3)]
+        self.write_queue([task("AL-01", 10, status="todo", files=names)])
+        out = self.ok("validate")
+        for name in names:
+            self.assertIn(f"files path '{name}' does not exist (yet)", out)
+
     def test_warnings_print_but_exit_zero(self) -> None:
         self.write_queue([task("AL-01", 10, status="todo", files=["src/new.rs"]),
                           task("AL-02", 20, status="todo", files=["src/new.rs"])])

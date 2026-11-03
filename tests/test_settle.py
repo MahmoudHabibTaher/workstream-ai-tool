@@ -73,6 +73,16 @@ class BriefForRealWorkTests(SettleTestCase):
         self.assertNotIn("Read first", out)
 
 
+class LandedEvidenceTests(SettleTestCase):
+    def test_a_landed_task_says_so(self) -> None:
+        self.arrange(self.t("T1"))
+        self.work("T1")
+        self.ok("settle", "T1", "-w", "alpha")
+        out = self.ok("evidence", "check", "T1", "-w", "alpha")
+        self.assertIn(f"T1 has landed as {self.by_id('T1')['commit']}", out)
+        self.assertNotIn("never run", out)
+
+
 class ProtectedPathTests(SettleTestCase):
     def setUp(self) -> None:
         super().setUp()

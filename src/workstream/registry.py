@@ -32,6 +32,8 @@ from workstream.errors import Refused, WsError
 from workstream.fsutil import today, write_json
 from workstream.project import TASKS_NAME, TEMPLATES_DIR, Project
 
+MISSING_FILES_KEPT = 3
+
 SCHEMA_VERSION = 1
 STATUS_VALUES = ("planned", "active", "paused", "done", "abandoned")
 OPEN_STATUSES = ("planned", "active", "paused")
@@ -232,6 +234,31 @@ def sync(project: Project) -> list[str]:
     return lines
 
 
+def _commit_is_gone(project: Project, commit: str) -> bool:
+    """Whether a commit field names hashes and none resolve. An older queue may hold a sentence
+    around its hashes, or a marker with none, and neither says anything is wrong."""
+    hashes = re.findall(r"\b[0-9a-f]{7,40}\b", commit)
+    return bool(hashes) and not any(gitutil.rev_parse(project.root, f"{h}^{{commit}}") for h in hashes)
+
+
+def collapse_missing_files(warnings: list[str], keep: int = MISSING_FILES_KEPT) -> list[str]:
+    """Files a task will create are normal, so a long list of them hides what else is there."""
+    by_ws: dict[str, list[str]] = {}
+    for w in warnings:
+        if w.endswith(tasks.MISSING_FILES_SUFFIX):
+            by_ws.setdefault(w.split(":", 1)[0], []).append(w)
+    out = []
+    for w in warnings:
+        group = by_ws.get(w.split(":", 1)[0], []) if w.endswith(tasks.MISSING_FILES_SUFFIX) else []
+        if len(group) <= keep:
+            out.append(w)
+        elif w is group[0]:
+            first = w.split("files path ", 1)[1].removesuffix(tasks.MISSING_FILES_SUFFIX).strip()
+            out.append(f"{w.split(':', 1)[0]}: {len(group)} paths in `files` don't exist yet, as with "
+                       f"a file a task will create (first: {first})")
+    return out
+
+
 def validate_entry(project: Project, ws: dict, ids: set[str]) -> tuple[list[str], list[str]]:
     """(errors, warnings) for one registry row, its folder and its queue."""
     problems: list[str] = []
@@ -296,7 +323,7 @@ def _queue_problems(project: Project, ws: dict, path: Path, problems: list[str],
     warnings += [f"{wid}: {t['id']}: commit {t['commit']} isn't in this repository; "
                  "was it rewritten?" for t in queue["tasks"]
                  if t.get("status") == "done" and isinstance(t.get("commit"), str)
-                 and t["commit"] and not gitutil.rev_parse(project.root, f"{t['commit']}^{{commit}}")]
+                 and _commit_is_gone(project, t["commit"])]
     prefix = ws.get("taskPrefix")
     if prefix:
         for t in queue["tasks"]:

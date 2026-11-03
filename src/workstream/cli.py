@@ -214,9 +214,11 @@ def cmd_validate(args: argparse.Namespace) -> int:
         ws = registry.find(registry.load(project), args.workstream)
         ids = {w.get("id") for w in registry.load(project)["workstreams"]}
         errors, warnings = registry.validate_entry(project, ws, ids)
-        return _print_report(errors, warnings, f"OK: {ws['id']}, no integrity problems")
+        return _print_report(errors, registry.collapse_missing_files(warnings),
+                             f"OK: {ws['id']}, no integrity problems")
     errors, warnings, count = registry.validate_all(project)
-    return _print_report(errors, warnings, f"OK: {count} workstream(s), no integrity problems")
+    return _print_report(errors, registry.collapse_missing_files(warnings),
+                         f"OK: {count} workstream(s), no integrity problems")
 
 
 def cmd_reconcile(args: argparse.Namespace) -> int:
@@ -659,6 +661,9 @@ def cmd_evidence(args: argparse.Namespace) -> int:
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(evidence.skeleton(task))
         print(f"wrote {project.rel(file)}; fill in each {{{{...}}}}")
+        return 0
+    if task["status"] == "done":  # its run record went when it landed, and its gates ran then
+        print(f"{task['id']} has landed as {task.get('commit')}; its gates ran then")
         return 0
     rows = registry.load(project)["workstreams"]
     found = gates.ready_gates(project, ws, task, list(snapshot.folders_by_id(project, rows).values()))
