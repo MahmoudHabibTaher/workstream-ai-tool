@@ -880,6 +880,12 @@ def cmd_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    from workstream import serve  # an http server is no cost for every other command to pay
+
+    return serve.run(_project(args), args.port, not args.no_open)
+
+
 # --- the parser ---------------------------------------------------------------------------
 
 
@@ -1137,6 +1143,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="instead, what can be reviewed across the open workstreams")
     p.add_argument("--max-lines", type=int, default=review.DEFAULT_MAX_LINES,
                    help="cap on the hunks' lines; whole hunks only, `truncated` when cut")
+
+    p = command("serve", cmd_serve, "the web UI on localhost: one address per launch, live "
+                                    "updates, and writes only through `ws act`")
+    p.add_argument("--port", type=int, help="default: this project's usual port, or any free one")
+    p.add_argument("--no-open", action="store_true", help="print the address, don't open a browser")
     return parser
 
 

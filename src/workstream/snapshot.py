@@ -323,7 +323,7 @@ def _for_display(task: dict, config: Config) -> dict:
             "acceptanceText": [tasks.acceptance_text(a) for a in task.get("acceptance", [])]}
 
 
-def _watch(project: Project, ws: dict | None) -> list[str]:
+def watch_paths(project: Project, ws: dict | None) -> list[str]:
     """The files whose change should make a UI read the snapshot again."""
     paths = [project.registry_path]
     if ws is not None:
@@ -367,14 +367,14 @@ def build_snapshot(project: Project, ws_id: str | None = None,
         "registry": [{**ws, "progress": live_progress(ws),
                       "progressStale": ws.get("progress") != live_progress(ws)} for ws in rows],
         "revisions": {"registry": sha256(registry_raw), "tasks": task_revisions},
-        "watch": _watch(project, None),
+        "watch": watch_paths(project, None),
     }
     if ws_id is not None:
         task_list = sorted(queues[ws_id]["tasks"], key=lambda t: t["priority"])
         ws = next(w for w in rows if w["id"] == ws_id)
         snapshot.update(tasks=[_for_display(t, project.config) for t in task_list],
                         wave=graph.compute_wave(task_list),
-                        paths=_paths(project.folder(ws), task_list), watch=_watch(project, ws))
+                        paths=_paths(project.folder(ws), task_list), watch=watch_paths(project, ws))
     now = now or datetime.now(timezone.utc)
     snapshot["health"] = health_findings(project, reg, queues, facts, now, stale_hours)
     snapshot["git"] = facts
