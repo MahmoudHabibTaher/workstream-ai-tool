@@ -25,3 +25,11 @@ Strict isn't sent on the redirect after a link followed from another app's page,
 ## D005 (2026-11-03, WU-02): a stable port per project, chosen from the root's hash
 
 A browser's own storage is per origin, so a fresh port each launch would lose the review queue's "seen" marks. If the port's taken, any free one is used. Rejected: a fixed port, as two projects can be served at once. **Closed.**
+
+## D006 (2026-11-03, WU-03): the confirm box keeps the revisions from when it opened
+
+With live updates, the latest snapshot would pass the guard for something the person never saw. So the box pins them, and warns if they've moved. Rejected: taking them at click time from the newest snapshot, which turns the guard off. **Closed.**
+
+## D007 (2026-11-03, WU-03): copying a prompt stands in for filling a prompt box
+
+A browser has no prompt box to fill. Copying leaves the send to the person, as the pane does. Rejected: launching an agent, which the plan rules out for a standalone page. **Closed.**

@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 2/6 done on `main` at `cf0058b`, as of 2026-11-03.
+**State:** 3/6 done on `main` at `1523ebe`, as of 2026-11-03.
 
-**Just landed:** WU-02 (`cf0058b049`)
+**Just landed:** WU-03 (`1523ebeef9`)
 
-**Next:** `ws claim --commit WU-03` (phase 2).
+**Next:** `ws claim --commit WU-04 WU-05` (phase 2).
 
 **Gotchas:**
-- WU-02: `frame-ancestors 'none'` will need loosening, on an explicit flag, for M9's webview. A cross-site frame also wouldn't get the Lax cookie, so M9 will need its own answer there.
+- WU-03: Each stream holds one of the browser's connections to this origin, so about six tabs on one server will stall.
