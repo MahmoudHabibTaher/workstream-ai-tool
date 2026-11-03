@@ -56,7 +56,7 @@ The first task's worker took over from one that had been stopped, so its figures
 
 **Against the same project before, for a worker:** cumulative context fell 60%, peak fell 23%, turn 1 fell 73% and model calls fell 44%. Context at turn 5 fell 18%.
 
-**Growth went up, and it measures something else now.** It doubled, because workers now read several files in one model call, so turn 5 comes after most of the reading rather than during it. The tool's own part is the step from turn 1 to turn 2, which holds the brief and the decisions: 4,181 to 4,763 in these four tasks. The rest is the code each task needs.
+**Growth went up, and it measures something else now.** It doubled, because workers now read several files in one model call, so turn 5 comes after most of the reading rather than during it. The tool's own part is the step from turn 1 to turn 2, which holds the brief: 4,181 to 4,763 in these four tasks, median 4,718. The rest is the code each task needs.
 
 **The coordinator's peak has a limit to it.** No run held all five tasks: the longest held three, rising 17,448 from its start, about 2,500 of that from reading one brief it didn't need. These runs say nothing about a coordinator holding ten tasks.
 
@@ -79,6 +79,26 @@ The evals never hit any of these, because their tasks finish in seconds.
 **What went right:** when a task needed a contact it hadn't been given, and when a change moved one album's data, the worker stopped and the coordinator asked rather than guessing. Every task landed through `ws settle`.
 
 **Cost:** $14.54 at list price, of the $25 the user set, including the $4.76 on the two stopped runs. The last run's three tasks cost $6.02 together, about $2 each with their share of the coordinator.
+
+## Import on the Kotlin project
+
+Run on 2026-11-03, in a scratch clone with no remote, with no agent and no credits. The clone was deleted afterwards, and only these counts came back. No Copilot "after" figures exist, because no agent ran.
+
+| Check | Result |
+|---|---|
+| The tree as it stands: 6 closed rows | All convert, and `ws validate`, `ws reconcile` and `ws doctor` pass |
+| Queues from history, across every branch | 21 queues and 272 tasks all convert, more than the 17 the comparison counted |
+| Those queues at their first version | 271 pending and 1 done |
+| Those queues at their last version | 218 done, 51 pending, 2 blocked and 1 in progress |
+| A dry run | Changes nothing |
+| A second `--write` | Changes nothing |
+| A brief for each of the 54 open tasks | All render: median about 1,440 tokens, largest about 2,177, budget 2,500 |
+
+Only each queue file was restored, not its plan, so a real brief would carry more than this. Sizes here are characters ÷ 4.
+
+**What `ws validate` still reports, and it's right to:** verify keys aren't in `[commands]` until someone declares them, as nothing was run. There are 20 distinct keys, reported 847 times on first versions and 271 on last. With those declared, 3 tasks have a kind that needs commands they don't name, and 1 queue is empty.
+
+**One small bug:** a done task with no commit gets a marker saying so, and `ws validate` then warns that the marker isn't in the repository.
 
 ## Targets
 
