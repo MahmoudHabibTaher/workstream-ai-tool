@@ -141,13 +141,13 @@
       "id": "web_ui",
       "title": "Web UI",
       "summary": "ws serve and a browser UI: registry, wave lanes, task detail, review, health and context budget, with no Node at runtime.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "WU",
       "path": "workstreams/web_ui",
       "tier": "standard",
       "created": "2026-11-03",
       "startedAt": "2026-11-03",
-      "completedAt": null,
+      "completedAt": "2026-11-03",
       "baseCommit": "aedd84a",
       "dependsOn": [],
       "progress": {
@@ -158,7 +158,11 @@
         "done": 6,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "cc62eebc215004cec2213dfbc7ac03023d6121de",
+        "pruned": false
+      }
     }
   ]
 }
