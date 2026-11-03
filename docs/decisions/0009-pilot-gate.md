@@ -36,13 +36,15 @@ Decided at the end of M6, which had to end with "targets met, or budgets revised
 - **That the work is comparable.** The "before" figures cover 121 workers on all kinds of tasks, and the "after" figures cover four tasks from one workstream.
 - **That the code is what the user wants.** Gates passed and tests pass, but nobody has reviewed the branch, and two decisions on it are still the user's. It hasn't been merged.
 
-## Left to fix, none of it UI
+## The gaps it found
 
-Found by the pilot, and the first is the one a new user would hit soonest:
+The pilot found four gaps, none of them UI, and the `gate_gaps` workstream closed them before M7:
 
-1. `ws adapt` allows none of a project's own commands, so a headless worker can't run its build tools: 24 denied calls across seven workers.
-2. Workers can't edit under `.claude/`, even with an allow rule, so a note there comes back as a follow-up.
-3. `ws validate` warns on old `commit` fields holding prose, on the marker `ws import` itself writes, and on files a task will create, which is 40 lines on an old project.
-4. `ws evidence check` on a task that has already landed reports its checks as never run.
+1. **Workers couldn't run a project's own commands from the background: 24 denied calls across seven workers.** `ws adapt` now adds a rule per command in `[commands]`, keeping the subcommand, so `make lint` allows that and not `make deploy`. A command that pushes or publishes gets no rule. On the pilot branch that gave `cargo check`, `cargo test` and `make lint`. A tool the config doesn't name, like `cargo fmt` there, is still denied.
+2. **Workers can't edit under `.claude/`.** This one stays, as the agent refuses it even with a specific allow rule, and that protection isn't ours to get around. `ws brief` now names such a file up front, and says to put the exact text under Gotchas for someone who can.
+3. **`ws validate` was noisy on an old project.** The pilot branch went from 42 lines to 3. Prose commits and the import's marker no longer warn, and a long list of files to come collapses to one line.
+4. **`ws evidence check` called a landed task's checks "never run".** It now says the task has landed, and names the commit.
+
+These haven't been through a real agent run: scripted tests cover them, and `ws adapt`, `ws validate` and `ws evidence check` ran on the pilot branch.
 
 **Cost of finding this out:** $14.54 at list price, of a $25 cap, with $4.76 of it on two runs that stopped early. Every problem that stopped a run came from real tasks taking longer than a sample's: 636 scripted tests and five evals hadn't hit them.

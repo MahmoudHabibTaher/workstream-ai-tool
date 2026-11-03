@@ -72,9 +72,9 @@ The evals never hit any of these, because their tasks finish in seconds.
 | A headless run stops background workers 10 minutes after the coordinator's last turn | Nothing landed, $2.42 | `ws adapt` writes the setting that turns this off. Only setting it in the shell is proven |
 | The brief called a task's docs "Read first", so a worker loaded about 16,000 tokens of them whole | Context at turn 5 was 107,055, and 83,566 on the same task once fixed | The brief says to search them |
 | A project in a linked checkout was reported as a leftover, and `ws unclaim` left the registry behind the queue | `ws doctor` warned, and `ws reconcile` differed | Fixed, with tests |
-| `ws adapt` allows none of a project's own commands, so a headless worker can't run its build tools | 24 denied calls across the seven workers | Not fixed: the pilot passed them on the command line |
-| Claude Code denies edits under `.claude/` even with an allow rule | A trap note couldn't be written by its worker | Not fixed: the worker reports it, and someone adds it |
-| Old `commit` fields holding prose, and files a task will create, each warn in `ws validate` | 40 warning lines | Not fixed |
+| `ws adapt` allows none of a project's own commands, so a headless worker can't run its build tools | 24 denied calls across the seven workers | `ws adapt` allows each command in `[commands]`, by subcommand. Others stay denied |
+| Claude Code denies edits under `.claude/` even with an allow rule | A trap note couldn't be written by its worker | Stays, as the agent's own protection. `ws brief` warns up front, and someone adds the text |
+| Old `commit` fields holding prose, and files a task will create, each warn in `ws validate` | 42 lines from `ws validate` | Down to 3 on the same branch |
 
 **What went right:** when a task needed a contact it hadn't been given, and when a change moved one album's data, the worker stopped and the coordinator asked rather than guessing. Every task landed through `ws settle`.
 
@@ -98,7 +98,7 @@ Only each queue file was restored, not its plan, so a real brief would carry mor
 
 **What `ws validate` still reports, and it's right to:** verify keys aren't in `[commands]` until someone declares them, as nothing was run. There are 20 distinct keys, reported 847 times on first versions and 271 on last. With those declared, 3 tasks have a kind that needs commands they don't name, and 1 queue is empty.
 
-**One small bug:** a done task with no commit gets a marker saying so, and `ws validate` then warns that the marker isn't in the repository.
+**One small bug, since fixed:** a done task with no commit gets a marker saying so, and `ws validate` warned that the marker wasn't in the repository.
 
 ## Targets
 
