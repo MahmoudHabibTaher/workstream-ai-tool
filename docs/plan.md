@@ -12,7 +12,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M3 Protocol and skills | Done: every role is within budget and [every old rule is mapped](rule-map.md). Real agents followed the skills in M5 |
 | M4 Project adaptation | Done, and built as a workstream on this tool. `init` is proven on fixture repos for all six profiles, and on real cargo, npm, gradle and python projects. Real go, ruff, pytest and detekt have not run |
 | M5 Agent adapters | Done: a real three-task workstream completed on Claude Code and on Copilot CLI, on Opus 5.5. The pressure scenarios pass on both, with Copilot's run before the last brief change. Copilot's hook has never fired for real. [Results](decisions/0008-agent-adapters.md) |
-| M6 onward | Not started |
+| M6 Pilots and measurement | Done: passed with one measure replaced, in [the gate](decisions/0009-pilot-gate.md). The Kotlin project got an import only, so Copilot has no real-project figures |
+| M7 onward | Not started |
 
 
 ## Design principles

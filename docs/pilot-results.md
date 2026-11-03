@@ -108,3 +108,5 @@ From the plan, for Claude Code on comparable work:
 |---|---|---|---|
 | Worker growth, turn 1 to turn 5 | 25,110 | ≤ 8,000 | 50,472: missed |
 | Coordinator peak | 172,724 | ≤ 80,000 | 58,305, highest 61,233: met, on runs of up to three tasks |
+
+[The gate](decisions/0009-pilot-gate.md) replaces the first target and says why.

@@ -208,6 +208,7 @@ def summarise(sessions: Iterable[Session]) -> dict[str, dict]:
             "reachedGrowthTurn": len(reached),
             "turns": _median(len(s.sizes) for s in found),
             "first": _median(s.sizes[0] for s in found),
+            "firstStep": _median(s.sizes[1] - s.sizes[0] for s in found if len(s.sizes) > 1),
             "atGrowthTurn": _median(sizes[GROWTH_TURN - 1] for sizes in reached),
             "growth": _median(sizes[GROWTH_TURN - 1] - sizes[0] for sizes in reached),
             "peak": _median(max(s.sizes) for s in found),
@@ -244,11 +245,11 @@ def format_report(result: dict) -> list[str]:
         return "-" if value is None else f"{value:,}"
 
     lines = [f"{result['agent']}, tokens in context per model call, medians:",
-             f"  {'role':<12}{'sessions':>9}{'turns':>7}{'turn 1':>10}{f'turn {GROWTH_TURN}':>10}"
+             f"  {'role':<12}{'sessions':>9}{'turns':>7}{'turn 1':>10}{'step 1':>10}{f'turn {GROWTH_TURN}':>10}"
              f"{'growth':>10}{'peak':>10}{'highest':>10}{'cumulative':>12}"]
     for role in ROLES:
         row = result["roles"][role]
         lines.append(f"  {role:<12}{row['sessions']:>9}{cell(row['turns']):>7}{cell(row['first']):>10}"
-                     f"{cell(row['atGrowthTurn']):>10}{cell(row['growth']):>10}{cell(row['peak']):>10}"
+                     f"{cell(row['firstStep']):>10}{cell(row['atGrowthTurn']):>10}{cell(row['growth']):>10}{cell(row['peak']):>10}"
                      f"{cell(row['highestPeak']):>10}{cell(row['cumulative']):>12}")
     return lines

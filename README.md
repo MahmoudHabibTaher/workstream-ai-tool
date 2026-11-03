@@ -2,7 +2,7 @@
 
 A tool for running large bodies of work with coding agents: a task graph kept in your repo, executed in clean contexts, verified by commands rather than claims. It works with any project and framework.
 
-**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. It hasn't run on a real project yet, and the UIs are not built.
+**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample, and the UIs are not built.
 
 ## Try it
 
