@@ -119,6 +119,26 @@ class ReviewScreensTests(unittest.TestCase):
             self.assertNotRegex(script_text(name), r"\bact\b|ctx\.ask")
 
 
+class HealthScreenTests(unittest.TestCase):
+    def test_a_findings_buttons_come_only_from_its_actions(self) -> None:
+        source = script_text("health.js")
+        self.assertIn("f.actions.map(a =>", source)
+        self.assertIn("ctx.ask({ ws: a.workstream, action: a.action, task: a.task })", source)
+        self.assertEqual(re.findall(r"action: '(\w+)'", source), ["sync"])
+
+    def test_sync_shows_only_on_a_stale_row(self) -> None:
+        source = script_text("health.js")
+        self.assertIn("registry.filter(row => row.progressStale)", source)
+        self.assertIn("stale.map(row =>", source)
+        lanes = script_text("lanes.js")
+        self.assertIn("row?.progressStale && button('Sync progress'", lanes)
+
+    def test_the_budget_is_read_not_worked_out(self) -> None:
+        source = script_text("budget.js")
+        self.assertIn("urls.budget()", source)
+        self.assertNotRegex(source, r"\b(150|2500|3000)\b")
+
+
 @unittest.skipUnless(NODE, "no node here; the page's helpers are checked where there is one")
 class PageLogicTests(unittest.TestCase):
     def test_the_pure_helpers(self) -> None:

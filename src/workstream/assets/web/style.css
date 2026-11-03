@@ -301,3 +301,15 @@ table.diff tr.meta .text { color: var(--dim); font-style: italic; }
   table.diff col.ln-col { width: 36px; }
   table.diff .ln { padding: 0 3px; }
 }
+
+/* --- health and budget ------------------------------------------------------------------ */
+
+.findings { list-style: none; margin: 0; padding: 0; }
+.finding { padding: 8px 0; border-top: 1px solid var(--line); }
+.finding:first-child { border-top: 0; padding-top: 0; }
+.finding-text { margin: 4px 0 0; overflow-wrap: anywhere; }
+.finding .toolbar { margin: 8px 0 0; }
+
+table.budget { width: 100%; }
+.meter-cell { width: 34%; min-width: 100px; vertical-align: middle; }
+tr.over .fill { background: var(--bad); }
