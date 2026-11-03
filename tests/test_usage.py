@@ -79,6 +79,10 @@ class MessageLinesTests(TempDirCase):
         write_lines(self.base / "-elsewhere" / "s.jsonl", [user("hi"), assistant(1, 100)])
         self.assertEqual(self.report()["other"]["sessions"], 0)
 
+    def test_the_first_step_is_what_a_workers_first_call_brought_in(self) -> None:
+        roles = usage.summarise([usage.Session(usage.WORKER, "", [10, 25, 30]), usage.Session(usage.WORKER, "", [7])])
+        self.assertEqual(roles["worker"]["firstStep"], 15)
+
     def test_a_short_session_stays_out_of_growth(self) -> None:
         self.write_session("short", [100, 200], prompt="ws brief T1")
         worker = self.report()["worker"]
