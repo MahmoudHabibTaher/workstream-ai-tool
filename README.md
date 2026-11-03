@@ -2,7 +2,7 @@
 
 A tool for running large bodies of work with coding agents: a task graph kept in your repo, executed in clean contexts, verified by commands rather than claims. It works with any project and framework.
 
-**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample. One UI exists, [a pane for Claude Code](ui/mod/README.md), and the web and IDE ones are not built.
+**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample. Two UIs exist, [a pane for Claude Code](ui/mod/README.md) and [a web UI](ui/web/README.md), and the IDE ones are not built.
 
 ## Try it
 
@@ -41,6 +41,14 @@ A project with older workstream files can bring them across with `ws import`, a 
 `ws audit usage` reads your agents' own transcripts and reports what sessions really carried, per role, as numbers only.
 
 [The pane](ui/mod/README.md) shows a project's workstreams beside the chat in Claude Code, through `/workstreams`. `ws root`, `ws snapshot`, `ws review` and `ws act` are what it runs, and what any other UI should.
+
+[The web UI](ui/web/README.md) is the same view in a browser, with review screens first:
+
+```bash
+ws serve
+```
+
+It needs nothing but `ws`: no Node, no build. It listens on localhost only, and writes only through `ws act`, which refuses a stale write.
 
 ## How a workstream runs
 
@@ -88,9 +96,11 @@ The rules agents follow are in the skills and in `ws protocol`, and `ws audit co
 |---|---|
 | `src/workstream/` | The `ws` CLI: state, graph, registry, verify, brief, settle, worktrees, snapshot, guarded writes, review |
 | `src/workstream/assets/` | The protocol and the four skills |
+| `src/workstream/assets/web/` | The web UI's files, served as they are |
 | `schema/` | JSON Schemas for the files and the `snapshot` read model |
 | `docs/plan.md` | The build plan and its milestones |
 | `docs/harness-comparison.md` | The comparison this tool's design rests on |
 | `docs/rule-map.md` | Where every rule from the source harnesses went |
 | `docs/decisions/` | Decision records |
+| `ui/` | The UIs' guides, and the Claude Code pane |
 | `tests/` | Standard-library `unittest` suite |

@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 from tests.helpers import WsTestCase, evidence_text, task
-from workstream import audit, protocol, tasks
+from workstream import audit, gitutil, protocol, tasks
 from workstream.cli import build_parser
 from workstream.errors import WsError
 
@@ -233,6 +233,14 @@ class NewGateTests(WsTestCase):
         rows = [{"status": "deferred", "releaseImpact": "major", "id": "A"},
                 {"status": "done", "releaseImpact": "patch", "id": "B"}]
         self.assertEqual(registry.release_bump(rows), ("patch", []))
+
+    def test_existing_commits_knows_a_commit_from_anything_else(self) -> None:
+        (self.root / "a.txt").write_text("a\n")
+        commit = self.commit_all("a")
+        blob = self.git("rev-parse", "HEAD:a.txt").strip()
+        found = gitutil.existing_commits(self.root, [commit[:7], commit, "f" * 40, blob, commit])
+        self.assertEqual(found, {commit[:7], commit})
+        self.assertEqual(gitutil.existing_commits(self.root, []), set())
 
     def test_validate_warns_about_a_rewritten_commit(self) -> None:
         self.write_queue([task("T1", 10, status="done", commit="f" * 40)])

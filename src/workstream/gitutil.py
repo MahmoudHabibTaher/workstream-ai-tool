@@ -21,6 +21,25 @@ def rev_parse(repo_root: Path, rev: str, short: bool = False) -> str:
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
+def existing_commits(repo_root: Path, revs: list[str]) -> set[str]:
+    """The ones of these that name a commit, in one process rather than one each. Empty when git
+    can't be run."""
+    if not revs:
+        return set()
+    wanted = list(dict.fromkeys(revs))
+    try:
+        proc = subprocess.run(["git", "cat-file", "--batch-check=%(objectname)"], cwd=repo_root,
+                              input="".join(f"{rev}^{{commit}}\n" for rev in wanted),
+                              capture_output=True, text=True, errors="replace")
+    except OSError:
+        return set()
+    if proc.returncode != 0:
+        return set()
+    answers = proc.stdout.splitlines()
+    # A name git can't settle comes back as "<name> missing" or "<name> ambiguous".
+    return {rev for rev, answer in zip(wanted, answers) if " " not in answer}
+
+
 def common_dir(repo_root: Path) -> Path | None:
     """The .git directory every worktree of this repository shares, or None outside one."""
     try:

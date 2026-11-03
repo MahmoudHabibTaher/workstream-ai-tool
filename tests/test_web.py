@@ -92,6 +92,12 @@ class TheUiDecidesNothingTests(unittest.TestCase):
         self.assertIn("revisions } = state.confirm", confirm)
         self.assertNotIn("state.snapshot", confirm)
 
+    def test_a_live_update_does_not_rebuild_an_unchanged_confirm_box(self) -> None:
+        app = script_text("app.js")
+        overlay = app[app.index("function drawOverlay"):app.index("function cancelConfirm")]
+        self.assertLess(overlay.index("if (drawn === state.overlayDrawn) return"),
+                        overlay.index("overlay.replaceChildren(\n"))
+
     def test_closing_and_abandoning_are_never_writes(self) -> None:
         for path in SCRIPTS:
             self.assertNotRegex(path.read_text(), r"action: '(close|abandon|settle)'", path.name)

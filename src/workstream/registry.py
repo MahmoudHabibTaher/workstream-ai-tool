@@ -234,11 +234,13 @@ def sync(project: Project) -> list[str]:
     return lines
 
 
-def _commit_is_gone(project: Project, commit: str) -> bool:
-    """Whether a commit field names hashes and none resolve. An older queue may hold a sentence
-    around its hashes, or a marker with none, and neither says anything is wrong."""
-    hashes = re.findall(r"\b[0-9a-f]{7,40}\b", commit)
-    return bool(hashes) and not any(gitutil.rev_parse(project.root, f"{h}^{{commit}}") for h in hashes)
+def _commits_gone(project: Project, commits: list[str]) -> set[str]:
+    """Which commit fields name hashes and none resolve. An older queue may hold a sentence around
+    its hashes, or a marker with none, and neither says anything is wrong. One git call for the
+    whole queue: a long one has hundreds, and a UI asks each time something changes."""
+    named = {commit: re.findall(r"\b[0-9a-f]{7,40}\b", commit) for commit in commits}
+    known = gitutil.existing_commits(project.root, [h for hashes in named.values() for h in hashes])
+    return {commit for commit, hashes in named.items() if hashes and not known.intersection(hashes)}
 
 
 def collapse_missing_files(warnings: list[str], keep: int = MISSING_FILES_KEPT) -> list[str]:
@@ -320,10 +322,11 @@ def _queue_problems(project: Project, ws: dict, path: Path, problems: list[str],
     if planned_with and planned_with != tasks.PROTOCOL_VERSION:
         warnings.append(f"{wid}: planned against protocol {planned_with}; "
                         f"this is {tasks.PROTOCOL_VERSION}")
+    landed = [t for t in queue["tasks"]
+              if t.get("status") == "done" and isinstance(t.get("commit"), str)]
+    gone = _commits_gone(project, [t["commit"] for t in landed])
     warnings += [f"{wid}: {t['id']}: commit {t['commit']} isn't in this repository; "
-                 "was it rewritten?" for t in queue["tasks"]
-                 if t.get("status") == "done" and isinstance(t.get("commit"), str)
-                 and _commit_is_gone(project, t["commit"])]
+                 "was it rewritten?" for t in landed if t["commit"] in gone]
     prefix = ws.get("taskPrefix")
     if prefix:
         for t in queue["tasks"]:

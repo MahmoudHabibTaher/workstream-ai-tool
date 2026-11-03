@@ -28,6 +28,7 @@ const state = {
   live: false,
   ui: {},
   drawn: '',
+  overlayDrawn: '',
 }
 
 let sequence = 0
@@ -81,7 +82,7 @@ function setFlash(kind, text) {
 function ask({ ws, action, task }) {
   state.confirm = { ws, action, task, revisions: drawnRevisions() }
   setFlash()
-  drawOverlay(true)
+  drawOverlay()
 }
 
 function drawnRevisions() {
@@ -110,15 +111,16 @@ async function refresh() {
   const screen = SCREENS[route.screen]
   const wanted = screen.fetches(route, state.ui)
   try {
+    // A workstream's snapshot holds everything the whole one does, so a screen with one needs no other.
     const [snapshot, queueData, ...values] = await Promise.all([
-      getJson(urls.snapshot()),
+      wanted.ws ? null : getJson(urls.snapshot()),
       getJson(urls.queue()),
       ...Object.values(wanted).map(getJson),
     ])
     if (mine !== sequence) return
-    state.snapshot = snapshot
-    state.queue = queueData
     state.data = Object.fromEntries(Object.keys(wanted).map((key, i) => [key, values[i]]))
+    state.snapshot = state.data.ws ?? snapshot
+    state.queue = queueData
     state.error = null
   } catch (err) {
     if (mine !== sequence) return
@@ -199,15 +201,20 @@ function drawFlash() {
   )
 }
 
-function drawOverlay(focus) {
+// Redrawn only when what it says changes: a live update mustn't swap the button under a click.
+function drawOverlay() {
   const overlay = document.getElementById('overlay')
   const box = state.confirm
   if (!box) {
     overlay.replaceChildren()
+    state.overlayDrawn = ''
     return
   }
   const latest = state.snapshot?.revisions
-  const moved = latest && (latest.registry !== box.revisions.registry || latest.tasks[box.ws] !== box.revisions.tasks[box.ws])
+  const moved = Boolean(latest && (latest.registry !== box.revisions.registry || latest.tasks[box.ws] !== box.revisions.tasks[box.ws]))
+  const drawn = JSON.stringify([box.ws, box.action, box.task, moved])
+  if (drawn === state.overlayDrawn) return
+  state.overlayDrawn = drawn
   const yes = button('Confirm', confirmWrite, { class: 'primary', key: 'confirm-yes' })
   overlay.replaceChildren(
     h(
@@ -223,7 +230,7 @@ function drawOverlay(focus) {
       ),
     ),
   )
-  if (focus) yes.focus()
+  yes.focus()
 }
 
 function cancelConfirm() {
