@@ -3,11 +3,11 @@ import { expect, mock, test } from 'claude-code/testing'
 const ROOT = '/repo'
 const WS = 'demo'
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
-const TYPED = { command: 'workstreams', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
+const TYPED = { command: 'ws-pane', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
 const PANE = {
-  plugin: 'workstreams-pane',
+  plugin: 'ws-pane',
   component: 'Pane',
-  requestId: 'workstreams',
+  requestId: 'ws-pane',
   props: { title: 'Workstreams', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
 } as const
 
@@ -37,7 +37,7 @@ type World = { snap: object; acts: string[][]; refuse: string | null; fills: str
 function engine(on: any, snap: object): World {
   const world: World = { snap, acts: [], refuse: null, fills: [], submits: 0, toasts: [] }
   mock.clock(on)
-  on('command.register', () => ({ value: { command: 'workstreams' } }))
+  on('command.register', () => ({ value: { command: 'ws-pane' } }))
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('ui.toast', (_: unknown, e: { text: string }) => {
