@@ -5,3 +5,7 @@ Append-only log, newest entry on top: the date, the task, what changed, and a li
 Created 2026-11-03 from `main` at `aedd84a`.
 
 ---
+
+## 2026-11-03: WU-01: ws review gains checks and a queue
+
+Merged as `220e17bc9d`. Verified: test pass. [Evidence](evidence/WU-01.md).

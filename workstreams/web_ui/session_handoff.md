@@ -1,7 +1,10 @@
 # Session handoff
 
-**State: new.** Created 2026-11-03 from `main` at `aedd84a`. No task has started.
+**State:** 1/6 done on `main` at `220e17b`, as of 2026-11-03.
 
-**Next:** `ws claim --commit WU-01` (phase 1).
+**Just landed:** WU-01 (`220e17bc9d`)
 
-**Gotchas:** None.
+**Next:** `ws claim --commit WU-02` (phase 1).
+
+**Gotchas:**
+- WU-01: `--checks` writes loose objects through `verify.code_tree`'s throwaway index, as `ws settle --dry-run` does. It doesn't touch the real index.

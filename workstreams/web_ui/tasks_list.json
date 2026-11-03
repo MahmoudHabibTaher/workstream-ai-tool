@@ -42,13 +42,24 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-03T13:23:23Z",
       "baseCommit": "744912360867488c4f1678a801f432ccc6f8af8c",
       "claimedBy": null,
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-03T13:28:55Z",
+      "commit": "220e17bc9d9b4a05f68d8f5ac957500ae1f157a1",
+      "verification": {
+        "tree": "4b49a15b57ab57c580feebd240f80aa20df1e689",
+        "at": "2026-11-03T13:28:50Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "WU-02",
