@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `2fd93bc`.
 
 ---
 
+## 2026-11-03: PI-04: Migrate the real project on a branch and run a real pilot
+
+Merged as `eb321f045f`. Verified: test pass, audit pass. [Evidence](evidence/PI-04.md).
+
 ## 2026-11-02: PI-08: Keep long headless runs alive, and unclaim in sync
 
 Merged as `e57c9a4f72`. Verified: test pass, audit pass. [Evidence](evidence/PI-08.md).

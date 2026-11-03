@@ -1,12 +1,10 @@
 # Session handoff
 
-**State:** 5/8 done on `main` at `e57c9a4`, as of 2026-11-02.
+**State:** 6/8 done on `main` at `eb321f0`, as of 2026-11-03.
 
-**Just landed:** PI-08 (`e57c9a4f72`)
-
-**Still in progress:** PI-04 (m6-session)
+**Just landed:** PI-04 (`eb321f045f`)
 
 **Next:** `ws claim --commit PI-05` (phase 3).
 
 **Gotchas:**
-- PI-08: Only the variable set in the shell is proven to work: the pilot's third run outlived the 10 minutes that way. Setting it through the settings file wasn't confirmed.
+- PI-04: D014 and D015 on the pilot branch are still open, and both are the user's. MBZ-06 to MBZ-10 are unclaimed. Merging the branch would also need `branches.integration` changed from ws-pilot back to develop, and the old pane and `workstreams/tools` still expect the old file format there.
