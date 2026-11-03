@@ -193,6 +193,42 @@
       }
     },
     {
+      "id": "CP-05",
+      "phase": 2,
+      "priority": 35,
+      "title": "Rename the pane so it sits beside the old one",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "The Rust project's own pane is installed under the same plugin name and command, and must keep working there until its branch merges.",
+      "files": [
+        "ui/mod",
+        ".claude-plugin/marketplace.json"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the plugin is ws-pane and its command /ws-pane, in code, tests and docs",
+        "installed beside the old pane, /ws-pane opens this repo (manual)"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
       "id": "CP-04",
       "phase": 3,
       "priority": 40,
@@ -217,7 +253,8 @@
       ],
       "branch": "",
       "blockedBy": [
-        "CP-03"
+        "CP-03",
+        "CP-05"
       ],
       "needsUserDecision": false,
       "notes": "",
