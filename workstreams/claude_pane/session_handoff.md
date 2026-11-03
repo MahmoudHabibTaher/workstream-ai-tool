@@ -1,7 +1,7 @@
 # Session handoff
 
-**State: new.** Created 2026-11-03 from `main` at `37f6a86`. No task has started.
+**State:** 1/4 done on `main` at `2edc66a`, as of 2026-11-03.
 
-**Next:** `ws claim --commit CP-01` (phase 1).
+**Just landed:** CP-01 (`2edc66a682`)
 
-**Gotchas:** None.
+**Next:** `ws claim --commit CP-02` (phase 2).
