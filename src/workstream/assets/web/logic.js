@@ -90,6 +90,74 @@ export function percent(part, whole) {
   return whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : 0
 }
 
+// --- review --------------------------------------------------------------------------------
+
+export function rangeLine(range) {
+  if (range.kind === 'none') return 'No diff: this task has no commit or branch yet.'
+  const short = rev => (/^[0-9a-f]{40}/.test(rev) ? rev.slice(0, 10) + rev.slice(40) : rev)
+  return `${range.kind}: ${short(range.from)}${range.kind === 'branch' ? '...' : '..'}${short(range.to)}`
+}
+
+export function statLine(file) {
+  if (file.added === null || file.removed === null) return 'binary'
+  return `+${file.added} −${file.removed}`
+}
+
+// What the gates add up to, in a line. settle decides; this says what it would say.
+export function gateSummary(gates) {
+  const stopping = gates.filter(g => !g.ok && g.blocking).length
+  const warnings = gates.filter(g => !g.ok && !g.blocking).length
+  if (stopping > 0) return { kind: 'bad', text: `${stopping} check${stopping === 1 ? '' : 's'} would stop this landing` }
+  if (warnings > 0) return { kind: 'warn', text: `Would land, with ${warnings} warning${warnings === 1 ? '' : 's'}` }
+  return { kind: 'good', text: 'Every check passes' }
+}
+
+// A file's unified diff as lines with their numbers on each side.
+export function parseDiff(text) {
+  const header = []
+  const hunks = []
+  let oldLine = 0
+  let newLine = 0
+  for (const raw of (text ?? '').split('\n')) {
+    const at = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$/.exec(raw)
+    if (at) {
+      oldLine = Number(at[1])
+      newLine = Number(at[2])
+      hunks.push({ header: raw, lines: [] })
+    } else if (!hunks.length) {
+      if (raw) header.push(raw)
+    } else if (raw.startsWith('+')) {
+      hunks.at(-1).lines.push({ kind: 'add', old: null, new: newLine++, text: raw })
+    } else if (raw.startsWith('-')) {
+      hunks.at(-1).lines.push({ kind: 'del', old: oldLine++, new: null, text: raw })
+    } else if (raw.startsWith('\\')) {
+      hunks.at(-1).lines.push({ kind: 'meta', old: null, new: null, text: raw })
+    } else if (raw.startsWith(' ')) {
+      hunks.at(-1).lines.push({ kind: 'ctx', old: oldLine++, new: newLine++, text: raw })
+    }
+  }
+  return { header, hunks }
+}
+
+// Whether the diff's header says the file came or went, or that git can't show it as text.
+export function fileNote(header) {
+  if (header.some(line => line.startsWith('new file'))) return 'new file'
+  if (header.some(line => line.startsWith('deleted file'))) return 'deleted file'
+  if (header.some(line => line.startsWith('Binary files'))) return 'binary, no text diff'
+  return null
+}
+
+export function neighbours(tasks, ws, task) {
+  const at = tasks.findIndex(t => t.workstream === ws && t.task === task)
+  if (at < 0) return { previous: null, next: null, entry: null }
+  return { previous: tasks[at - 1] ?? null, next: tasks[at + 1] ?? null, entry: tasks[at] }
+}
+
+export function neighbourFile(files, current, step) {
+  const at = files.findIndex(f => f.path === current)
+  return files[at + step]?.path ?? null
+}
+
 // --- the address ---------------------------------------------------------------------------
 
 export function parseRoute(hash) {

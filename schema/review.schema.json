@@ -114,7 +114,9 @@
         "reason",
         "items",
         "proposals",
-        "gotchas"
+        "gotchas",
+        "title",
+        "status"
       ],
       "properties": {
         "state": {
@@ -220,6 +222,12 @@
           }
         },
         "gotchas": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
           "type": "string"
         }
       }

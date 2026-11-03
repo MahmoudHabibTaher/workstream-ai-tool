@@ -108,7 +108,7 @@ async function refresh() {
   const mine = ++sequence
   const route = state.route
   const screen = SCREENS[route.screen]
-  const wanted = screen.fetches(route)
+  const wanted = screen.fetches(route, state.ui)
   try {
     const [snapshot, queueData, ...values] = await Promise.all([
       getJson(urls.snapshot()),
@@ -247,11 +247,15 @@ function listen() {
 }
 
 window.addEventListener('hashchange', () => {
+  const before = state.route
   state.route = parseRoute(location.hash)
-  state.data = {}
   state.error = null
-  window.scrollTo(0, 0)
-  document.getElementById('view').replaceChildren(h('p', { class: 'dim' }, 'Loading…'))
+  // Moving between files of one review keeps the rest of the screen on show.
+  if (!(before.screen === 'review' && state.route.screen === 'review' && before.task === state.route.task && before.ws === state.route.ws)) {
+    state.data = {}
+    window.scrollTo(0, 0)
+    document.getElementById('view').replaceChildren(h('p', { class: 'dim' }, 'Loading…'))
+  }
   state.drawn = ''
   refresh()
 })

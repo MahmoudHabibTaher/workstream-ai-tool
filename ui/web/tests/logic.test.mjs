@@ -4,7 +4,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
-  ageOf, badgesOf, commitLine, findingsFor, hrefs, lanes, offers, parseRoute, percent, splitRows, statusActions, waveLine,
+  ageOf, badgesOf, commitLine, fileNote, findingsFor, gateSummary, hrefs, lanes, neighbourFile, neighbours, offers, parseDiff,
+  parseRoute, percent, rangeLine, splitRows, statLine, statusActions, waveLine,
 } from '../../../src/workstream/assets/web/logic.js'
 
 const task = (id, fields) => ({ id, phase: 1, priority: 10, status: 'todo', blockedBy: [], mode: 'background', ...fields })
@@ -88,4 +89,65 @@ test('every address parses back to its screen', () => {
   assert.deepEqual(parseRoute(hrefs.doc('w', 'other')), { screen: 'lanes', ws: 'w' })
   assert.deepEqual(parseRoute(hrefs.review('w', 'T')), { screen: 'review', ws: 'w', task: 'T', file: null })
   assert.deepEqual(parseRoute(hrefs.review('w', 'T', 'src/a b/c.py')), { screen: 'review', ws: 'w', task: 'T', file: 'src/a b/c.py' })
+})
+
+test('a diff keeps its line numbers on each side', () => {
+  const text = [
+    'diff --git a/f b/f', 'index 1..2 100644', '--- a/f', '+++ b/f',
+    '@@ -10,3 +10,3 @@ def f():', ' same', '-old', '+new', '\\ No newline at end of file',
+    '@@ -50 +50,2 @@', ' tail', '+added', '',
+  ].join('\n')
+  const { header, hunks } = parseDiff(text)
+  assert.equal(header.length, 4)
+  assert.deepEqual(hunks[0].lines.map(l => [l.kind, l.old, l.new]), [
+    ['ctx', 10, 10], ['del', 11, null], ['add', null, 11], ['meta', null, null],
+  ])
+  assert.deepEqual(hunks[1].lines.map(l => [l.kind, l.old, l.new]), [['ctx', 50, 50], ['add', null, 51]])
+  assert.equal(hunks[0].header, '@@ -10,3 +10,3 @@ def f():')
+})
+
+test('a removed or added line that looks like a header stays a line', () => {
+  const { hunks } = parseDiff('@@ -1,2 +1,2 @@\n--- not a header\n+++ nor this\n')
+  assert.deepEqual(hunks[0].lines.map(l => l.kind), ['del', 'add'])
+})
+
+test('a diff with no hunks is only its header', () => {
+  const { header, hunks } = parseDiff('diff --git a/x b/x\nBinary files a/x and b/x differ\n')
+  assert.deepEqual([header.length, hunks.length], [2, 0])
+  assert.equal(fileNote(header), 'binary, no text diff')
+  assert.equal(parseDiff('').hunks.length, 0)
+  assert.equal(parseDiff(null).hunks.length, 0)
+})
+
+test('the header says when a file came or went', () => {
+  assert.equal(fileNote(['new file mode 100644']), 'new file')
+  assert.equal(fileNote(['deleted file mode 100644']), 'deleted file')
+  assert.equal(fileNote(['index 1..2']), null)
+})
+
+test('gates add up to one line', () => {
+  const gate = (ok, blocking) => ({ ok, blocking })
+  assert.equal(gateSummary([gate(true, true)]).kind, 'good')
+  assert.deepEqual(gateSummary([gate(false, false), gate(true, true)]), { kind: 'warn', text: 'Would land, with 1 warning' })
+  assert.deepEqual(gateSummary([gate(false, true), gate(false, true), gate(false, false)]), { kind: 'bad', text: '2 checks would stop this landing' })
+})
+
+test('range and stat lines read plainly', () => {
+  const sha = 'a'.repeat(40)
+  assert.equal(rangeLine({ kind: 'none' }), 'No diff: this task has no commit or branch yet.')
+  assert.equal(rangeLine({ kind: 'branch', from: sha, to: 'task/x' }), `branch: ${'a'.repeat(10)}...task/x`)
+  assert.equal(rangeLine({ kind: 'merge', from: `${sha}^1`, to: sha }), `merge: ${'a'.repeat(10)}^1..${'a'.repeat(10)}`)
+  assert.equal(statLine({ added: 2, removed: 1 }), '+2 −1')
+  assert.equal(statLine({ added: null, removed: null }), 'binary')
+})
+
+test('moving through the queue and the files stops at the ends', () => {
+  const tasks = [{ workstream: 'w', task: 'A' }, { workstream: 'w', task: 'B' }, { workstream: 'x', task: 'A' }]
+  assert.deepEqual(neighbours(tasks, 'w', 'B'), { previous: tasks[0], next: tasks[2], entry: tasks[1] })
+  assert.deepEqual(neighbours(tasks, 'w', 'A').previous, null)
+  assert.deepEqual(neighbours(tasks, 'z', 'A').entry, null)
+  const files = [{ path: 'a' }, { path: 'b' }]
+  assert.equal(neighbourFile(files, 'a', 1), 'b')
+  assert.equal(neighbourFile(files, 'b', 1), null)
+  assert.equal(neighbourFile(files, 'a', -1), null)
 })
