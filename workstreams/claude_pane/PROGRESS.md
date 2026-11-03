@@ -6,6 +6,10 @@ Created 2026-11-03 from `main` at `37f6a86`.
 
 ---
 
+## 2026-11-03: CP-04: Docs say what is true
+
+Merged as `9240cd6702`. Verified: test pass, audit pass. [Evidence](evidence/CP-04.md).
+
 ## 2026-11-03: CP-05: Rename the pane so it sits beside the old one
 
 Merged as `60e7900226`. Verified: test pass, audit pass. [Evidence](evidence/CP-05.md).
