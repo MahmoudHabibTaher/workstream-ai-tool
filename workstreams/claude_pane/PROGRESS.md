@@ -6,6 +6,10 @@ Created 2026-11-03 from `main` at `37f6a86`.
 
 ---
 
+## 2026-11-03: CP-03: Package it, and check it on another repo
+
+Merged as `f5cf21f9d5`. Verified: test pass, audit pass. [Evidence](evidence/CP-03.md).
+
 ## 2026-11-03: CP-02: Port the pane
 
 Merged as `65710446d3`. Verified: test pass, audit pass. [Evidence](evidence/CP-02.md).
