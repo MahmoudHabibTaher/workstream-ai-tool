@@ -332,7 +332,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/wu-06",
       "blockedBy": [
         "WU-04",
         "WU-05"
@@ -342,9 +342,9 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T13:52:05Z",
+      "baseCommit": "8c1832f314adab0e109a6b37e71e995fa86fe2b3",
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
