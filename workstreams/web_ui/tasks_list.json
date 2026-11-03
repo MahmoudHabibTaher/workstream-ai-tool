@@ -267,13 +267,24 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-03T13:50:37Z",
       "baseCommit": "3710226f125e9476feb7ba09f13467e7c597ab08",
       "claimedBy": null,
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-03T13:52:05Z",
+      "commit": "90e691700b2068f69d7e023d8e25a07583c5da2a",
+      "verification": {
+        "tree": "84d91cc1ea901948f9d4a86bb96aece2c1f7921b",
+        "at": "2026-11-03T13:52:04Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "WU-06",
