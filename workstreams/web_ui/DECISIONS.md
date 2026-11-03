@@ -13,3 +13,15 @@ The user asked for M8 and set its limits: localhost only, review screens first, 
 ## D002 (2026-11-03, WU-01): the queue is every reviewable task in an open workstream, with no notion of "reviewed"
 
 Nothing in the tracking files says a person has reviewed a task, and adding it would be a new kind of write. The page keeps its own per-browser marks, keyed by `revision`. Rejected: a `reviewed` field on the task written through `ws act`, which is a tracked fact nothing else would read. **Closed.**
+
+## D003 (2026-11-03, WU-02): a per-launch token as well as Host and Origin checks
+
+Host and Origin stop a web page. They don't stop another account on the same machine, which can reach the port and would be able to read a private repo's diffs and commit as this user. The token costs one query parameter. Rejected: Host and Origin alone, which is what a dev server usually does, but a dev server doesn't commit. **Closed.**
+
+## D004 (2026-11-03, WU-02): the cookie is SameSite=Lax
+
+Strict isn't sent on the redirect after a link followed from another app's page, which shows a confusing 401 on first open. Lax still holds it back from cross-site POSTs and frames, and the Origin check stops the write anyway. Rejected: Strict. **Closed.**
+
+## D005 (2026-11-03, WU-02): a stable port per project, chosen from the root's hash
+
+A browser's own storage is per origin, so a fresh port each launch would lose the review queue's "seen" marks. If the port's taken, any free one is used. Rejected: a fixed port, as two projects can be served at once. **Closed.**

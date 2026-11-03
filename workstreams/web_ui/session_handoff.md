@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 1/6 done on `main` at `220e17b`, as of 2026-11-03.
+**State:** 2/6 done on `main` at `cf0058b`, as of 2026-11-03.
 
-**Just landed:** WU-01 (`220e17bc9d`)
+**Just landed:** WU-02 (`cf0058b049`)
 
-**Next:** `ws claim --commit WU-02` (phase 1).
+**Next:** `ws claim --commit WU-03` (phase 2).
 
 **Gotchas:**
-- WU-01: `--checks` writes loose objects through `verify.code_tree`'s throwaway index, as `ws settle --dry-run` does. It doesn't touch the real index.
+- WU-02: `frame-ancestors 'none'` will need loosening, on an explicit flag, for M9's webview. A cross-site frame also wouldn't get the Lax cookie, so M9 will need its own answer there.
