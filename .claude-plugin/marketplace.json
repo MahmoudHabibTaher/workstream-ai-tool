@@ -1,0 +1,11 @@
+{
+  "name": "workstream",
+  "owner": { "name": "MahmoudHabibTaher" },
+  "plugins": [
+    {
+      "name": "workstreams-pane",
+      "source": "./ui/mod",
+      "description": "Browse, review and steer a project's workstreams from a pane beside the chat"
+    }
+  ]
+}
