@@ -73,6 +73,34 @@ class BriefForRealWorkTests(SettleTestCase):
         self.assertNotIn("Read first", out)
 
 
+class ProtectedPathTests(SettleTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        rules = self.root / ".claude" / "rules"
+        rules.mkdir(parents=True)
+        (rules / "x.md").write_text("rule\n")
+
+    def adapted(self) -> None:
+        self.ok("adapt", "claude-code")
+        self.commit_all("adapted")
+
+    def test_a_background_worker_is_told_not_to_try(self) -> None:
+        self.adapted()
+        self.arrange(self.t("T1", docs=[".claude/rules/x.md"]))
+        out = self.ok("brief", "T1", "-w", "alpha")
+        self.assertIn("You can't edit these from the background:** `.claude/rules/x.md`", out)
+        self.assertIn("under Gotchas", out)
+
+    def test_a_foreground_task_can_ask_so_it_isnt_told(self) -> None:
+        self.adapted()
+        self.arrange(self.t("T1", docs=[".claude/rules/x.md"], mode="foreground"))
+        self.assertNotIn("from the background", self.ok("brief", "T1", "-w", "alpha"))
+
+    def test_a_project_without_that_agent_isnt_told(self) -> None:
+        self.arrange(self.t("T1", docs=[".claude/rules/x.md"]))
+        self.assertNotIn("from the background", self.ok("brief", "T1", "-w", "alpha"))
+
+
 class LinkedCheckoutTests(SettleTestCase):
     """A project can run from a linked checkout on its own branch, leaving the main one alone."""
 

@@ -8,7 +8,7 @@ tool exists to remove.
 
 from __future__ import annotations
 
-from workstream import baseline, decisions, evidence, plan, protocol, tasks, worktree
+from workstream import adapt, baseline, decisions, evidence, plan, protocol, tasks, worktree
 from workstream.project import Project
 
 DEFAULT_MAX_CHARS = 10_000
@@ -94,6 +94,20 @@ def _finish_lines(project: Project, ws: dict, task: dict) -> list[str]:
                     "Nothing more."]
 
 
+def _cannot_edit_lines(project: Project, task: dict) -> list[str]:
+    """An agent may refuse edits to its own folder from the background, whatever the rules say."""
+    if task["mode"] == "foreground":
+        return []
+    folders = [f for name in adapt.load_manifest(project)["adapters"]
+               for f in adapt.load(name).raw["worker"].get("cannot_edit", [])]
+    named = [p for p in [*task.get("files", []), *task.get("docs", [])]
+             if any(p.startswith(f) for f in folders)]
+    if not named:
+        return []
+    return ["", "**You can't edit these from the background:** " + ", ".join(f"`{p}`" for p in named)
+            + ". Don't try: if one needs a change, put the exact text under Gotchas for someone who can."]
+
+
 def _scope_lines(scope: dict | None) -> list[str]:
     """The workstream's boundary. A worker that can't see it can't stay inside it."""
     if not scope:
@@ -121,6 +135,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
                          ("Needs", "requires")):
         if task.get(field):
             parts += ["", f"**{label}:** " + ", ".join(f"`{v}`" for v in task[field])]
+    parts += _cannot_edit_lines(project, task)
     if task.get("notes"):
         parts += ["", f"**Notes:** {task['notes']}"]
     if task.get("acceptance"):
