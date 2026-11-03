@@ -94,7 +94,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/wu-02",
       "blockedBy": [
         "WU-01"
       ],
@@ -103,9 +103,9 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T13:28:55Z",
+      "baseCommit": "5f8413897f6d0eb92b7410ef6193cce5298d6ab5",
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
