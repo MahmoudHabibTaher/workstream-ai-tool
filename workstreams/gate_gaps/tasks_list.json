@@ -204,7 +204,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/gg-04",
       "blockedBy": [
         "GG-01",
         "GG-02",
@@ -215,10 +215,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T10:41:00Z",
+      "baseCommit": "8a5d9ea6c8bcadfa767bbdfb5def34b4071e084f",
+      "claimedBy": "m6-session",
       "completedAt": null,
       "commit": null,
       "verification": null
