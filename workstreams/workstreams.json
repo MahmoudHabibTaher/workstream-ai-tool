@@ -87,13 +87,13 @@
       "id": "gate_gaps",
       "title": "Gate gaps",
       "summary": "Close the four non-UI gaps the M6 gate listed.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "GG",
       "path": "workstreams/gate_gaps",
       "tier": "standard",
       "created": "2026-11-03",
       "startedAt": "2026-11-03",
-      "completedAt": null,
+      "completedAt": "2026-11-03",
       "baseCommit": "1f423f9",
       "dependsOn": [],
       "progress": {
@@ -104,7 +104,11 @@
         "done": 4,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "268597b1b41771e82f5abf95b80160b556426e63",
+        "pruned": false
+      }
     }
   ]
 }
