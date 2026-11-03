@@ -114,7 +114,7 @@ export type View = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'ws-pane': {
+    'workstreams-pane': {
       view: Shaped<View>
       snapshot: Shaped<Snapshot | null>
       feed: Shaped<Feed | null>

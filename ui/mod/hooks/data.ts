@@ -5,13 +5,13 @@ import type { EngineInterface } from 'claude-code'
 import type { Confirm, ReviewData, Snapshot } from '../types'
 
 const WS = 'ws'
-const NO_WS = 'ws is not on the PATH this app runs commands with. Install it, then run /ws-pane again.'
+const NO_WS = 'ws is not on the PATH this app runs commands with. Install it, then run /workstreams again.'
 
 export type Loaded = { snapshot: Snapshot; error?: undefined } | { snapshot?: undefined; error: string }
 
 // `ws root` knows which checkout holds the integration branch, so a session in a task's worktree
 // still reads the live queue, and a project in a linked checkout still finds itself. An explicit
-// root (`/ws-pane <path>`) asks from there, which is how a scratch clone is pointed at.
+// root (`/workstreams <path>`) asks from there, which is how a scratch clone is pointed at.
 export async function resolveRoot(
   $: EngineInterface,
   arg: string,

@@ -3,12 +3,12 @@ import { expect, mock, test } from 'claude-code/testing'
 const ROOT = '/repo'
 const WS = 'demo'
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
-const TYPED = { command: 'ws-pane', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
+const TYPED = { command: 'workstreams', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
 
 const PANE = {
-  plugin: 'ws-pane',
+  plugin: 'workstreams-pane',
   component: 'Pane',
-  requestId: 'ws-pane',
+  requestId: 'workstreams',
   props: {
     title: 'Workstreams',
     isFocused: false,
@@ -74,9 +74,9 @@ const DETAIL = {
   tasks: TASKS,
   wave: { state: 'ready', phase: 1, ids: ['T-01'], open: ['T-01', 'T-02', 'T-03', 'T-04'], leftovers: ['T-03'] },
   paths: {
-    handoff: `${ROOT}/ws-pane/${WS}/session_handoff.md`,
-    progress: `${ROOT}/ws-pane/${WS}/PROGRESS.md`,
-    decisions: `${ROOT}/ws-pane/${WS}/DECISIONS.md`,
+    handoff: `${ROOT}/workstreams/${WS}/session_handoff.md`,
+    progress: `${ROOT}/workstreams/${WS}/PROGRESS.md`,
+    decisions: `${ROOT}/workstreams/${WS}/DECISIONS.md`,
   },
 }
 
@@ -86,7 +86,7 @@ type World = { snapshots: number; mtime: number }
 
 function engine(on: any): World {
   const world: World = { snapshots: 0, mtime: 1 }
-  on('command.register', () => ({ value: { command: 'ws-pane' } }))
+  on('command.register', () => ({ value: { command: 'workstreams' } }))
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('fs.stat', () => ({ value: { kind: 'file', size: 1, mtimeMs: world.mtime, isLink: false } }))

@@ -1,4 +1,4 @@
-// Routing, the /ws-pane command and the pane's one render hook.
+// Routing, the /workstreams command and the pane's one render hook.
 // State lives in $.state atoms: module variables die on a reload. The atoms
 // and the flows that write them share this file because the engine's scan reads
 // an atom only from a const of the file using it.
@@ -14,21 +14,21 @@ import { Registry } from './views/registry'
 import { Review } from './views/review'
 import { GAP } from './views/style'
 
-const PANE = 'ws-pane'
+const PANE = 'workstreams'
 const TITLE = 'Workstreams'
 const POLL_MS = 3000
 const INITIAL_VIEW: View = { screen: 'registry', ws: null, task: null, tab: 'handoff', page: 0, showDone: false, confirm: null }
 
 // Bump a shape tag whenever its value's fields change: a stored value under
 // another tag is then read as the initial one.
-const view = atom({ plugin: 'ws-pane', key: 'view' } as const, INITIAL_VIEW, { shape: 'view-4' })
-const snapshot = atom({ plugin: 'ws-pane', key: 'snapshot' } as const, null as Snapshot | null, { shape: 'snapshot-3' })
-const feed = atom({ plugin: 'ws-pane', key: 'feed' } as const, null as Feed | null, { shape: 'feed-1' })
-const review = atom({ plugin: 'ws-pane', key: 'review' } as const, null as ReviewScreen | null, { shape: 'review-1' })
-const root = atom({ plugin: 'ws-pane', key: 'root' } as const, null)
-const error = atom({ plugin: 'ws-pane', key: 'error' } as const, null)
-const actError = atom({ plugin: 'ws-pane', key: 'actError' } as const, null)
-const isOpen = atom({ plugin: 'ws-pane', key: 'isOpen' } as const, false)
+const view = atom({ plugin: 'workstreams-pane', key: 'view' } as const, INITIAL_VIEW, { shape: 'view-4' })
+const snapshot = atom({ plugin: 'workstreams-pane', key: 'snapshot' } as const, null as Snapshot | null, { shape: 'snapshot-3' })
+const feed = atom({ plugin: 'workstreams-pane', key: 'feed' } as const, null as Feed | null, { shape: 'feed-1' })
+const review = atom({ plugin: 'workstreams-pane', key: 'review' } as const, null as ReviewScreen | null, { shape: 'review-1' })
+const root = atom({ plugin: 'workstreams-pane', key: 'root' } as const, null)
+const error = atom({ plugin: 'workstreams-pane', key: 'error' } as const, null)
+const actError = atom({ plugin: 'workstreams-pane', key: 'actError' } as const, null)
+const isOpen = atom({ plugin: 'workstreams-pane', key: 'isOpen' } as const, false)
 
 // Reports whether a snapshot landed, so a caller can hold a navigation back.
 async function refresh($: EngineInterface, at: string, ws: string | null): Promise<boolean> {
@@ -152,7 +152,7 @@ async function openWorkstream($: EngineInterface, id: string) {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'ws-pane',
+      name: 'workstreams',
       description: "Open the workstreams pane for this project (or a given clone's root)",
       argumentHint: '[root]',
     })
@@ -161,7 +161,7 @@ export const register: Register = on => {
     return started
   })
 
-  on('command.run', { command: 'ws-pane' }, async ($, e) => {
+  on('command.run', { command: 'workstreams' }, async ($, e) => {
     const found = await resolveRoot($, e.args)
     if (!found.root) return { text: found.problem }
     const at = found.root
@@ -219,7 +219,7 @@ export const register: Register = on => {
             },
             onCancel: () => void update($, view, v => ({ ...v, confirm: null })),
           })}
-        {!snap && !failed && <Text dimColor>Run /ws-pane to load the registry.</Text>}
+        {!snap && !failed && <Text dimColor>Run /workstreams to load the registry.</Text>}
         {!state.confirm && (
           <Box flexDirection="column">
         {snap &&

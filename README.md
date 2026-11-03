@@ -40,7 +40,7 @@ A project with older workstream files can bring them across with `ws import`, a 
 
 `ws audit usage` reads your agents' own transcripts and reports what sessions really carried, per role, as numbers only.
 
-[The pane](ui/mod/README.md) shows a project's workstreams beside the chat in Claude Code, through `/ws-pane`. `ws root`, `ws snapshot`, `ws review` and `ws act` are what it runs, and what any other UI should.
+[The pane](ui/mod/README.md) shows a project's workstreams beside the chat in Claude Code, through `/workstreams`. `ws root`, `ws snapshot`, `ws review` and `ws act` are what it runs, and what any other UI should.
 
 ## How a workstream runs
 
