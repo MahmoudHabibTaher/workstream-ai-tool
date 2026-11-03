@@ -14,7 +14,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M5 Agent adapters | Done: a real three-task workstream completed on Claude Code and on Copilot CLI, on Opus 5.5. The pressure scenarios pass on both, with Copilot's run before the last brief change. Copilot's hook has never fired for real. [Results](decisions/0008-agent-adapters.md) |
 | M6 Pilots and measurement | Done: passed with one measure replaced, in [the gate](decisions/0009-pilot-gate.md). The Kotlin project got an import only, so Copilot has no real-project figures. The gaps it listed are closed |
 | M7 Claude Code pane | Done: `/workstreams` works in any project, as [a plugin in this repo](../ui/mod/README.md), and was seen drawn in the desktop app. See [the decision](decisions/0010-claude-pane.md) |
-| M8 onward | Not started |
+| M8 `ws serve` and web UI | Done: `ws serve` works with no Node, from an installed wheel, and a stale write from the page is refused. Seen in one browser, on macOS. See [the guide](../ui/web/README.md) and [the decision](decisions/0011-web-ui.md) |
+| M9 onward | Not started |
 
 
 ## Design principles
