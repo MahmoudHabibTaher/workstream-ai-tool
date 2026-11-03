@@ -267,7 +267,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/cp-04",
       "blockedBy": [
         "CP-03",
         "CP-05"
@@ -277,10 +277,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T11:34:04Z",
+      "baseCommit": "94930fadffc71e34589fbd9927def5e10cc3431e",
+      "claimedBy": "m7-session",
       "completedAt": null,
       "commit": null,
       "verification": null
