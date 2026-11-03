@@ -9,6 +9,8 @@ name = "ws-worker"
 description = "Does one workstream task by following `ws brief`."
 # The whole list, so a worker can't start workers of its own.
 frontmatter = "tools: Read, Edit, Write, Bash, Grep, Glob"
+# Refused in the background even with an allow rule, so `ws brief` warns instead of a worker trying.
+cannot_edit = [".claude/"]
 
 [notes]
 ws-plan = "Do steps 1 to 5 in plan mode, and ask with the question tool. The plan file you write there is what `ws seed --from-plan` reads."
