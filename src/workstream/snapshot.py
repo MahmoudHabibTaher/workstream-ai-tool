@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from workstream import graph, registry, tasks
+from workstream.config import Config
 from workstream.errors import WsError
 from workstream.fsutil import sha256
 from workstream.project import TASKS_NAME, Project
@@ -313,6 +314,25 @@ def _paths(folder: Path, task_list: list[dict]) -> dict:
     return paths
 
 
+def _for_display(task: dict, config: Config) -> dict:
+    """A task with what a UI can't work out for itself: a verify key's command needs the config,
+    and an acceptance item may be typed."""
+    return {**task,
+            "verifyCommands": [{"label": label, "command": command}
+                               for label, command in tasks.verify_commands(task, config)],
+            "acceptanceText": [tasks.acceptance_text(a) for a in task.get("acceptance", [])]}
+
+
+def _watch(project: Project, ws: dict | None) -> list[str]:
+    """The files whose change should make a UI read the snapshot again."""
+    paths = [project.registry_path]
+    if ws is not None:
+        folder = project.folder(ws)
+        paths += [project.tasks_path(ws), folder / NARRATIVE_FILES["handoff"],
+                  folder / NARRATIVE_FILES["progress"]]
+    return [str(p) for p in paths]
+
+
 def build_snapshot(project: Project, ws_id: str | None = None,
                    stale_hours: float = DEFAULT_STALE_HOURS,
                    now: datetime | None = None) -> dict:
@@ -347,12 +367,14 @@ def build_snapshot(project: Project, ws_id: str | None = None,
         "registry": [{**ws, "progress": live_progress(ws),
                       "progressStale": ws.get("progress") != live_progress(ws)} for ws in rows],
         "revisions": {"registry": sha256(registry_raw), "tasks": task_revisions},
+        "watch": _watch(project, None),
     }
     if ws_id is not None:
         task_list = sorted(queues[ws_id]["tasks"], key=lambda t: t["priority"])
-        folder = project.folder(next(w for w in rows if w["id"] == ws_id))
-        snapshot.update(tasks=task_list, wave=graph.compute_wave(task_list),
-                        paths=_paths(folder, task_list))
+        ws = next(w for w in rows if w["id"] == ws_id)
+        snapshot.update(tasks=[_for_display(t, project.config) for t in task_list],
+                        wave=graph.compute_wave(task_list),
+                        paths=_paths(project.folder(ws), task_list), watch=_watch(project, ws))
     now = now or datetime.now(timezone.utc)
     snapshot["health"] = health_findings(project, reg, queues, facts, now, stale_hours)
     snapshot["git"] = facts

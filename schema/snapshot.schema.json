@@ -9,7 +9,8 @@
     "registry",
     "revisions",
     "health",
-    "git"
+    "git",
+    "watch"
   ],
   "properties": {
     "snapshotVersion": {
@@ -285,6 +286,13 @@
         }
       },
       "additionalProperties": false
+    },
+    "watch": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Absolute paths whose change should make a UI read the snapshot again."
     }
   },
   "additionalProperties": false
