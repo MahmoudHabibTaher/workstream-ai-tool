@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 7/8 done on `main` at `5fe641e`, as of 2026-11-03.
+**State:** 8/8 done on `main` at `6ef1646`, as of 2026-11-03.
 
-**Just landed:** PI-05 (`5fe641e44b`)
+**Just landed:** PI-06 (`6ef1646ffd`)
 
-**Next:** `ws claim --commit PI-06` (phase 4).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- PI-05: No Copilot after figures exist. The acceptance's 'replay' became an import only, by the user's choice on 2026-11-03.
+- PI-06: Four gaps are listed in the gate, none of them UI. Whether to start M7 or fix them first is the user's call.

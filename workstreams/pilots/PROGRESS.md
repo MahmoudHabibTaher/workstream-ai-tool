@@ -6,6 +6,10 @@ Created 2026-11-02 from `main` at `2fd93bc`.
 
 ---
 
+## 2026-11-03: PI-06: Measure, and report the gate
+
+Merged as `6ef1646ffd`. Verified: test pass, audit pass. [Evidence](evidence/PI-06.md).
+
 ## 2026-11-03: PI-05: Replay on the Kotlin harness's repo in a scratch clone
 
 Merged as `5fe641e44b`. Verified: test pass, audit pass. [Evidence](evidence/PI-05.md).
