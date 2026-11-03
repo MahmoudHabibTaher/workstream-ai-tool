@@ -442,7 +442,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/pi-06",
       "blockedBy": [
         "PI-04",
         "PI-05"
@@ -452,10 +452,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T09:56:43Z",
+      "baseCommit": "03de179532a8a93c76edc84708d1624805fd16b0",
+      "claimedBy": "m6-session",
       "completedAt": null,
       "commit": null,
       "verification": null
