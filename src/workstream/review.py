@@ -1,8 +1,13 @@
-"""Per-task review data: `ws review <TASK> [--file <path>] [--max-lines 1500]` as JSON:
+"""Per-task review data: `ws review <TASK> [--file <path>] [--max-lines 1500] [--checks]` as JSON:
 
     {task, evidence: <abs path or null>,
      range: {from, to, kind: "merge"|"commit"|"branch"|"none"},
-     files: [{path, added, removed}], hunks?: {path, text, truncated}, error?}
+     files: [{path, added, removed}], hunks?: {path, text, truncated}, checks?, error?}
+
+`--checks` adds what a person judging the task needs and a UI can't work out: the gates settling
+would run, each acceptance item beside its quoted proof, and the evidence, read from the task's
+branch while it's still there. `ws review --queue` lists what can be reviewed across the open
+workstreams.
 
 - review_range(task, parents_of, branch_exists): pure. A task's `commit` is usually a
   `--no-ff` merge, whose `git show` is an empty combined diff, so a merge is reviewed
@@ -21,7 +26,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from workstream import registry, tasks
+from workstream import evidence as evidence_file
+from workstream import gates, gitutil, registry, snapshot, tasks
 from workstream.errors import WsError
 from workstream.project import Project
 
@@ -129,8 +135,48 @@ def _is_option_like(task: dict) -> bool:
                for f in ("commit", "branch", "baseCommit"))
 
 
+def _range_of(project: Project, task: dict) -> dict:
+    root = project.root
+    rng = review_range(task, lambda rev: git_parents(root, rev),
+                       lambda name: git_branch_exists(root, name))
+    if rng["kind"] == "branch":
+        fork = _git(root, "merge-base", project.config.integration, rng["to"]).stdout.strip()
+        if fork and not fork.startswith(rng["from"]):
+            rng["from"] = fork
+    return rng
+
+
+def build_checks(project: Project, ws: dict, task: dict, rng: dict) -> dict:
+    """What the CLI can say about this task for a person judging it. A landed task's gates ran
+    when it landed and its run record went with them, so only work still on a branch runs them.
+    Reads only."""
+    on_branch = rng["kind"] == "branch"
+    rev = task["branch"] if on_branch else None
+    text = evidence_file.read_at(project, ws, task["id"], rev)
+    if text is None and on_branch:
+        text = evidence_file.read_at(project, ws, task["id"], None)
+    parsed = evidence_file.parse(text) if text else None
+    found = []
+    if on_branch:
+        rows = registry.load(project)["workstreams"]
+        found = gates.settle_gates(project, ws, task, rev, text=text, merged=False,
+                                   folders=list(snapshot.folders_by_id(project, rows).values()))
+    state = "branch" if on_branch else "landed" if task.get("status") == "done" else "none"
+    return {
+        "state": state,
+        "commit": task.get("commit"),
+        "gates": found,
+        "evidenceText": text,
+        "evidenceStatus": parsed["status"] if parsed else "",
+        "reason": parsed["reason"] if parsed else "",
+        "items": evidence_file.paired_items(parsed, task),
+        "proposals": parsed["proposals"] if parsed else [],
+        "gotchas": parsed["gotchas"] if parsed else "",
+    }
+
+
 def build_review(project: Project, ws_id: str, task_id: str, file: str | None = None,
-                 max_lines: int = DEFAULT_MAX_LINES) -> dict:
+                 max_lines: int = DEFAULT_MAX_LINES, checks: bool = False) -> dict:
     """The review document for one task. Reads only. Raises WsError for an unknown workstream
     or task; a failing git call becomes an `error` key with what it got so far."""
     root = project.root
@@ -142,14 +188,11 @@ def build_review(project: Project, ws_id: str, task_id: str, file: str | None = 
     if _is_option_like(task):
         raise WsError(f"{task_id} names a revision that starts with '-'")
     evidence = project.folder(ws) / "evidence" / f"{task_id}.md"
-    rng = review_range(task, lambda rev: git_parents(root, rev),
-                       lambda name: git_branch_exists(root, name))
-    if rng["kind"] == "branch":
-        fork = _git(root, "merge-base", project.config.integration, rng["to"]).stdout.strip()
-        if fork and not fork.startswith(rng["from"]):
-            rng["from"] = fork
+    rng = _range_of(project, task)
     out = {"task": task_id, "evidence": str(evidence) if evidence.is_file() else None,
            "range": rng, "files": []}
+    if checks:
+        out["checks"] = build_checks(project, ws, task, rng)
     spec = diff_spec(rng)
     if spec is None:
         return out
@@ -166,3 +209,55 @@ def build_review(project: Project, ws_id: str, task_id: str, file: str | None = 
         text, truncated = cap_hunks(proc.stdout, max_lines)
         out["hunks"] = {"path": file, "text": text, "truncated": truncated}
     return out
+
+
+# --- the queue ----------------------------------------------------------------------------
+
+
+def _queue_entry(project: Project, ws: dict, task: dict) -> dict | None:
+    """One task's row, or None when it has nothing to review."""
+    if _is_option_like(task):
+        return None
+    rng = _range_of(project, task)
+    spec = diff_spec(rng)
+    if spec is None:
+        return None
+    revision = gitutil.rev_parse(project.root, rng["to"])
+    proc = _git(project.root, "diff", *DIFF_FLAGS, "--numstat", spec, "--")
+    files = parse_numstat(proc.stdout) if proc.returncode == 0 else []
+    on_branch = rng["kind"] == "branch"
+    rev = task["branch"] if on_branch else None
+    return {
+        "workstream": ws["id"],
+        "task": task["id"],
+        "title": task.get("title", ""),
+        "status": task.get("status", ""),
+        "state": "branch" if on_branch else "landed",
+        "revision": revision,
+        "when": task.get("startedAt" if on_branch else "completedAt"),
+        "files": len(files),
+        "added": sum(f["added"] or 0 for f in files),
+        "removed": sum(f["removed"] or 0 for f in files),
+        "hasEvidence": evidence_file.read_at(project, ws, task["id"], rev) is not None,
+    }
+
+
+def build_queue(project: Project) -> dict:
+    """What can be reviewed in the open workstreams: work on a branch, oldest first since it's
+    waited longest, then landed work, newest first. A queue that won't load is the health
+    screen's business, so it's left out here. Reads only."""
+    rows = registry.load(project)["workstreams"]
+    found = []
+    for ws in rows:
+        path = project.tasks_path(ws)
+        if ws.get("status") not in registry.OPEN_STATUSES or not path.is_file():
+            continue
+        try:
+            queue = tasks.load(path, project.config)
+        except WsError:
+            continue
+        found += [entry for t in queue["tasks"] if (entry := _queue_entry(project, ws, t))]
+    on_branch = sorted((e for e in found if e["state"] == "branch"), key=lambda e: e["when"] or "")
+    landed = sorted((e for e in found if e["state"] == "landed"), key=lambda e: e["when"] or "",
+                    reverse=True)
+    return {"tasks": on_branch + landed}

@@ -865,11 +865,18 @@ def cmd_act(args: argparse.Namespace) -> int:
 
 def cmd_review(args: argparse.Namespace) -> int:
     project = _project(args)
+    if args.queue:
+        if args.task or args.file or args.checks:
+            raise WsError("--queue lists every task, so it takes no task, --file or --checks")
+        print(json.dumps(review.build_queue(project), indent=2))
+        return 0
+    if not args.task:
+        raise WsError("review needs a task id, or --queue")
     if args.max_lines < 1:
         raise WsError("--max-lines must be at least 1")
     ws = _resolve_ws(project, args)
-    print(json.dumps(review.build_review(project, ws["id"], args.task, args.file, args.max_lines),
-                     indent=2))
+    print(json.dumps(review.build_review(project, ws["id"], args.task, args.file, args.max_lines,
+                                         checks=args.checks), indent=2))
     return 0
 
 
@@ -1121,8 +1128,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = command("review", cmd_review, "one task's review data as JSON: evidence path, diff range "
                                       "and diffstat; with --file also that file's hunks")
-    p.add_argument("task", help="task id")
+    p.add_argument("task", nargs="?", help="task id")
     p.add_argument("--file", help="a path from the diffstat to include the hunks of")
+    p.add_argument("--checks", action="store_true",
+                   help="also the gates settling would run, each acceptance item beside its "
+                        "proof, and the evidence, from the task's branch while it has one")
+    p.add_argument("--queue", action="store_true",
+                   help="instead, what can be reviewed across the open workstreams")
     p.add_argument("--max-lines", type=int, default=review.DEFAULT_MAX_LINES,
                    help="cap on the hunks' lines; whole hunks only, `truncated` when cut")
     return parser

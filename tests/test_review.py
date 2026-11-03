@@ -2,7 +2,8 @@
 
 What is proven: a `--no-ff` merge yields its first-parent numstat, not git show's empty
 combined diff; an in-progress branch yields base...branch, leaving out what landed since;
---file cuts at a hunk boundary and sets truncated; `review` writes nothing.
+--checks reads a branch's evidence from the branch; --queue puts branch work first; --file cuts
+at a hunk boundary and sets truncated; `review` writes nothing.
 """
 
 from __future__ import annotations
@@ -190,6 +191,103 @@ class ReviewRepoTests(WsTestCase):
                 self.write_queue([task("FL-09", 90, status=status, **fields)], WS_ID)
                 self.assertIn("starts with '-'", self.fails("review", "-w", WS_ID, "FL-09"))
                 self.assertFalse(target.exists())
+
+    # --- --checks ---------------------------------------------------------------------------
+
+    def with_branch_evidence(self, text: str, **fields) -> None:
+        """FL-02 with acceptance items, and evidence on its branch only."""
+        self.write_queue([
+            task("FL-01", 10, status="done", branch="task/one", commit=self.merge,
+                 completedAt="2026-10-02T00:00:00Z"),
+            task("FL-02", 20, status="in-progress", branch="task/two", baseCommit=self.merge,
+                 startedAt="2026-10-01T00:00:00Z",
+                 acceptance=["it works", "it fails well"], **fields),
+        ], WS_ID)
+        self.commit_all("tracking again")
+        self.git("switch", "-q", "task/two")
+        self.write(f"workstreams/{WS_ID}/evidence/FL-02.md", text)
+        self.commit_all("evidence")
+        self.git("switch", "-q", "trunk")
+
+    def test_checks_read_a_branchs_evidence_from_the_branch(self) -> None:
+        self.with_branch_evidence(
+            "- **Status:** done\n\n## Acceptance\n\n1. it works -> `run`: ok\n  and more\n\n"
+            "## Proposed decisions\n\n### P1: keep it\nBecause. Rejected: not.\n\n"
+            "## Gotchas and follow-ups\n\nWatch out.\n")
+        evidence_path = self.root / "workstreams" / WS_ID / "evidence" / "FL-02.md"
+        self.assertFalse(evidence_path.exists())
+        checks = self.review("FL-02", "--checks")["checks"]
+        self.assertEqual((checks["state"], checks["evidenceStatus"]), ("branch", "done"))
+        self.assertEqual(checks["items"], [
+            {"n": 1, "item": "it works", "proof": "`run`: ok\nand more"},
+            {"n": 2, "item": "it fails well", "proof": ""},
+        ])
+        self.assertEqual([p["id"] for p in checks["proposals"]], ["P1"])
+        self.assertEqual(checks["gotchas"], "Watch out.")
+
+    def test_checks_report_the_gates_settling_would_run(self) -> None:
+        self.with_branch_evidence("- **Status:** done\n\n## Acceptance\n\n1. it works -> ok\n")
+        gates = {g["name"]: g for g in self.review("FL-02", "--checks")["checks"]["gates"]}
+        missing = gates["the evidence is complete"]
+        self.assertFalse(missing["ok"])
+        self.assertIn("acceptance item 2 is missing", missing["detail"])
+        self.assertTrue(gates["the branch has commits"]["ok"])
+        self.assertTrue(gates["the branch leaves tracking files alone"]["ok"])
+
+    def test_checks_on_a_landed_task_name_the_commit_and_run_no_gates(self) -> None:
+        checks = self.review("FL-01", "--checks")["checks"]
+        self.assertEqual((checks["state"], checks["commit"], checks["gates"]),
+                         ("landed", self.merge, []))
+        self.assertEqual(checks["evidenceText"], "# FL-01 evidence\n")
+
+    def test_checks_on_a_task_not_started_say_so(self) -> None:
+        checks = self.review("FL-03", "--checks")["checks"]
+        self.assertEqual((checks["state"], checks["evidenceText"], checks["items"]),
+                         ("none", None, []))
+
+    def test_plain_review_has_no_checks(self) -> None:
+        self.assertNotIn("checks", self.review("FL-02"))
+
+    # --- --queue ----------------------------------------------------------------------------
+
+    def queue(self) -> list[dict]:
+        return json.loads(self.ok("review", "--queue"))["tasks"]
+
+    def test_the_queue_puts_branch_work_before_landed_work(self) -> None:
+        self.with_branch_evidence("# none\n")
+        self.assertEqual([(e["task"], e["state"]) for e in self.queue()],
+                         [("FL-02", "branch"), ("FL-01", "landed")])
+
+    def test_the_queue_holds_sizes_and_evidence(self) -> None:
+        self.with_branch_evidence("# on the branch\n")
+        first, second = self.queue()
+        self.assertEqual((first["files"], first["added"], first["removed"]), (2, 2, 0))
+        self.assertTrue(first["hasEvidence"])
+        self.assertEqual((second["files"], second["added"], second["removed"]), (2, 4, 3))
+        self.assertTrue(second["hasEvidence"])
+        self.assertEqual(first["when"], "2026-10-01T00:00:00Z")
+
+    def test_a_new_commit_changes_the_revision(self) -> None:
+        self.with_branch_evidence("# on the branch\n")
+        before = self.queue()[0]["revision"]
+        self.git("switch", "-q", "task/two")
+        self.write("src/branch.txt", "more\n")
+        self.commit_all("more")
+        self.git("switch", "-q", "trunk")
+        self.assertNotEqual(self.queue()[0]["revision"], before)
+
+    def test_the_queue_leaves_out_closed_workstreams_and_broken_queues(self) -> None:
+        self.with_branch_evidence("# none\n")
+        self.ok("new", "broken", "--title", "B", "--summary", "S", "--prefix", "BR")
+        (self.root / "workstreams" / "broken" / "tasks_list.json").write_text("{not json")
+        self.ok("new", "finished", "--title", "F", "--summary", "S", "--prefix", "FI")
+        self.write_queue([task("FI-01", 10, status="done", commit=self.merge)], "finished")
+        self.ok("close", "-w", "finished", "--yes")
+        self.assertEqual({e["workstream"] for e in self.queue()}, {WS_ID})
+
+    def test_queue_and_a_task_are_refused_together(self) -> None:
+        self.assertIn("takes no task", self.fails("review", "--queue", "FL-01"))
+        self.assertIn("needs a task id", self.fails("review", "-w", WS_ID))
 
     def test_review_writes_nothing(self) -> None:
         def state() -> tuple[str, str, bytes]:
