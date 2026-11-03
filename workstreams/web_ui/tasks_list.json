@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/web_ui/PLAN.md",
+  "updated": "2026-11-03",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "WU-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "ws review gains checks and a queue",
+      "kind": "behaviour",
+      "findings": [
+        "T4",
+        "D-REVIEW"
+      ],
+      "summary": "The facts a reviewer needs and a UI must not work out.",
+      "files": [
+        "src/workstream/review.py",
+        "src/workstream/cli.py",
+        "schema/review.schema.json",
+        "schema/review-queue.schema.json",
+        "tests/test_review.py",
+        "tests/test_schema.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "ws review --checks on a task on its branch reads the evidence from the branch and reports the gates settling would run",
+        "each acceptance item is paired with its quoted proof, or marked as having none",
+        "ws review --checks on a landed task names the commit and runs no gates",
+        "ws review --queue lists branch work before landed work, with sizes and a revision that changes on a new commit",
+        "both shapes pass their schemas, and plain ws review is unchanged"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "WU-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "ws serve: guards, API, SSE",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "T6",
+        "T7",
+        "D-SERVE",
+        "D-SSE"
+      ],
+      "summary": "The server, tested over real HTTP.",
+      "files": [
+        "src/workstream/serve.py",
+        "src/workstream/cli.py",
+        "tests/test_serve.py",
+        "src/workstream/assets/web/index.html"
+      ],
+      "docs": [],
+      "acceptance": [
+        "it binds 127.0.0.1 only and has no host option",
+        "a wrong Host, a missing token, a foreign Origin and a non-JSON POST are each refused, and nothing is written",
+        "a current POST /api/act commits; a stale one answers 409 with act's line and leaves the tree and HEAD as they were",
+        "a static path outside the listing is 404, including traversal",
+        "a change to a watched file reaches an open /api/events stream",
+        "/api/doc takes a name, never a path"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "WU-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "WU-03",
+      "phase": 2,
+      "priority": 30,
+      "title": "The shell, registry, wave lanes and task detail",
+      "kind": "ui",
+      "findings": [
+        "T2",
+        "T3",
+        "T5",
+        "D-STATIC",
+        "D-UI"
+      ],
+      "summary": "The page itself, with the confirm flow every write passes through.",
+      "files": [
+        "src/workstream/assets/web/",
+        "pyproject.toml",
+        "tests/test_web.py",
+        "tests/test_no_project_literals.py",
+        "ui/web/tests/"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the assets ship as package data, and a test holds that nothing refers to another host",
+        "no asset uses innerHTML or eval, and a test holds that",
+        "the literals test covers the web assets",
+        "the pure helpers have tests that run where Node exists and skip where it doesn't"
+      ],
+      "verify": [
+        "PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "WU-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "WU-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "The review screens",
+      "kind": "ui",
+      "findings": [
+        "T2",
+        "T5",
+        "D-REVIEW",
+        "D-UI"
+      ],
+      "summary": "The queue, then one task: checks, proofs beside their items, and the diff by file. These matter most.",
+      "files": [
+        "src/workstream/assets/web/",
+        "ui/web/tests/",
+        "tests/test_web.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the diff parser's line numbers and kinds have tests",
+        "the review screen fetches only through /api/review and /api/queue, and a test holds that"
+      ],
+      "verify": [
+        "PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "WU-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "WU-05",
+      "phase": 2,
+      "priority": 50,
+      "title": "Health and context budget",
+      "kind": "ui",
+      "findings": [
+        "T5",
+        "T6",
+        "D-UI"
+      ],
+      "summary": "Findings with the actions they list, Sync where progress is stale, and each role against its limit.",
+      "files": [
+        "src/workstream/assets/web/",
+        "tests/test_web.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the health screen offers only the actions a finding lists, and Sync only on a stale row, and a test holds the wiring"
+      ],
+      "verify": [
+        "PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "WU-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "WU-06",
+      "phase": 3,
+      "priority": 60,
+      "title": "Prove it in a browser, and write down what's true",
+      "kind": "docs",
+      "findings": [
+        "T1",
+        "T3",
+        "D-STATIC"
+      ],
+      "summary": "Every screen in a real browser, from an installed wheel with no Node, then the docs.",
+      "files": [
+        "src/workstream/assets/web/",
+        "src/workstream/serve.py",
+        "tests/test_serve.py",
+        "tests/test_web.py",
+        "docs/plan.md",
+        "docs/decisions/0011-web-ui.md",
+        "README.md",
+        "ui/web/README.md",
+        "Makefile"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "each screen drawn in a real browser on a sample project",
+          "kind": "manual"
+        },
+        {
+          "text": "a write that lands and a stale write that's refused, both from the page",
+          "kind": "manual"
+        },
+        {
+          "text": "the served page came from an installed wheel, with no node on the server's PATH",
+          "kind": "manual"
+        },
+        {
+          "text": "the plan, README and a decision record say what was and wasn't proven",
+          "kind": "manual"
+        }
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "WU-04",
+        "WU-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ws serve",
+      "the web UI's screens",
+      "additive facts in ws review"
+    ],
+    "outOfScope": [
+      "IDE wrappers",
+      "new write actions",
+      "starting agents from the UI",
+      "writing to any real project through the UI"
+    ],
+    "rule": "Every fact comes from Python and every write goes through act.act; the page draws and asks."
+  }
+}
