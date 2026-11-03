@@ -8,7 +8,7 @@ Decided while building M7. The workstream's own `DECISIONS.md` has the smaller c
 
 **The snapshot gained three fields, with no new version.** `watch` lists the files whose change should redraw, `verifyCommands` holds each verify entry's label and command, and `acceptanceText` holds each acceptance item as text. A UI can't work out any of these without the config or the queue's rules, and M8 and later will need the same ones.
 
-**It's called `ws-pane`, with the command `/ws-pane`.** The older pane is installed under `workstreams-pane` and `/workstreams`, and must keep working on the Rust project's integration branch until its migration merges. Sharing a name would leave which one answers to chance, as this install showed. Once that merge happens the old one can go, and this could take the shorter name.
+**It took over the old pane's name.** It's `workstreams-pane@workstream`, with the command `/workstreams`. The two can't share a name and both be installed, as which one answers is left to chance, so for a while this one was `ws-pane`. Once it had been seen working, the user removed the old plugin and gave this one the name. So the Rust project's integration branch has no pane until its migration merges: `/workstreams` there says it isn't a project.
 
 **It's a plugin from a folder marketplace at the repo root.** The source is a relative path, so it's read from the working tree: edits show up on `/reload-plugins`, and it doesn't load on a branch without `ui/mod`. Rejected: shipping it inside the Python package, which adds nothing while this stays private.
 
@@ -29,7 +29,7 @@ Decided while building M7. The workstream's own `DECISIONS.md` has the smaller c
 | `claude plugin validate` | Passes, with warnings such as a missing icon |
 | Type-check against the engine's types | Clean |
 | Marketplace add and install | Works, on this machine at user scope |
-| `/ws-pane` with a real `ws`, headless | Opens on this repo, a sample project, a task's worktree, the pilot branch and an explicit path, and refuses a folder that isn't a project |
+| `/workstreams` with a real `ws`, headless | Opens on this repo, a sample project, a task's worktree, the pilot branch and an explicit path, and refuses a folder that isn't a project |
 | Every screen on all four surfaces, with real snapshots from three repos | 12 pass, before the rename. A scratch test, not committed, as it holds real project data |
 | Seen drawn in a real app | The user opened it in the desktop app on this repo, which isn't the Rust project, and it looks good |
 
@@ -37,5 +37,4 @@ Decided while building M7. The workstream's own `DECISIONS.md` has the smaller c
 
 - **The other three surfaces on a real screen.** Terminal, VS Code and mobile have only been through the test harness's elements.
 - **A write from the pane in real use.** `ws act` is tested, and the pane's confirm flow is tested with `ws` stubbed.
-- **The old pane outside its own project.** `/workstreams` on this repo says it opened, but this repo doesn't have the script it runs, so it should show an error there. That is the old pane's behaviour and is left as it is.
 - **That the settings on `ws-pilot` are enough to run the pane there.** It opens headless, and hasn't been looked at.

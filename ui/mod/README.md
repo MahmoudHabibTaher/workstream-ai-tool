@@ -15,14 +15,14 @@ claude plugin marketplace add "$PWD"
 ```
 
 ```bash
-claude plugin install ws-pane@workstream --scope user
+claude plugin install workstreams-pane@workstream --scope user
 ```
 
 Then run `/reload-plugins` in a running session, or start a new one. The entry is a relative path, so the plugin is read from this folder as it stands: on a branch without this folder, the pane doesn't load.
 
 ## Use
 
-`/ws-pane` opens the pane for the project the session runs in, at the checkout holding its integration branch, as `ws root` reports it. A session in a task's worktree still sees the live queue. `/ws-pane <path>` points it at another project. In a folder that isn't a project, or with no `ws` to run, the command says so and opens nothing.
+`/workstreams` opens the pane for the project the session runs in, at the checkout holding its integration branch, as `ws root` reports it. A session in a task's worktree still sees the live queue. `/workstreams <path>` points it at another project. In a folder that isn't a project, or with no `ws` to run, the command says so and opens nothing.
 
 **Registry.** Open workstreams with their status, `done/total` and `dependsOn`, and a red count of health errors. **Show done** adds the closed ones, and **Refresh** reads the snapshot again. Pressing a row opens its detail.
 

@@ -4,9 +4,9 @@ const ROOT = '/repo'
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
 
 const PANE = {
-  plugin: 'ws-pane',
+  plugin: 'workstreams-pane',
   component: 'Pane',
-  requestId: 'ws-pane',
+  requestId: 'workstreams',
   props: {
     title: 'Workstreams',
     isFocused: false,
@@ -46,7 +46,7 @@ type Calls = { argv: string[][]; cwd: (string | undefined)[]; opened: number }
 function engine(on: any, inProject = true, hasWs = true): Calls {
   const calls: Calls = { argv: [], cwd: [], opened: 0 }
   mock.clock(on)
-  on('command.register', () => ({ value: { command: 'ws-pane' } }))
+  on('command.register', () => ({ value: { command: 'workstreams' } }))
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
   on('ui.open', () => {
     calls.opened += 1
@@ -65,16 +65,16 @@ function engine(on: any, inProject = true, hasWs = true): Calls {
   return calls
 }
 
-// The input a typed `/ws-pane <args>` carries.
+// The input a typed `/workstreams <args>` carries.
 function typed(args: string) {
-  return { command: 'ws-pane', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
+  return { command: 'workstreams', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
 }
 
 async function start($: any) {
   await $.session.start({ cwd: `${ROOT}/.claude/worktrees/agent-x`, surface: 'desktop', isInteractive: true })
 }
 
-test('/ws-pane in a worktree reads the root ws names, and lists open workstreams on every surface', async ($, on) => {
+test('/workstreams in a worktree reads the root ws names, and lists open workstreams on every surface', async ($, on) => {
   const calls = engine(on)
   await start($)
 

@@ -3,11 +3,11 @@ import { expect, mock, test } from 'claude-code/testing'
 const ROOT = '/repo'
 const WS = 'demo'
 const SURFACES = ['terminal', 'desktop', 'vscode', 'mobile'] as const
-const TYPED = { command: 'ws-pane', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
+const TYPED = { command: 'workstreams', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
 const PANE = {
-  plugin: 'ws-pane',
+  plugin: 'workstreams-pane',
   component: 'Pane',
-  requestId: 'ws-pane',
+  requestId: 'workstreams',
   props: { title: 'Workstreams', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
 } as const
 
@@ -25,14 +25,14 @@ const SNAPSHOT = {
   revisions: { registry: 'r', tasks: {} }, health: [], git: { branch: 'trunk' }, tasks: [TASK],
   wave: { state: 'finished', phase: null, ids: [], open: [], leftovers: [] }, paths: {},
 }
-const EVIDENCE = `${ROOT}/ws-pane/${WS}/evidence/T-01.md`
+const EVIDENCE = `${ROOT}/workstreams/${WS}/evidence/T-01.md`
 const DIFF = 'diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n@@ -1,2 +1,2 @@\n-old\n+new\n same\n'
 
 type Stub = { evidence: string | null; kind: string; truncated: boolean; reviews: string[][] }
 
 function engine(on: any, stub: Stub) {
   mock.clock(on)
-  on('command.register', () => ({ value: { command: 'ws-pane' } }))
+  on('command.register', () => ({ value: { command: 'workstreams' } }))
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('fs.stat', () => ({ value: { kind: 'file', size: 1, mtimeMs: 1, isLink: false } }))

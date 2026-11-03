@@ -1,5 +1,5 @@
 {
-  "name": "ws-pane",
+  "name": "workstreams-pane",
   "version": "0.1.0",
   "description": "Browse, review and steer a project's workstreams from a pane beside the chat",
   "types": "./types/index.d.ts"
