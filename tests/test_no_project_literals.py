@@ -20,12 +20,13 @@ ALLOWED_ONLY_IN_CONFIG = re.compile(r'(?<!get\()"main"(?!:)|task/\{slug\}|task/\
 
 
 def core_files() -> list[Path]:
-    return sorted(p for p in CORE.rglob("*") if p.suffix in (".py", ".md"))
+    return sorted(p for p in CORE.rglob("*") if p.suffix in (".py", ".md", ".js", ".css", ".html"))
 
 
 class NoProjectLiteralsTests(unittest.TestCase):
     def test_finds_the_core_files(self) -> None:
         self.assertGreater(len(core_files()), 10)
+        self.assertIn(".js", {p.suffix for p in core_files()})
 
     def test_core_names_no_project_stack_or_agent(self) -> None:
         hits = [f"{p.relative_to(CORE)}:{n}: {line.strip()}"
