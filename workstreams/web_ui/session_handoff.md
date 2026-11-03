@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 5/6 done on `main` at `90e6917`, as of 2026-11-03.
+**State:** 6/6 done on `main` at `c7ba21d`, as of 2026-11-03.
 
-**Just landed:** WU-05 (`90e691700b`)
+**Just landed:** WU-06 (`c7ba21ded3`)
 
-**Next:** `ws claim --commit WU-06` (phase 3).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- WU-05: The budget screen re-measures on every change while it's open, which takes about two seconds. `ws audit usage` isn't on it, since it reads agents' transcripts and takes options a page has no place for yet.
+- WU-06: The Rust project was viewed read-only: its HEAD, status, ref count and registry hash matched before and after. Only landed tasks were opened there, as a branch task's gates write loose objects. M9 needs its own way past `frame-ancestors 'none'` and the Lax cookie, on an explicit flag.

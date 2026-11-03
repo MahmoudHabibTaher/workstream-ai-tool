@@ -6,6 +6,10 @@ Created 2026-11-03 from `main` at `aedd84a`.
 
 ---
 
+## 2026-11-03: WU-06: Prove it in a browser, and write down what's true
+
+Merged as `c7ba21ded3`. Verified: test pass, audit pass. [Evidence](evidence/WU-06.md).
+
 ## 2026-11-03: WU-05: Health and context budget
 
 Merged as `90e691700b`. Verified: PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals pass. [Evidence](evidence/WU-05.md).

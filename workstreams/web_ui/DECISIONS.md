@@ -41,3 +41,11 @@ The pane swaps evidence for diff because one tree draws 100,000 characters. A br
 ## D009 (2026-11-03, WU-04): a button copies `ws settle`, and the page never lands anything
 
 Landing is `ws settle`, which merges and may run a project's commands. Rejected: a Land button, which would need a new write path around `ws act`. **Closed.**
+
+## D010 (2026-11-03, WU-06): batch the commit check that validate runs
+
+A snapshot took 2.0 seconds on the Rust project, nearly all of it 203 `git rev-parse` calls, and live updates pay that on every change. `git cat-file --batch-check` asks once per queue: 0.43 seconds. Rejected: a cache in the server, which would hide a rewritten commit until a restart. **Closed.**
+
+## D011 (2026-11-03, WU-06): the confirm box redraws only when what it says changes
+
+The browser check found the box was rebuilt on every refresh, so a click could land on a button that had just been replaced. It's now drawn again only when the text would change, and a test holds that. Rejected: pausing live updates while it's open, since the warning that the view moved is what it's for. **Closed.**
