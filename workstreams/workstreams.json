@@ -114,7 +114,7 @@
       "id": "claude_pane",
       "title": "Claude Code pane",
       "summary": "Port the workstreams pane onto ws and ship it as a plugin.",
-      "status": "active",
+      "status": "paused",
       "taskPrefix": "CP",
       "path": "workstreams/claude_pane",
       "tier": "standard",
