@@ -214,6 +214,42 @@ class NoteTests(AdaptCase):
 class SettingsTests(AdaptCase):
     settings = ".claude/settings.json"
 
+    def rules_for(self, **commands: str) -> list[str]:
+        self.set_commands(**commands)
+        self.ok("adapt", "claude-code")
+        return json.loads(self.path(self.settings).read_text())["permissions"]["allow"]
+
+    def test_a_projects_commands_are_allowed_by_their_subcommand(self) -> None:
+        allow = self.rules_for(compile="cargo check --all-targets", lint="make lint")
+        self.assertIn("Bash(cargo check*)", allow)
+        self.assertIn("Bash(make lint*)", allow)
+        self.assertNotIn("Bash(make*)", allow)
+        self.assertNotIn("Bash(cargo*)", allow)
+
+    def test_a_module_run_keeps_its_module(self) -> None:
+        self.assertIn("Bash(python3 -m pytest*)", self.rules_for(test="python3 -m pytest -q"))
+
+    def test_an_environment_prefix_gives_both_forms(self) -> None:
+        allow = self.rules_for(test="TOOLCHAIN=1 cargo test")
+        self.assertIn("Bash(cargo test*)", allow)
+        self.assertIn("Bash(TOOLCHAIN=1 cargo test*)", allow)
+
+    def test_a_compound_command_gets_a_rule_per_part(self) -> None:
+        allow = self.rules_for(check="cd web && npm run build && make lint")
+        self.assertIn("Bash(npm run build*)", allow)
+        self.assertIn("Bash(make lint*)", allow)
+        self.assertFalse([a for a in allow if a.startswith("Bash(cd")])
+
+    def test_nothing_that_ships_is_allowed(self) -> None:
+        allow = self.rules_for(ship="git push origin main", out="cargo publish", go="npm run deploy --prod")
+        self.assertFalse([a for a in allow if any(w in a for w in ("push", "publish", "deploy"))])
+
+    def test_a_new_command_makes_the_agent_files_stale(self) -> None:
+        self.ok("adapt", "claude-code")
+        self.set_commands(lint="make lint")
+        code, out, err = self.ws("adapt", "claude-code", "--check")
+        self.assertNotEqual(code, 0, out + err)
+
     def test_a_long_verify_can_stay_in_the_foreground(self) -> None:
         self.ok("adapt", "claude-code")
         env = json.loads(self.path(self.settings).read_text())["env"]
