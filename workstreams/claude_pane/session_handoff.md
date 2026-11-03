@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 3/4 done on `main` at `f5cf21f`, as of 2026-11-03.
+**State:** 4/5 done on `main` at `60e7900`, as of 2026-11-03.
 
-**Just landed:** CP-03 (`f5cf21f9d5`)
+**Just landed:** CP-05 (`60e7900226`)
 
 **Next:** `ws claim --commit CP-04` (phase 3).
 
 **Gotchas:**
-- CP-03: A scratch test drove every screen on all four surfaces with real snapshots from three repos: 12 pass. It isn't committed, as it holds real project data. Nobody has yet seen the pane drawn in a real app: `-p` opens no surface, and that needs the user.
+- CP-05: Once the Rust project's branch merges, the old pane can go, and this could take /workstreams back. That's a later call.

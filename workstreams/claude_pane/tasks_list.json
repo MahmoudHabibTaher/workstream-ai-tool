@@ -220,13 +220,29 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-03T11:25:53Z",
       "baseCommit": "94f0306ff1e2cbc1eea92e714b6df8c70d12322b",
       "claimedBy": "m7-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-03T11:30:50Z",
+      "commit": "60e7900226baae147a153b112cfdf3095f1796dc",
+      "verification": {
+        "tree": "ba6ed8330519be0f4ea0ad488072fcd236238dc7",
+        "at": "2026-11-03T11:30:48Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "CP-04",
