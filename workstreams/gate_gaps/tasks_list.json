@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/gate_gaps/PLAN.md",
+  "updated": "2026-11-03",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "GG-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Allow a project's own commands",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "T3",
+        "D-ALLOW"
+      ],
+      "summary": "ws adapt adds an allow rule per command in [commands], in the shape the adapter names.",
+      "files": [
+        "src/workstream/adapt.py",
+        "src/workstream/assets/adapters/claude-code.toml",
+        "tests/test_adapt.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "cargo check --all-targets gives a rule for cargo check, and make lint for make lint, not make",
+        "an environment prefix gives both forms, and a compound command a rule per part",
+        "a command that pushes or publishes gives no rule",
+        "ws doctor reports a missing rule, and core names no agent"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "GG-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Tell workers what they can't edit",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T4",
+        "D-PROTECTED"
+      ],
+      "summary": "ws brief names a background task's files and docs under a folder the adapter protects.",
+      "files": [
+        "src/workstream/brief.py",
+        "src/workstream/assets/adapters/claude-code.toml",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "a background task's brief names a protected doc and says to give the text under Gotchas",
+        "a foreground task's brief doesn't, and neither does a project without that adapter"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "GG-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "Quiet ws validate and fix ws evidence check",
+      "kind": "behaviour",
+      "findings": [
+        "D-QUIET"
+      ],
+      "summary": "Prose commits, the import's marker and long lists of files to come stop filling ws validate, and ws evidence check says a done task has landed.",
+      "files": [
+        "src/workstream/registry.py",
+        "src/workstream/cli.py",
+        "tests/test_registry.py",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "a prose commit and the import's marker don't warn, and a plain hash not in the repository still does",
+        "more than three missing files in a workstream collapse to one line, and three or fewer stay listed",
+        "ws evidence check on a done task exits 0 and names its commit"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "GG-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "Docs say what is true",
+      "kind": "docs",
+      "findings": [
+        "D-ALLOW"
+      ],
+      "summary": "The gate's list of gaps, the results, the README and the plan.",
+      "files": [
+        "docs/decisions/0009-pilot-gate.md",
+        "docs/pilot-results.md",
+        "README.md",
+        "docs/plan.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the gate says what was closed and what wasn't",
+        "ws adapt on the pilot branch adds rules for its real commands, and ws validate there is shorter (manual)"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "GG-01",
+        "GG-02",
+        "GG-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the four gaps in docs/decisions/0009-pilot-gate.md"
+    ],
+    "outOfScope": [
+      "any UI",
+      "the pilot branch's own decisions",
+      "getting past an agent's protection of its config folder"
+    ],
+    "rule": "Close the gaps the gate listed, and nothing else."
+  }
+}
