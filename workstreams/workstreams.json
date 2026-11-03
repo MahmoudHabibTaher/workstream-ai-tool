@@ -114,13 +114,13 @@
       "id": "claude_pane",
       "title": "Claude Code pane",
       "summary": "Port the workstreams pane onto ws and ship it as a plugin.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "CP",
       "path": "workstreams/claude_pane",
       "tier": "standard",
       "created": "2026-11-03",
       "startedAt": "2026-11-03",
-      "completedAt": null,
+      "completedAt": "2026-11-03",
       "baseCommit": "37f6a86",
       "dependsOn": [],
       "progress": {
@@ -131,7 +131,11 @@
         "done": 5,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "f8f8a9c653728427324145228686c589fc5d5e76",
+        "pruned": false
+      }
     }
   ]
 }
