@@ -127,12 +127,15 @@ class WrittenFilesTests(WsTestCase):
         (self.root / "src.txt").write_text("x\n")
         merge = self.commit_all("work")
         self.assert_valid("review", json.loads(self.ok("review", "-w", "alpha", "AL-01")))
+        self.assert_valid("review", json.loads(self.ok("review", "-w", "alpha", "AL-01", "--checks")))
+        self.assert_valid("review-queue", json.loads(self.ok("review", "--queue")))
         for tid in ("AL-01", "AL-02", "AL-03"):
             self.ok("update", "-w", "alpha", tid, "--status", "done", "--commit", merge)
         self.ok("sync")
         self.assert_all_valid()
         self.assert_valid("review", json.loads(
-            self.ok("review", "-w", "alpha", "AL-01", "--file", "src.txt")))
+            self.ok("review", "-w", "alpha", "AL-01", "--file", "src.txt", "--checks")))
+        self.assert_valid("review-queue", json.loads(self.ok("review", "--queue")))
         self.ok("close", "-w", "alpha", "--prune", "--yes")
         self.assert_valid("registry", json.loads(self.registry.read_text()))
         self.assert_valid("snapshot", json.loads(self.ok("snapshot")))

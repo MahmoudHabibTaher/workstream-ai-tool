@@ -101,6 +101,128 @@
     },
     "error": {
       "type": "string"
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "commit",
+        "gates",
+        "evidenceText",
+        "evidenceStatus",
+        "reason",
+        "items",
+        "proposals",
+        "gotchas"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "branch",
+            "landed",
+            "none"
+          ]
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "ok",
+              "detail",
+              "blocking"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "blocking": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "evidenceText": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceStatus": {
+          "enum": [
+            "",
+            "done",
+            "blocked"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "n",
+              "item",
+              "proof"
+            ],
+            "properties": {
+              "n": {
+                "type": "integer"
+              },
+              "item": {
+                "type": "string"
+              },
+              "proof": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "proposals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "title",
+              "body"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "gotchas": {
+          "type": "string"
+        }
+      }
     }
   }
 }

@@ -107,6 +107,21 @@ def _has_proof(item: str) -> bool:
     return ARROW_RE.search(first) is not None or bool(rest.strip())
 
 
+def proof_of(item: str) -> str:
+    """What an item quotes: after the arrow on its first line, then the lines under it."""
+    first, _, rest = item.partition("\n")
+    match = ARROW_RE.search(first)
+    return "\n".join(part for part in (match[1] if match else "", rest.strip()) if part)
+
+
+def paired_items(parsed: dict | None, task: dict) -> list[dict]:
+    """Each acceptance item beside its proof, in the task's order. A proof is "" when the
+    evidence quotes nothing for it, which is what a reader most needs to see."""
+    items = parsed["items"] if parsed else {}
+    return [{"n": n, "item": tasks.acceptance_text(item), "proof": proof_of(items.get(n, ""))}
+            for n, item in enumerate(task.get("acceptance", []), 1)]
+
+
 def problems(text: str | None, task: dict) -> list[str]:
     """Why this evidence can't settle the task. Empty means it can."""
     if text is None:

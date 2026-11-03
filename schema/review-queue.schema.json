@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ws review --queue",
+  "type": "object",
+  "required": [
+    "tasks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workstream",
+          "task",
+          "title",
+          "status",
+          "state",
+          "revision",
+          "when",
+          "files",
+          "added",
+          "removed",
+          "hasEvidence"
+        ],
+        "properties": {
+          "workstream": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "branch",
+              "landed"
+            ]
+          },
+          "revision": {
+            "type": "string"
+          },
+          "when": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "integer"
+          },
+          "added": {
+            "type": "integer"
+          },
+          "removed": {
+            "type": "integer"
+          },
+          "hasEvidence": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}
