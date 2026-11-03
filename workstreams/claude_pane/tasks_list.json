@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/claude_pane/PLAN.md",
+  "updated": "2026-11-03",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "CP-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "ws root and the snapshot's new fields",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "T4",
+        "D-ROOT",
+        "D-SNAPSHOT"
+      ],
+      "summary": "The facts the pane must not work out for itself.",
+      "files": [
+        "src/workstream/cli.py",
+        "src/workstream/snapshot.py",
+        "schema/snapshot.schema.json",
+        "tests/test_snapshot.py",
+        "tests/test_schema.py",
+        "README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "ws root prints the integration checkout from itself, from a task worktree and from a linked checkout that holds the integration branch",
+        "ws root fails with one line outside a project",
+        "the snapshot carries watch, and with -w verifyCommands and acceptanceText, and still passes its schema"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "CP-02",
+      "phase": 2,
+      "priority": 20,
+      "title": "Port the pane",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "summary": "The five screens and their tests in ui/mod, running ws.",
+      "files": [
+        "ui/mod/.claude-plugin/plugin.json",
+        "ui/mod/hooks",
+        "ui/mod/types/index.d.ts",
+        "ui/mod/tests",
+        "ui/mod/tsconfig.json",
+        "tests/test_mod_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "claude plugin validate and claude plugin test pass on ui/mod (manual)",
+        "a missing ws, and a folder that isn't a project, each say so",
+        "the mod names no project, stack or old skill, and a test holds that"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "CP-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "CP-03",
+      "phase": 2,
+      "priority": 30,
+      "title": "Package it, and check it on another repo",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "T5",
+        "D-PACKAGE"
+      ],
+      "summary": "A marketplace at the root and make test-mod, then the pane on a repo that isn't the Rust one.",
+      "files": [
+        ".claude-plugin/marketplace.json",
+        "Makefile",
+        "ui/mod/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "claude plugin marketplace add and install work from this repo (manual)",
+        "/workstreams runs a real ws on this repo and on a sample repo (manual)"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "CP-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "CP-04",
+      "phase": 3,
+      "priority": 40,
+      "title": "Docs say what is true",
+      "kind": "docs",
+      "findings": [
+        "D-PACKAGE"
+      ],
+      "summary": "The decision record, the plan and the README.",
+      "files": [
+        "docs/decisions/0010-claude-pane.md",
+        "docs/plan.md",
+        "README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "the docs say what was shown working and what wasn't"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "CP-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ws root",
+      "the snapshot's new fields",
+      "the pane in ui/mod",
+      "a marketplace at the root",
+      "docs"
+    ],
+    "outOfScope": [
+      "new screens",
+      "the web UI",
+      "publishing the marketplace",
+      "changing the Rust project's branch"
+    ],
+    "rule": "Bring the pane across and tie it to no project; anything new waits."
+  }
+}
