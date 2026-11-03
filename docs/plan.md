@@ -13,7 +13,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M4 Project adaptation | Done, and built as a workstream on this tool. `init` is proven on fixture repos for all six profiles, and on real cargo, npm, gradle and python projects. Real go, ruff, pytest and detekt have not run |
 | M5 Agent adapters | Done: a real three-task workstream completed on Claude Code and on Copilot CLI, on Opus 5.5. The pressure scenarios pass on both, with Copilot's run before the last brief change. Copilot's hook has never fired for real. [Results](decisions/0008-agent-adapters.md) |
 | M6 Pilots and measurement | Done: passed with one measure replaced, in [the gate](decisions/0009-pilot-gate.md). The Kotlin project got an import only, so Copilot has no real-project figures. The gaps it listed are closed |
-| M7 onward | Not started |
+| M7 Claude Code pane | Done: `/ws-pane` works in any project, as [a plugin in this repo](../ui/mod/README.md), and was seen drawn in the desktop app. See [the decision](decisions/0010-claude-pane.md) |
+| M8 onward | Not started |
 
 
 ## Design principles

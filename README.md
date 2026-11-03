@@ -2,7 +2,7 @@
 
 A tool for running large bodies of work with coding agents: a task graph kept in your repo, executed in clean contexts, verified by commands rather than claims. It works with any project and framework.
 
-**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample, and the UIs are not built.
+**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample. One UI exists, [a pane for Claude Code](ui/mod/README.md), and the web and IDE ones are not built.
 
 ## Try it
 
@@ -39,6 +39,8 @@ Claude Code ignores a project's `.claude/settings.json` until someone has accept
 A project with older workstream files can bring them across with `ws import`, a dry run until you add `--write`.
 
 `ws audit usage` reads your agents' own transcripts and reports what sessions really carried, per role, as numbers only.
+
+[The pane](ui/mod/README.md) shows a project's workstreams beside the chat in Claude Code, through `/ws-pane`. `ws root`, `ws snapshot`, `ws review` and `ws act` are what it runs, and what any other UI should.
 
 ## How a workstream runs
 
