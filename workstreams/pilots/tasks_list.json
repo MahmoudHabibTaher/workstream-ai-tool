@@ -392,13 +392,29 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-03T09:49:12Z",
       "baseCommit": "05ca46f8a0d6c379be03686167cfc3353d14c578",
       "claimedBy": "m6-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-03T09:56:43Z",
+      "commit": "5fe641e44bae9b7144b12a5d75e73e9ba10b63bc",
+      "verification": {
+        "tree": "e763974208809ebe2a150654c831a349b00007f1",
+        "at": "2026-11-03T09:56:42Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "PI-06",
