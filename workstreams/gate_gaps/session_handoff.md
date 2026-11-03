@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 3/4 done on `main` at `1388d65`, as of 2026-11-03.
+**State:** 4/4 done on `main` at `0b42e62`, as of 2026-11-03.
 
-**Just landed:** GG-03 (`1388d656ec`)
+**Just landed:** GG-04 (`0b42e6272c`)
 
-**Next:** `ws claim --commit GG-04` (phase 2).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- GG-03: Only `ws validate` collapses the list; the JSON and doctor paths filter these warnings as before.
+- GG-04: `ws doctor` reports a missing command rule as `.claude/settings.json (missing)`, though the file exists. It points at the right fix, `ws adapt`, so it was left. `make eval` wasn't rerun after these changes, as it spends money and that's the user's call.

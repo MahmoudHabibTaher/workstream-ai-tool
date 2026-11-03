@@ -6,6 +6,10 @@ Created 2026-11-03 from `main` at `1f423f9`.
 
 ---
 
+## 2026-11-03: GG-04: Docs say what is true
+
+Merged as `0b42e6272c`. Verified: test pass, audit pass. [Evidence](evidence/GG-04.md).
+
 ## 2026-11-03: GG-03: Quiet ws validate and fix ws evidence check
 
 Merged as `1388d656ec`. Verified: test pass, audit pass. [Evidence](evidence/GG-03.md).
