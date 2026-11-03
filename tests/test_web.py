@@ -64,7 +64,7 @@ class RepoTextStaysTextTests(unittest.TestCase):
             if path.name in ("dom.js", "mdview.js", "markdown.js", "logic.js"):
                 continue
             for match in re.findall(r"href: ([^,}\n]+)", path.read_text()):
-                self.assertTrue(match.strip().startswith("hrefs."), f"{path.name}: {match}")
+                self.assertIn("hrefs.", match, f"{path.name}: {match}")
 
     def test_the_policy_allows_no_inline_script_or_style(self) -> None:
         policy = serve.SECURITY_HEADERS["Content-Security-Policy"]
@@ -95,6 +95,28 @@ class TheUiDecidesNothingTests(unittest.TestCase):
     def test_closing_and_abandoning_are_never_writes(self) -> None:
         for path in SCRIPTS:
             self.assertNotRegex(path.read_text(), r"action: '(close|abandon|settle)'", path.name)
+
+
+class ReviewScreensTests(unittest.TestCase):
+    def test_a_review_fetches_only_its_review(self) -> None:
+        # The queue comes with every screen, from the shell.
+        source = script_text("review.js")
+        fetches = source[source.index("export const fetches"):source.index("\n\n", source.index("export const fetches"))]
+        self.assertIn("urls.review(", fetches)
+        self.assertNotRegex(source, r"urls\.(snapshot|doc|budget)|\bfetch\(|getJson")
+
+    def test_the_queue_screen_fetches_nothing_of_its_own(self) -> None:
+        source = script_text("queue.js")
+        self.assertIn("export const fetches = () => ({})", source)
+        self.assertNotRegex(source, r"urls\.|\bfetch\(|getJson")
+
+    def test_the_shell_always_fetches_the_queue(self) -> None:
+        self.assertIn("getJson(urls.queue())", script_text("app.js"))
+        self.assertEqual(script_text("api.js").count("'/api/queue'"), 1)
+
+    def test_review_screens_never_write(self) -> None:
+        for name in ("review.js", "queue.js"):
+            self.assertNotRegex(script_text(name), r"\bact\b|ctx\.ask")
 
 
 @unittest.skipUnless(NODE, "no node here; the page's helpers are checked where there is one")

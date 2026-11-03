@@ -164,6 +164,8 @@ def build_checks(project: Project, ws: dict, task: dict, rng: dict) -> dict:
     state = "branch" if on_branch else "landed" if task.get("status") == "done" else "none"
     return {
         "state": state,
+        "title": task.get("title", ""),
+        "status": task.get("status", ""),
         "commit": task.get("commit"),
         "gates": found,
         "evidenceText": text,
