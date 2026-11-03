@@ -207,7 +207,7 @@
       "verify": [
         "PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals"
       ],
-      "branch": "",
+      "branch": "task/wu-04",
       "blockedBy": [
         "WU-03"
       ],
@@ -216,9 +216,9 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T13:46:42Z",
+      "baseCommit": "521f20ec116749c39f43f62a3401a16c95dacf64",
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
