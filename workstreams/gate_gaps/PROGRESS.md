@@ -6,6 +6,10 @@ Created 2026-11-03 from `main` at `1f423f9`.
 
 ---
 
+## 2026-11-03: GG-03: Quiet ws validate and fix ws evidence check
+
+Merged as `1388d656ec`. Verified: test pass, audit pass. [Evidence](evidence/GG-03.md).
+
 ## 2026-11-03: GG-02: Tell workers what they can't edit
 
 Merged as `2f951ef1f7`. Verified: test pass, audit pass. [Evidence](evidence/GG-02.md).

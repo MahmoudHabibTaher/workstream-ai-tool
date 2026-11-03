@@ -155,13 +155,29 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-03T10:36:04Z",
       "baseCommit": "b7d7d59610998e0bd5192b744a659f7fe2ea7001",
       "claimedBy": "m6-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-03T10:40:59Z",
+      "commit": "1388d656ecdce608bc81f17935e1d62051a0b354",
+      "verification": {
+        "tree": "71ff8956bbfdefbf354656102c7a84c9f97cf946",
+        "at": "2026-11-03T10:40:58Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "GG-04",
