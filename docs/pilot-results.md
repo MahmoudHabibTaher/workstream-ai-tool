@@ -38,11 +38,53 @@ Copilot has no coordinator row because that harness ran its shifts one at a time
 - **Cumulative cost was underestimated:** about 2.2M per worker was labelled a floor, and the median is 5.05M. Later turns carry much more than the first.
 - **Copilot growth can now be measured:** the comparison had no per-turn figure, and it's about 11k by turn 5.
 
+## After
+
+Measured on 2026-11-03, on the Rust project's migrated branch: five real tasks from its one planned workstream, on Claude Opus 5.5 at medium effort. All five landed, and the branch's tests and lint pass. The last task's replay tally is 71/5/17 rather than the plan's 74/2/17: its worker recorded the three albums that moved and left that for the user to decide.
+
+```bash
+ws audit usage --agent claude-code --project <worktree> --transcripts <only the finishing runs>
+```
+
+| Role | Sessions | Turns | Turn 1 | Turn 5 | Growth | Peak | Highest | Cumulative |
+|---|---|---|---|---|---|---|---|---|
+| Worker, last four tasks | 4 | 23 | 14,675 | 65,118 | 50,472 | 119,057 | 183,340 | 1,999,531 |
+| Worker, all five | 5 | 25 | 14,682 | 60,634 | 46,023 | 110,358 | 183,340 | 2,177,467 |
+| Coordinator | 2 | 16 | 43,872 | 48,310 | 4,437 | 58,305 | 61,233 | 833,882 |
+
+The first task's worker took over from one that had been stopped, so its figures aren't typical, and the first row leaves it out. Two earlier workers that were stopped by the problems below aren't counted either.
+
+**Against the same project before, for a worker:** cumulative context fell 60%, peak fell 23%, turn 1 fell 73% and model calls fell 44%. Context at turn 5 fell 18%.
+
+**Growth went up, and it measures something else now.** It doubled, because workers now read several files in one model call, so turn 5 comes after most of the reading rather than during it. The tool's own part is the step from turn 1 to turn 2, which holds the brief and the decisions: 4,181 to 4,763 in these four tasks. The rest is the code each task needs.
+
+**The coordinator's peak has a limit to it.** No run held all five tasks: the longest held three, rising 17,448 from its start, about 2,500 of that from reading one brief it didn't need. These runs say nothing about a coordinator holding ten tasks.
+
+**What caused the turn 1 drop is inferred:** the new worker agent has six tools and the old ones had all of them, but the Claude Code version and the model changed as well.
+
+## What the real run found
+
+The evals never hit any of these, because their tasks finish in seconds.
+
+| Found | Result | Now |
+|---|---|---|
+| A worker put `ws verify` in the background and ended its turn, which killed the check and then the run | Nothing landed, $2.34 | The brief says to wait for it, and `ws adapt` raises the limit on a foreground command |
+| A headless run stops background workers 10 minutes after the coordinator's last turn | Nothing landed, $2.42 | `ws adapt` writes the setting that turns this off. Only setting it in the shell is proven |
+| The brief called a task's docs "Read first", so a worker loaded about 16,000 tokens of them whole | Context at turn 5 was 107,055, and 83,566 on the same task once fixed | The brief says to search them |
+| A project in a linked checkout was reported as a leftover, and `ws unclaim` left the registry behind the queue | `ws doctor` warned, and `ws reconcile` differed | Fixed, with tests |
+| `ws adapt` allows none of a project's own commands, so a headless worker can't run its build tools | 24 denied calls across the seven workers | Not fixed: the pilot passed them on the command line |
+| Claude Code denies edits under `.claude/` even with an allow rule | A trap note couldn't be written by its worker | Not fixed: the worker reports it, and someone adds it |
+| Old `commit` fields holding prose, and files a task will create, each warn in `ws validate` | 40 warning lines | Not fixed |
+
+**What went right:** when a task needed a contact it hadn't been given, and when a change moved one album's data, the worker stopped and the coordinator asked rather than guessing. Every task landed through `ws settle`.
+
+**Cost:** $14.54 at list price, of the $25 the user set, including the $4.76 on the two stopped runs. The last run's three tasks cost $6.02 together, about $2 each with their share of the coordinator.
+
 ## Targets
 
 From the plan, for Claude Code on comparable work:
 
 | Measure | Before | Target | After |
 |---|---|---|---|
-| Worker growth, turn 1 to turn 5 | 25,110 | ≤ 8,000 | Not yet run |
-| Coordinator peak | 172,724 | ≤ 80,000 | Not yet run |
+| Worker growth, turn 1 to turn 5 | 25,110 | ≤ 8,000 | 50,472: missed |
+| Coordinator peak | 172,724 | ≤ 80,000 | 58,305, highest 61,233: met, on runs of up to three tasks |
