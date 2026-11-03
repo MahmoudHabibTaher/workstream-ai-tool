@@ -380,7 +380,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/pi-05",
       "blockedBy": [
         "PI-02",
         "PI-03"
@@ -392,10 +392,10 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-03T09:49:12Z",
+      "baseCommit": "05ca46f8a0d6c379be03686167cfc3353d14c578",
+      "claimedBy": "m6-session",
       "completedAt": null,
       "commit": null,
       "verification": null
