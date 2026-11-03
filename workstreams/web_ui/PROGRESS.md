@@ -6,6 +6,10 @@ Created 2026-11-03 from `main` at `aedd84a`.
 
 ---
 
+## 2026-11-03: WU-04: The review screens
+
+Merged as `ae8619ab7c`. Verified: PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals pass. [Evidence](evidence/WU-04.md).
+
 ## 2026-11-03: WU-03: The shell, registry, wave lanes and task detail
 
 Merged as `1523ebeef9`. Verified: PYTHONPATH=src python3 -B -m unittest tests.test_serve tests.test_web tests.test_no_project_literals pass. [Evidence](evidence/WU-03.md).

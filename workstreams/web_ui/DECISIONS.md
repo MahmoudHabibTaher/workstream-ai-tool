@@ -33,3 +33,11 @@ With live updates, the latest snapshot would pass the guard for something the pe
 ## D007 (2026-11-03, WU-03): copying a prompt stands in for filling a prompt box
 
 A browser has no prompt box to fill. Copying leaves the send to the person, as the pane does. Rejected: launching an agent, which the plan rules out for a standalone page. **Closed.**
+
+## D008 (2026-11-03, WU-04): the review screen shows the gates and proofs beside the diff, not in place of it
+
+The pane swaps evidence for diff because one tree draws 100,000 characters. A browser needn't, and judging a claim against code is the job. Rejected: tabs, which is how a reader loses their place. **Closed.**
+
+## D009 (2026-11-03, WU-04): a button copies `ws settle`, and the page never lands anything
+
+Landing is `ws settle`, which merges and may run a project's commands. Rejected: a Land button, which would need a new write path around `ws act`. **Closed.**
