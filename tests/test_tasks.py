@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from tests.helpers import WsTestCase, task
+from tests.test_protocol import fill_in
 from tests.test_schema import load_schema, problems
-from workstream import fsutil, graph, tasks
+from workstream import fsutil, graph, protocol, tasks
+from workstream.cli import build_parser
 from workstream.config import Config
 
 
@@ -149,6 +152,135 @@ class UpdateTests(WsTestCase):
     def test_replaces_verify(self) -> None:
         self.update("--verify", "test", "--verify", "lint")
         self.assertEqual(self.by_id("X-01")["verify"], ["test", "lint"])
+
+
+class CorrectAcceptanceTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10, acceptance=["one", {"text": "two", "kind": "manual"}, "three"]),
+                      task("X-02", 20, acceptance=["one"], status="deferred"),
+                      task("X-03", 30, acceptance=["one"], status="done", commit="abc1234")])
+        self.ok("decide", "Change it", "--why", "the target moved", "--by", "user", "-w", "alpha")
+        self.queue_path = self.ws_dir / "alpha" / "tasks_list.json"
+
+    def refused(self, needle: str, *argv: str) -> None:
+        before = self.queue_path.read_bytes()
+        self.assertIn(needle, self.fails("update", "-w", "alpha", *argv))
+        self.assertEqual(self.queue_path.read_bytes(), before)
+
+    def test_it_replaces_the_item_and_appends_the_decision(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "3", "new three",
+                "--because", "D001")
+        self.assertEqual(self.by_id("X-01")["acceptance"],
+                         ["one", {"text": "two", "kind": "manual"}, "new three (changed by D001)"])
+
+    def test_a_manual_item_stays_manual(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "new two",
+                "--because", "D001")
+        item = self.by_id("X-01")["acceptance"][1]
+        self.assertEqual(item, {"text": "new two (changed by D001)", "kind": "manual"})
+        self.assertEqual(tasks.acceptance_text(item), "new two (changed by D001) (manual)")
+
+    def test_a_second_correction_names_only_the_later_decision(self) -> None:
+        self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
+        for decision in ("D001", "D002"):
+            self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new",
+                    "--because", decision)
+        self.assertEqual(self.by_id("X-01")["acceptance"][0], "new (changed by D002)")
+
+    def test_a_missing_because_is_refused(self) -> None:
+        self.refused("needs --because", "X-01", "--acceptance", "1", "new")
+
+    def test_an_unknown_decision_is_refused(self) -> None:
+        self.refused("no decision D999", "X-01", "--acceptance", "1", "new", "--because", "D999")
+
+    def test_an_item_that_does_not_exist_is_refused(self) -> None:
+        for number in ("0", "4", "two", "-1"):
+            with self.subTest(number=number):
+                self.refused(f"no acceptance item {number}", "X-01", "--acceptance", number, "new",
+                             "--because", "D001")
+
+    def test_a_done_or_deferred_task_is_refused(self) -> None:
+        self.refused("X-03 is done", "X-03", "--acceptance", "1", "new", "--because", "D001")
+        self.refused("X-02 is deferred", "X-02", "--acceptance", "1", "new", "--because", "D001")
+
+    def test_blank_text_and_a_stray_because_are_refused(self) -> None:
+        self.refused("new text", "X-01", "--acceptance", "1", "  ", "--because", "D001")
+        self.refused("goes with --acceptance", "X-01", "--because", "D001", "--notes", "n")
+
+    def test_it_goes_alone(self) -> None:
+        self.refused("goes alone", "X-01", "--acceptance", "1", "new", "--because", "D001",
+                     "--status", "blocked")
+
+    def test_commit_commits_only_the_queue(self) -> None:
+        self.commit_all("tracking")
+        (self.root / "other.txt").write_text("someone's edit\n")
+        head = self.git("rev-parse", "HEAD").strip()
+        out = self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new",
+                      "--because", "D001", "--commit")
+        self.assertIn(f"committed {self.git('rev-parse', '--short', 'HEAD').strip()}", out)
+        self.assertEqual(self.git("rev-parse", "HEAD~1").strip(), head)
+        self.assertEqual(self.git("log", "-1", "--format=%s").strip(),
+                         "alpha: X-01 acceptance 1, D001")
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(),
+                         ["workstreams/alpha/tasks_list.json"])
+        self.assertEqual(self.git("status", "--porcelain").split(), ["??", "other.txt"])
+        self.assertEqual(self.by_id("X-01")["acceptance"][0], "new (changed by D001)")
+
+    def test_a_refused_commit_leaves_the_queue_and_history_alone(self) -> None:
+        self.commit_all("tracking")
+        head = self.git("rev-parse", "HEAD").strip()
+        self.refused("no acceptance item 9", "X-01", "--acceptance", "9", "new",
+                     "--because", "D001", "--commit")
+        self.refused("takes no hash", "X-01", "--acceptance", "1", "new", "--because", "D001",
+                     "--commit", head)
+        self.queue_path.write_text(self.queue_path.read_text() + "\n")
+        self.refused("dirty tracking path", "X-01", "--acceptance", "1", "new",
+                     "--because", "D001", "--commit")
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
+
+    def test_a_failed_commit_restores_the_queue(self) -> None:
+        self.commit_all("tracking")
+        hook = self.root / ".git" / "hooks" / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        self.refused("commit failed", "X-01", "--acceptance", "1", "new", "--because", "D001",
+                     "--commit")
+
+    def test_a_bare_commit_without_acceptance_is_refused(self) -> None:
+        self.refused("needs a hash", "X-01", "--commit")
+
+    def test_a_commit_hash_is_still_recorded(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--commit", "abc1234")
+        self.assertEqual(self.by_id("X-01")["commit"], "abc1234")
+
+    def test_the_brief_and_skeleton_from_a_worktree_show_the_new_text(self) -> None:
+        self.commit_all("seed")
+        self.ok("claim", "--commit", "X-01", "-w", "alpha")
+        self.ok("worktree", "create", "X-01", "-w", "alpha")
+        tree = self.root / self.project().config.worktree_dir / "x-01"
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "3", "new three",
+                "--because", "D001", "--commit")
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "new two",
+                "--because", "D001", "--commit")
+        self.assertIn('"three"', (tree / "workstreams/alpha/tasks_list.json").read_text())
+        code, brief, err = self.ws_at(tree, "brief", "X-01", "-w", "alpha")
+        self.assertEqual(code, 0, err)
+        self.assertIn("3. new three (changed by D001)", brief)
+        self.assertIn("2. new two (changed by D001) (manual)", brief)
+        code, _, err = self.ws_at(tree, "evidence", "new", "X-01", "-w", "alpha")
+        self.assertEqual(code, 0, err)
+        skeleton = (tree / "workstreams/alpha/evidence/X-01.md").read_text()
+        self.assertIn("3. new three (changed by D001) -> ", skeleton)
+        self.assertIn("2. new two (changed by D001) (manual) -> ", skeleton)
+
+    def test_the_coordinate_skill_names_it_in_a_form_that_parses(self) -> None:
+        commands = [c for c in re.findall(r"`(ws [^`]+)`", protocol.skill_text("ws-coordinate"))
+                    if "--acceptance" in c]
+        self.assertEqual(len(commands), 1)
+        args = build_parser().parse_args(fill_in(commands[0]))
+        self.assertEqual((args.acceptance, args.because, args.commit), (["x", "x"], "x", True))
 
 
 class DoneNeedsCommitTests(WsTestCase):

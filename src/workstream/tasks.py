@@ -496,6 +496,30 @@ def update(path: Path, task_id: str, config: Config, *, status: str | None = Non
     return task
 
 
+def correct_acceptance(path: Path, task_id: str, number: str, text: str, because: str,
+                       config: Config) -> dict:
+    """Replace one acceptance item, naming the decision that changed it. Its position and kind
+    stay, since evidence pairs with acceptance by number."""
+    data = load(path, config)
+    task = find_task(data, task_id)
+    if task.get("status") not in OPEN_STATUSES:
+        raise WsError(f"{task_id} is {task.get('status')}: its acceptance stays as it was")
+    if not text.strip():
+        raise WsError("--acceptance needs the item's new text")
+    items = task["acceptance"]
+    if not number.isdecimal() or not 1 <= int(number) <= len(items):
+        raise WsError(f"{task_id} has no acceptance item {number}: it has {len(items)}")
+    corrected = f"{text.strip()} (changed by {because})"
+    index = int(number) - 1
+    if isinstance(items[index], dict):
+        items[index]["text"] = corrected
+    else:
+        items[index] = corrected
+    data["updated"] = today()
+    save(path, data)
+    return task
+
+
 def _unique(ids: list[str]) -> list[str]:
     return list(dict.fromkeys(ids))
 

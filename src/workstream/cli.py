@@ -315,9 +315,46 @@ def cmd_add(args: argparse.Namespace) -> int:
     return 0
 
 
+def _correct_acceptance(project: Project, ws: dict, path: Path, args: argparse.Namespace) -> None:
+    others = (args.status, args.notes, args.verify, args.mode, args.requires, args.release_impact)
+    if any(v is not None for v in others):
+        raise Refused("--acceptance goes alone: run any other change as its own `ws update`")
+    if isinstance(args.commit, str):
+        raise Refused("--commit takes no hash with --acceptance: it commits the queue")
+    if not args.because:
+        raise Refused("--acceptance needs --because <Dnnn>, the decision that changed it")
+    log = project.folder(ws) / "DECISIONS.md"
+    known = {e["id"] for e in decisions.parse(log.read_text())} if log.exists() else set()
+    if args.because not in known:
+        raise Refused(f"no decision {args.because} in {project.rel(log)}")
+    number, text = args.acceptance
+    if not args.commit:
+        tasks.correct_acceptance(path, args.id, number, text, args.because, project.config)
+        print(f"updated {args.id}: acceptance {number}, {args.because}; commit it")
+        return
+    rows = registry.load(project)["workstreams"]
+    act.check_checkout(project, snapshot.git_facts(project, rows), "update", ws["id"], rows)
+    before = path.read_bytes()
+    try:
+        tasks.correct_acceptance(path, args.id, number, text, args.because, project.config)
+        short = act.commit(project, [path],
+                           f"{ws['id']}: {args.id} acceptance {number}, {args.because}")
+    except BaseException:
+        act.restore({path: before})
+        raise
+    print(f"updated {args.id}: acceptance {number}, {args.because}; committed {short}")
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     project = _project(args)
-    _, path = _queue(project, args)
+    ws, path = _queue(project, args)
+    if args.acceptance:
+        _correct_acceptance(project, ws, path, args)
+        return 0
+    if args.because:
+        raise Refused("--because goes with --acceptance")
+    if args.commit is True:
+        raise Refused("--commit needs a hash, except with --acceptance")
     requires = _split(args.requires) if args.requires is not None else None
     if args.status == "done":
         landed = args.commit or tasks.find_task(tasks.load(path, project.config), args.id).get("commit")
@@ -1042,9 +1079,13 @@ def build_parser() -> argparse.ArgumentParser:
     p = command("update", cmd_update, "transition or annotate one task")
     p.add_argument("id")
     p.add_argument("--status")
-    p.add_argument("--commit")
+    p.add_argument("--commit", nargs="?", const=True,
+                   help="record this commit; bare, with --acceptance, commit the queue")
     p.add_argument("--notes")
     p.add_argument("--verify", action="append", help="replaces the list; repeatable")
+    p.add_argument("--acceptance", nargs=2, metavar=("N", "TEXT"),
+                   help="replace item N, keeping its kind; needs --because")
+    p.add_argument("--because", metavar="DNNN", help="the decision that changed the item")
     _add_typed_arguments(p)
 
     p = command("tasks", cmd_tasks, "one line per task, by priority")
