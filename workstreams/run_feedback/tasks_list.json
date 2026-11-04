@@ -743,7 +743,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/rf-12",
       "blockedBy": [
         "RF-10",
         "RF-11"
@@ -753,10 +753,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T11:20:25Z",
+      "baseCommit": "ba526daf7113270570c93d14a82fc2b688ffc58c",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
