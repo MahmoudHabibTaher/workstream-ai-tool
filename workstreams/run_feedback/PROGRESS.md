@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-09: ws decide --commit
+
+Merged as `cebd140c03`. Verified: test pass. [Evidence](evidence/RF-09.md).
+
 ## 2026-11-04: RF-08: The wave shows blocked tasks and holds back shared files
 
 Merged as `cf6cca8998`. Verified: test pass. [Evidence](evidence/RF-08.md).
