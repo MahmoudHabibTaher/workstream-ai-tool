@@ -11,7 +11,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from workstream.errors import Refused
+
 ENTRY_RE = re.compile(r"^## (D(\d+))\s*(?:\(([^)]*)\))?\s*:?\s*(.*)$", re.MULTILINE)
+# Only as an entry's first line, so a reason quoting another entry's Closes line closes nothing.
+CLOSES_RE = re.compile(r"\A## .*\n+Closes: (D\d+(?:, D\d+)*)\.")
 USER = "user"
 OPEN_MARK = "**Open.**"
 HEADER = "# Decisions\n\nSettled judgment calls. Append, never rewrite.\n\n---\n"
@@ -50,6 +54,33 @@ def relevant(entries: list[dict], task: dict) -> list[dict]:
 
 def is_open(text: str) -> bool:
     return OPEN_MARK in text
+
+
+def open_entries(entries: list[dict]) -> list[dict]:
+    """Entries with the open mark and no later entry closing them. The log is append-only, so
+    an entry's own text can't say this: it takes the whole log, read in order."""
+    still_open: dict[str, dict] = {}
+    for entry in entries:
+        closes = CLOSES_RE.search(entry["text"])
+        for closed in closes[1].split(", ") if closes else []:
+            still_open.pop(closed, None)
+        if is_open(entry["text"]):
+            still_open[entry["id"]] = entry
+    return list(still_open.values())
+
+
+def closing_body(entries: list[dict], closes: str, why: str) -> str:
+    """`why` with the Closes line for a comma-separated list of ids, each of which must be open
+    now. Refusing here is what leaves the log untouched."""
+    ids = list(dict.fromkeys(part.strip() for part in closes.split(",")))
+    known = {e["id"] for e in entries}
+    still_open = {e["id"] for e in open_entries(entries)}
+    for wanted in ids:
+        if wanted not in known:
+            raise Refused(f"no decision {wanted or '(empty id)'} to close")
+        if wanted not in still_open:
+            raise Refused(f"{wanted} is already closed")
+    return f"Closes: {', '.join(ids)}.\n\n{why}"
 
 
 def render_entry(number: int, date: str, who: str, title: str, body: str) -> str:
