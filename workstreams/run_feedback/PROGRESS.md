@@ -6,6 +6,14 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-04: Plan citations resolve, and validate warns early
+
+Merged as `e5591553f0`. Verified: test pass. [Evidence](evidence/RF-04.md).
+
+## 2026-11-04: RF-05: Validate warns about a verify prefix that stops short
+
+Merged as `e09f4d46ac`. Verified: test pass. [Evidence](evidence/RF-05.md).
+
 ## 2026-11-04: RF-01: Briefs keep whole gotchas
 
 Merged as `6d84e11c2c`. Verified: test pass, audit pass. [Evidence](evidence/RF-01.md).
