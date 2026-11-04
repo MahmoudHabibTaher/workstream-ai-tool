@@ -683,13 +683,29 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T11:13:45Z",
       "baseCommit": "4cd234f211eb01117ae92d41b365dc53543ec597",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-04T11:20:25Z",
+      "commit": "17eba41aa8d03edbc8748fd64718bed2617f15a7",
+      "verification": {
+        "tree": "a5efe6cf99e1137fbbd2cbb3945c9e46515dcfeb",
+        "at": "2026-11-04T11:19:53Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {

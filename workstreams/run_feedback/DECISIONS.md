@@ -81,3 +81,21 @@ Rejected: matching a Closes line anywhere in the entry. **Closed.**
 `--closes` refuses anything not currently in `open_entries`, including an entry that was never marked open, such as D013 in the tests. Rendered entries are closed unless marked open, so this matches what the log already says.
 
 Rejected: allowing a close of any existing entry not yet named in a Closes line. **Closed.**
+
+## D017 (2026-11-04, RF-11): `ws update --commit` takes an optional value
+
+`ws update` already has `--commit <hash>`, which records a landed commit, and D-ACCEPT wants `--commit` to commit the queue. So a bare `--commit` commits the queue and is accepted only with `--acceptance`; a hash with `--acceptance`, or a bare one without it, is refused. Existing `--commit <hash>` calls behave as before.
+
+Rejected: a differently named flag, since D-ACCEPT and the acceptance name `--commit`. **Closed.**
+
+## D018 (2026-11-04, RF-11): `--acceptance` goes alone
+
+Combining it with `--status`, `--notes` or another change is refused, so a call can't both correct an item and mark the task done, and `--commit` commits one change with a message that describes it.
+
+Rejected: letting it combine with the other flags, which makes the done-task refusal depend on the order they apply in. **Closed.**
+
+## D019 (2026-11-04, RF-11): the commit helper sits in `cli.py`, not `act.py`
+
+`act.py` isn't in the task's files, and `check_checkout`, `commit` and `restore` are already public there, so the step composes them in `cli.py`.
+
+Rejected: an `act.commit_acceptance` beside `commit_decision`, which matches the pattern better but goes outside the listed files. **Closed.**
