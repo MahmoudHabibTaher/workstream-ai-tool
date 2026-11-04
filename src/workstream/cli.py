@@ -25,18 +25,20 @@ def _project(args: argparse.Namespace) -> Project:
     return open_project(Path(root) if root else None)
 
 
-def _resolve_ws(project: Project, args: argparse.Namespace) -> dict:
+def _resolve_ws(project: Project, args: argparse.Namespace, here: Project | None = None) -> dict:
     """The workstream a command acts on: -w, else the folder we're standing in, else the only
-    open one. Refuses and lists them rather than guessing."""
+    open one. Refuses and lists them rather than guessing. `here` is the checkout the command ran
+    in, when project is another one: that's where a folder we're standing in would be."""
     data = registry.load(project)
     named = getattr(args, "workstream", None)
     if named:
         return registry.find(data, named)
     cwd = Path.cwd().resolve()
     for ws in data["workstreams"]:
-        folder = project.folder(ws).resolve()
-        if cwd == folder or folder in cwd.parents:
-            return ws
+        for checkout in (project, here or project):
+            folder = checkout.folder(ws).resolve()
+            if cwd == folder or folder in cwd.parents:
+                return ws
     open_rows = [w for w in data["workstreams"] if w.get("status") in registry.OPEN_STATUSES]
     if len(open_rows) == 1:
         return open_rows[0]
@@ -49,6 +51,15 @@ def _resolve_ws(project: Project, args: argparse.Namespace) -> dict:
 def _queue(project: Project, args: argparse.Namespace) -> tuple[dict, Path]:
     ws = _resolve_ws(project, args)
     return ws, project.tasks_path(ws)
+
+
+def _tracking(args: argparse.Namespace) -> tuple[Project, dict, Path]:
+    """The project, workstream and queue as the integration checkout has them, uncommitted changes
+    included. A worktree's copies stop at its claim, so they miss what was decided since."""
+    here = _project(args)
+    source = open_project(worktree.integration_checkout(here))
+    ws = _resolve_ws(source, args, here)
+    return source, ws, source.tasks_path(ws)
 
 
 def _split(value: str | None) -> list[str]:
@@ -557,18 +568,18 @@ def cmd_reset(args: argparse.Namespace) -> int:
 
 
 def _at_task(args: argparse.Namespace) -> tuple[Project, dict, dict]:
-    """The project, workstream and task, opened where the task's work is. A worker's shell doesn't
-    always stay in its worktree, and a check of the wrong checkout looks just like a real one."""
+    """The project and workstream opened where the task's work is, and the task as the integration
+    checkout defines it. A worker's shell doesn't always stay in its worktree, and a check of the
+    wrong checkout looks just like a real one. The worktree's copy of the task stops at its claim,
+    so `ws verify` would run an old list while `ws settle` reads the new one."""
+    source, row, path = _tracking(args)
+    task = tasks.find_task(tasks.load(path, source.config), args.id)
     project = _project(args)
-    ws, path = _queue(project, args)
-    task = tasks.find_task(tasks.load(path, project.config), args.id)
     where = worktree.for_branch(project, task.get("branch") or project.config.branch_for(task["id"]))
-    if not where or Path(where).resolve() == project.root.resolve():
-        return project, ws, task
-    print(f"(in {where})", file=sys.stderr)
-    project = open_project(Path(where))
-    ws, path = _queue(project, args)
-    return project, ws, tasks.find_task(tasks.load(path, project.config), args.id)
+    if where and Path(where).resolve() != project.root.resolve():
+        print(f"(in {where})", file=sys.stderr)
+        project = open_project(Path(where))
+    return project, registry.find(registry.load(project), row["id"]), task
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
@@ -611,8 +622,7 @@ def cmd_baseline(args: argparse.Namespace) -> int:
 
 
 def cmd_brief(args: argparse.Namespace) -> int:
-    project = _project(args)
-    ws, path = _queue(project, args)
+    project, ws, path = _tracking(args)
     data = tasks.load(path, project.config)
     task = tasks.find_task_by_prefix(data, args.id)
     print(brief.render(project, ws, task, data["tasks"], args.max_chars, scope=data.get("scope")),
