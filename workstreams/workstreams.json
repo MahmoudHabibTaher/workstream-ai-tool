@@ -168,13 +168,13 @@
       "id": "run_feedback",
       "title": "Run feedback",
       "summary": "Fix each issue the MBZ-06 run exposed in ws, one worker per issue, and prove them together.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "RF",
       "path": "workstreams/run_feedback",
       "tier": "standard",
       "created": "2026-11-04",
       "startedAt": "2026-11-04",
-      "completedAt": null,
+      "completedAt": "2026-11-04",
       "baseCommit": "e18f900",
       "dependsOn": [],
       "progress": {
@@ -185,7 +185,11 @@
         "done": 16,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "547dc8d5b74c9fb05dbdbb50c07279a7a2753612",
+        "pruned": false
+      }
     }
   ]
 }
