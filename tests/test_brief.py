@@ -7,7 +7,7 @@ import os
 from contextlib import redirect_stdout
 
 from tests.helpers import WsTestCase, evidence_text, task
-from workstream import verify
+from workstream import protocol, verify
 from workstream.brief import MAX_GOTCHA_CHARS
 from workstream.cli import main
 
@@ -209,3 +209,99 @@ class OpenDecisionTests(WsTestCase):
 
     def test_it_is_there_with_no_acceptance_too(self) -> None:
         self.assertIn("- D002: transitive call", self.ok("brief", "T1", "-w", "alpha"))
+
+
+class ResumeTests(WsTestCase):
+    BLOCKED = "# T1\n\n- **Status:** blocked (needs a key)\n"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.set_commands(test="true")
+        self.new_ws()
+        self.ok("decide", "Old call", "--why", "before the claim", "--by", "user")
+        self.seed_ok([task("T1", 1, verify=["test"], acceptance=["works"], summary="Do the thing.")])
+        self.commit_all("seed")
+
+    def start(self) -> None:
+        self.ok("claim", "--commit", "T1")
+        self.ok("worktree", "create", "T1")
+        self.tree = self.root / self.project().config.worktree_dir / "t1"
+
+    def commit_at_tree(self, name: str, content: str) -> None:
+        path = self.tree / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+        self.git_at(self.tree, "add", "-A")
+        self.git_at(self.tree, "commit", "-q", "-m", name)
+
+    def block(self) -> None:
+        self.start()
+        self.commit_at_tree("code.txt", "x")
+        self.commit_at_tree("workstreams/alpha/evidence/T1.md", self.BLOCKED)
+        self.ok("settle", "T1")
+        self.ok("decide", "New call", "--why", "since the block", "--by", "user")
+
+    def section(self, brief: str) -> str:
+        return brief.split("## Resuming\n", 1)[1].split("\n## ", 1)[0]
+
+    def finish_steps(self, brief: str) -> str:
+        return brief.split("## When the work is done", 1)[1].split("\n## ", 1)[0]
+
+    def test_a_blocked_tasks_brief_opens_with_what_a_resume_needs(self) -> None:
+        self.block()
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        head = brief.split("\n\n", 1)
+        self.assertTrue(head[1].startswith("## Resuming\n"), brief[:120])
+        section = self.section(brief)
+        self.assertIn("Keep the finished work", section)
+        self.assertRegex(section, r"\*\*Reason:\*\* needs a key.*task/t1")
+        self.assertIn("- **Commits on `task/t1`:** 2 (", section)
+        self.assertIn(f"- **Evidence:** `{self.tree / 'workstreams/alpha/evidence/T1.md'}`", section)
+        self.assertRegex(section, r"  - D\d+: New call")
+        self.assertNotIn("Old call", section)
+        self.assertIn(str(self.ws_dir / "alpha" / "DECISIONS.md"), section)
+        self.assertIn("## The task\n\nDo the thing.", brief)
+
+    def test_a_branch_with_every_decision_lacks_none(self) -> None:
+        self.start()
+        self.commit_at_tree("workstreams/alpha/evidence/T1.md", self.BLOCKED)
+        self.ok("settle", "T1")
+        self.assertIn("`DECISIONS.md` lacks:** none", self.section(self.ok("brief", "T1", "-w", "alpha")))
+
+    def test_its_finish_steps_update_the_evidence_rather_than_make_it_new(self) -> None:
+        self.block()
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        self.assertNotIn("ws evidence new", brief)
+        self.assertIn("2. Update the existing evidence, "
+                      f"`{self.tree / 'workstreams/alpha/evidence/T1.md'}`",
+                      self.finish_steps(brief))
+
+    def test_a_task_blocked_by_hand_with_no_evidence_is_still_told_to_write_it(self) -> None:
+        self.ok("update", "T1", "--status", "blocked", "-w", "alpha")
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        section = self.section(brief)
+        self.assertIn("**Reason:** none recorded", section)
+        self.assertIn("doesn't exist yet", section)
+        self.assertIn("**Evidence:** none yet", section)
+        self.assertIn("`DECISIONS.md` lacks:** none", section)
+        self.assertIn("2. `ws evidence new T1 -w alpha`", self.finish_steps(brief))
+
+    def test_a_todo_or_in_progress_brief_is_unchanged(self) -> None:
+        todo = self.ok("brief", "T1", "-w", "alpha")
+        self.start()
+        self.commit_at_tree("code.txt", "x")
+        self.ok("decide", "New call", "--why", "since the claim", "--by", "user")
+        doing = self.ok("brief", "T1", "-w", "alpha")
+        for brief in (todo, doing):
+            self.assertTrue(brief.startswith("# T1: title of T1\nWorkstream `alpha`, phase 1, background.\n\n"
+                                             "Do the thing.\n"), brief[:120])
+            self.assertNotIn("## Resuming", brief)
+            self.assertNotIn("## The task", brief)
+            self.assertIn("2. `ws evidence new T1 -w alpha`, then fill in what it wrote: quote the "
+                          "proof for each item.", self.finish_steps(brief))
+
+    def test_ws_run_says_how_to_resume_and_not_to_unclaim(self) -> None:
+        skill = protocol.skill_text("ws-run")
+        self.assertIn("**Resuming a blocked task:** once the user answers, start a fresh worker "
+                      "with the same prompt on the same worktree.", skill)
+        self.assertIn("Never `ws unclaim <task> -w <id>` for this", skill)

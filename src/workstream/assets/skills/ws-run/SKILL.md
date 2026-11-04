@@ -24,4 +24,6 @@ You coordinate; workers do the tasks, each in a clean context. Never do a backgr
 
 **Foreground tasks** run in this session, one at a time, after the batch: claim it alone, follow its brief yourself, return to the integration branch, then settle it.
 
+**Resuming a blocked task:** once the user answers, start a fresh worker with the same prompt on the same worktree. Don't claim it again: the brief sees it is blocked and tells the worker to keep what's finished. Land it with `ws settle` as usual. Never `ws unclaim <task> -w <id>` for this: that requeues the task instead of resuming it.
+
 When the loop ends, report once: each task and its commit, how it ended, what is ready or blocked, and every question raised, unanswered. Those are the user's to settle.
