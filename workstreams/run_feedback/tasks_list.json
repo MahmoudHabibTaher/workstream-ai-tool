@@ -39,13 +39,29 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T09:46:59Z",
       "baseCommit": "5c263ed966232077d5cbbd174c42be0c2a95e887",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-04T10:08:29Z",
+      "commit": "6d84e11c2ce04146c58fd2e0628f222934a5e24b",
+      "verification": {
+        "tree": "4ae69ed4269382cf17c256eb17249b7a9b88424d",
+        "at": "2026-11-04T09:57:20Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "RF-02",
@@ -78,13 +94,24 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T09:46:59Z",
       "baseCommit": "5c263ed966232077d5cbbd174c42be0c2a95e887",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-04T10:08:29Z",
+      "commit": "0b15f167b91ae0fc4468db025503bc2b5fdeeea6",
+      "verification": {
+        "tree": "e9200efd3bada7b9d430d1db4d61846f2ae405e8",
+        "at": "2026-11-04T10:04:24Z",
+        "postMerge": "ran",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "RF-03",
@@ -123,13 +150,29 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T09:46:59Z",
       "baseCommit": "5c263ed966232077d5cbbd174c42be0c2a95e887",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-04T10:08:29Z",
+      "commit": "baf1941d6a85fafae0e99d26f681b123dc61785a",
+      "verification": {
+        "tree": "50281dc2f6874411422f11da8f48d46ddb532040",
+        "at": "2026-11-04T10:08:29Z",
+        "postMerge": "ran",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "RF-04",
