@@ -1053,6 +1053,16 @@ class ValidateTests(WsTestCase):
             with self.subTest(command=command):
                 self.assertEqual(self.env_warnings(command), [])
 
+    def test_the_prefix_warning_names_both_fixes_the_entry_and_the_variable(self) -> None:
+        warnings = self.env_warnings("A=1 a && b")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("verify 'A=1 a && b' sets A for its first command only", warnings[0])
+        self.assertIn("export it", warnings[0])
+        self.assertIn("separate verify entries that each set it", warnings[0])
+
+    def test_no_prefix_warning_on_the_split_form(self) -> None:
+        self.assertEqual(self.env_warnings("A=1 a", "A=1 b"), [])
+
     def test_no_prefix_warning_on_a_finished_task(self) -> None:
         for status in ("done", "deferred"):
             with self.subTest(status=status):
