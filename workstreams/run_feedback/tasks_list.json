@@ -309,7 +309,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/rf-06",
       "blockedBy": [
         "RF-02",
         "RF-05"
@@ -319,10 +319,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T10:23:21Z",
+      "baseCommit": "d0e82ce328bdd4453b2c738c45e821d019039235",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null
@@ -354,7 +354,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/rf-07",
       "blockedBy": [
         "RF-01"
       ],
@@ -363,10 +363,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T10:23:21Z",
+      "baseCommit": "d0e82ce328bdd4453b2c738c45e821d019039235",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null
