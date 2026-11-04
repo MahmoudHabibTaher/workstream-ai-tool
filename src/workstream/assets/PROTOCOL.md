@@ -63,7 +63,7 @@ Required: `id` (`<PREFIX>-01`), `phase`, `priority` (10, 20, 30; the real order)
 | `findings` | Plan sections to read: `T1`, `D-API` |
 | `files` | Expected paths, folders or globs. Touching anything not here or in `docs` warns |
 | `docs` | Paths that bear on the task; each must exist, and may be changed |
-| `acceptance` | Observable facts: a named test, a command and its output. `{"text": "...", "kind": "manual"}` for a person's check. `{"text": "...", "expect": "72/5/16"}` fails `ws verify` unless that literal is in the logs of its commands |
+| `acceptance` | Observable facts: a named test, a command and its output. `{"text": "...", "kind": "manual"}` for a person's check. `{"text": "...", "expect": "72/5/16"}` fails `ws verify` unless that literal is in the logs of its commands. A name filter that matches nothing can still exit 0, so there `expect` should name the line the runner prints for that test passing: a bare test name can match an echoed command. `ws add` and `ws update` with `--acceptance` can't set `expect`; `ws seed` can add such a task to an existing queue |
 | `verify` | Keys from `[commands]`, or a raw command. Must run what the task produces |
 | `blockedBy` | Task ids. Tasks sharing files must be chained |
 | `needsUserDecision` | True only for what planning couldn't settle |
