@@ -53,6 +53,31 @@ class OpenEntriesTests(unittest.TestCase):
         self.assertEqual(ids(decisions.open_entries(decisions.parse(text))), ["D014", "D016"])
 
 
+class RenderEntryTests(unittest.TestCase):
+    def render(self, body: str) -> str:
+        return decisions.render_entry(16, "d", "user", "pick", body)
+
+    def test_a_body_already_closed_keeps_one_marker(self) -> None:
+        for body in ("B won. **Closed.**", "B won. **Closed.**\n\n"):
+            with self.subTest(body=body):
+                self.assertEqual(self.render(body),
+                                 "## D016 (d, user): pick\n\nB won. **Closed.**\n")
+
+    def test_a_body_quoting_the_marker_mid_text_gets_its_own(self) -> None:
+        self.assertEqual(self.render("It said **Closed.** twice, wrongly."),
+                         "## D016 (d, user): pick\n\n"
+                         "It said **Closed.** twice, wrongly. **Closed.**\n")
+
+    def test_an_open_entry_gets_no_closed_marker(self) -> None:
+        rendered = self.render("Which one? **Open.**")
+        self.assertEqual(rendered, "## D016 (d, user): pick\n\nWhich one? **Open.**\n")
+        self.assertNotIn("**Closed.**", rendered)
+
+    def test_a_plain_body_still_gets_the_marker(self) -> None:
+        self.assertEqual(self.render("B won."),
+                         "## D016 (d, user): pick\n\nB won. **Closed.**\n")
+
+
 class ClosingTests(WsTestCase):
     def setUp(self) -> None:
         super().setUp()

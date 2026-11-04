@@ -18,6 +18,7 @@ ENTRY_RE = re.compile(r"^## (D(\d+))\s*(?:\(([^)]*)\))?\s*:?\s*(.*)$", re.MULTIL
 CLOSES_RE = re.compile(r"\A## .*\n+Closes: (D\d+(?:, D\d+)*)\.")
 USER = "user"
 OPEN_MARK = "**Open.**"
+CLOSED_MARK = "**Closed.**"
 HEADER = "# Decisions\n\nSettled judgment calls. Append, never rewrite.\n\n---\n"
 
 
@@ -84,9 +85,11 @@ def closing_body(entries: list[dict], closes: str, why: str) -> str:
 
 
 def render_entry(number: int, date: str, who: str, title: str, body: str) -> str:
-    """One entry. Closed, unless its author marked it open for someone to settle."""
-    ending = "" if is_open(body) else " **Closed.**"
-    return f"## D{number:03d} ({date}, {who}): {title}\n\n{body.strip()}{ending}\n"
+    """One entry. Closed, unless its author marked it open for someone to settle. A body that
+    already ends in the closed mark keeps that one: a reason quoting it mid-text still gets its own."""
+    body = body.strip()
+    ending = "" if is_open(body) or body.endswith(CLOSED_MARK) else f" {CLOSED_MARK}"
+    return f"## D{number:03d} ({date}, {who}): {title}\n\n{body}{ending}\n"
 
 
 def record(path: Path, date: str, who: str, title: str, body: str) -> str:
