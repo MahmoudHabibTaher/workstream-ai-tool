@@ -6,6 +6,14 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-13: Resuming a blocked task
+
+Merged as `5a48e4bd36`. Verified: test pass, audit pass. [Evidence](evidence/RF-13.md).
+
+## 2026-11-04: RF-14: Acceptance items can name expected output
+
+Merged as `f634d8745c`. Verified: test pass, audit pass. [Evidence](evidence/RF-14.md).
+
 ## 2026-11-04: RF-12: Open decisions surface in briefs, settle and the stop rules
 
 Merged as `324f86618a`. Verified: test pass, audit pass. [Evidence](evidence/RF-12.md).

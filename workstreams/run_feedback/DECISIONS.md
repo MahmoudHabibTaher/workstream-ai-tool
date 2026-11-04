@@ -111,3 +111,39 @@ Rejected: listing direct dependents only, which repeats the MBZ-07 miss. **Close
 The brief and the waiting list tie a decision to a task only through who recorded it, so an open decision recorded by the coordinator or the user reaches no brief's new section and shows `no task waiting`, though the handoff still lists it. D-OPEN says "from the closure of the task's blockers", and this is the field that says so.
 
 Rejected: matching task ids mentioned in the entry's text, since a passing mention would raise false stops. **Closed.**
+
+## D022 (2026-11-04, RF-13): a blocked task with no evidence file is still told to run `ws evidence new`
+
+A task blocked by hand, or by a worker that never wrote the file, has nothing to update, and `ws evidence new` works for it because the refusal only fires when the file exists. So the finish step follows what's on the branch and the worktree, and the Resuming section says `none yet`. Acceptance 2 holds for every task that has evidence.
+
+Rejected: always saying to update the existing evidence, which sends this worker after a file that isn't there. **Closed.**
+
+## D023 (2026-11-04, RF-13): the lacking decisions are listed as id and title, with the path of the integration checkout's log
+
+This matches the Open decisions section and keeps the section small however many were decided since the block. The pointer is that file's full path because `ws decisions` from a worktree reads the branch's stale copy, as RF-07 reported.
+
+Rejected: quoting them in full, since the section is never trimmed and a long block could push the brief past its budget. **Closed.**
+
+## D024 (2026-11-04, RF-13): a blocked task's brief puts `## The task` before the summary
+
+With `## Resuming` opening the brief, the summary and start lines would otherwise read as part of it. Only blocked briefs get the heading, so the others stay byte for byte the same.
+
+Rejected: putting the summary before Resuming, since D-RESUME says the brief opens with it. **Closed.**
+
+## D025 (2026-11-04, RF-14): correcting an item drops its `expect`
+
+`ws update --acceptance` replaces an item's text and now removes its `expect`. The literal belonged to the old text, the correction usually exists because the value changed, and there is no flag to change it, so keeping it could leave the item impossible to pass. The cost is that the corrected item has no output check unless someone adds one to the queue by hand.
+
+Rejected: keeping the literal, which needs a hand edit of the queue whenever the value moved. Rejected: a new `--expect` flag, as `cli.py` isn't in this task's files. **Closed.**
+
+## D026 (2026-11-04, RF-14): an `expect` on a task with no verify commands is refused
+
+`verification_gates` returns early for a task with no commands and never reads the record, so that `expect` would pass settle unchecked. `ws seed` and `ws validate` now refuse it, and a blank or non-string `expect` too.
+
+Rejected: letting it through, which is a gate that silently checks nothing. **Closed.**
+
+## D027 (2026-11-04, RF-14): the brief and the evidence skeleton show the literal
+
+`acceptance_text` adds ``(the output must contain `75/2/16`)``, so a worker sees the requirement before `ws verify` fails on it. The missing-output line also appears in `format_run`, since `ws verify` otherwise printed only a problem count for it.
+
+Rejected: leaving the literal out of `acceptance_text`, which keeps a worker from seeing what it must produce. **Closed.**
