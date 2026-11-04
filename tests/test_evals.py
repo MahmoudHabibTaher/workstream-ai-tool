@@ -67,10 +67,25 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertIn("still leave D-1 blocked", " ".join(result["problems"]))
 
+    def private_temp(self) -> Path:
+        """Point tempfile at a folder only this test uses, so parallel suites can't show up in it."""
+        folder = Path(tempfile.mkdtemp(prefix="ws-test-scratch-"))
+        self.addCleanup(shutil.rmtree, folder, True)
+        patcher = mock.patch.object(tempfile, "tempdir", str(folder))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return folder
+
     def test_the_scratch_repo_is_cleaned_up(self) -> None:
-        before = set(Path(os.environ.get("TMPDIR", "/tmp")).glob("ws-eval-*"))
+        folder = self.private_temp()
         self.run_stub("verify")
-        self.assertEqual(set(Path(os.environ.get("TMPDIR", "/tmp")).glob("ws-eval-*")), before)
+        self.assertEqual(list(folder.iterdir()), [])
+
+    def test_a_scratch_repo_left_behind_is_seen(self) -> None:
+        folder = self.private_temp()
+        with mock.patch.object(harness.shutil, "rmtree"):
+            self.run_stub("verify")
+        self.assertEqual(len(list(folder.glob("ws-eval-verify-*"))), 1)
 
     def test_the_sample_has_known_debt_and_a_recorded_baseline(self) -> None:
         base = Path(tempfile.mkdtemp())
