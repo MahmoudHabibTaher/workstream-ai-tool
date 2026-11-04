@@ -219,6 +219,7 @@ def _number_decisions(project: Project, ws: dict, merged: list[dict]) -> list[st
         if mapping:
             file = evidence.path_for(project, ws, out["id"])
             file.write_text(evidence.rewrite_ids(file.read_text(), mapping))
+            out["parsed"]["gotchas"] = evidence.rewrite_ids(out["parsed"]["gotchas"], mapping)
     if rendered:
         decisions.append(path, rendered)
     return ids
