@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ws *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status*)",
+      "Bash(git branch --show-current)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git switch *)",
+      "Bash(make test*)",
+      "Bash(make audit*)"
+    ]
+  },
+  "env": {
+    "BASH_MAX_TIMEOUT_MS": "3600000",
+    "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0"
+  }
+}
