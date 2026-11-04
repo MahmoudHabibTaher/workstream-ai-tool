@@ -396,6 +396,8 @@ def _print_task(task: dict, all_tasks: list[dict], config) -> None:
     if task.get("summary"):
         print(f"\n{task['summary']}")
     print()
+    if task.get("blockedReason"):
+        print(f"blocked: {task['blockedReason']}")
     if task.get("blockedBy"):
         print(f"waits on: {', '.join(task['blockedBy'])}")
     direct = [t["id"] for t in all_tasks if task["id"] in t.get("blockedBy", [])]

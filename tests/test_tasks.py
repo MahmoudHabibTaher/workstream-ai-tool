@@ -544,6 +544,27 @@ class WaveHeldAndBlockedOutputTests(WsTestCase):
         self.assertNotIn("blocked", out)
 
 
+class ShowBlockedReasonTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10, status="blocked", blockedReason="the key is missing"),
+                      task("X-02", 20, status="blocked", notes="old reason"),
+                      task("X-03", 30)])
+
+    def show(self, tid: str) -> str:
+        code, out, _ = self.ws("show", "-w", "alpha", tid)
+        self.assertEqual(code, 0)
+        return out
+
+    def test_a_blocked_task_with_a_reason_prints_it(self) -> None:
+        self.assertIn("\nblocked: the key is missing\n", self.show("X-01"))
+
+    def test_a_task_without_a_reason_prints_no_such_line(self) -> None:
+        for tid in ("X-02", "X-03"):
+            self.assertNotIn("blocked:", self.show(tid))
+
+
 class ComputeWaveTests(unittest.TestCase):
     def full(self, tid: str, phase: int = 1, priority: int = 10, status: str = "todo",
              **extra) -> dict:

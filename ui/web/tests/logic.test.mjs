@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
-  ageOf, badgesOf, commitLine, fileNote, findingsFor, gateSummary, hrefs, lanes, neighbourFile, neighbours, offers, parseDiff,
+  ageOf, badgesOf, blockedLine, commitLine, fileNote, findingsFor, gateSummary, hrefs, lanes, neighbourFile, neighbours, offers, parseDiff,
   parseRoute, percent, rangeLine, splitRows, statLine, statusActions, waveLine,
 } from '../../../src/workstream/assets/web/logic.js'
 import { waveNotes } from '../../../src/workstream/assets/web/lanes.js'
@@ -25,6 +25,12 @@ test('the lanes screen says what is held back and blocked, and why', () => {
     'c is blocked: old reason',
     'd is blocked: The title',
   ])
+})
+
+test('the task screen says why a task is blocked, and nothing when no reason is recorded', () => {
+  assert.equal(blockedLine(task('a', { status: 'blocked', blockedReason: 'no key', notes: 'a hint' })), 'Blocked: no key')
+  assert.equal(blockedLine(task('b', { status: 'blocked', blockedReason: null, notes: 'a hint', title: 'The title' })), '')
+  assert.equal(blockedLine(task('c')), '')
 })
 
 test('the wave line says what state the queue is in', () => {
