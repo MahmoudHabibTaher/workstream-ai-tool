@@ -194,9 +194,27 @@ def verify_task(project: Project, ws: dict, task: dict, keys: list[str] | None =
     run = {"workstream": ws["id"], "task": task["id"], "tree": tree, "at": now_iso(),
            "branch": gitutil.current_branch(project.root), "results": results,
            "changedTree": bool(tree and after and tree != after)}
+    run["missingOutput"] = missing_output(task, labels, results)
     run["problems"] = run_problems(run, labels)
     write_json(directory / f"{record}.json", run)
     return run
+
+
+def missing_output(task: dict, labels: list[str], results: list[dict]) -> list[dict]:
+    """Each acceptance item's expected literal that no log of this run holds. Waits until every
+    key has a result on this tree, as a --key subset hasn't printed everything yet."""
+    wanted = tasks.expected_outputs(task)
+    current = [r for r in results if r["key"] in labels]
+    if not wanted or {r["key"] for r in current} != set(labels):
+        return []
+    logs = [baseline.strip_ansi(read_log(Path(r["log"]))) for r in current if r.get("log")]
+    return [{"item": n, "expect": literal} for n, literal in wanted
+            if not any(literal in log for log in logs)]
+
+
+def _missing_text(miss: dict) -> str:
+    return (f"acceptance {miss['item']}: expected output not in the logs: "
+            f"{miss['expect'][:LINE_WIDTH]}")
 
 
 def run_problems(run: dict, labels: list[str]) -> list[str]:
@@ -205,6 +223,7 @@ def run_problems(run: dict, labels: list[str]) -> list[str]:
                 if r.get("verdict") == baseline.FAIL]
     seen = {r.get("key") for r in run.get("results", [])}
     problems += [f"{label}: not run" for label in labels if label not in seen]
+    problems += [_missing_text(miss) for miss in run.get("missingOutput", [])]
     if run.get("changedTree"):
         problems.append("the commands changed the code they checked; commit that and verify again")
     return problems
@@ -247,6 +266,7 @@ def format_run(run: dict, tail_lines: int) -> list[str]:
             lines += [f"    | {line}" for line in tail(Path(r["log"]), tail_lines)]
         if r.get("log"):
             lines.append(f"    full log: {r['log']}")
+    lines += [f"  FAIL {_missing_text(miss)}" for miss in run.get("missingOutput", [])]
     if run.get("changedTree"):
         lines.append("  warning: the commands changed the code they checked")
     lines.append("OK" if not run["problems"] else f"FAIL: {len(run['problems'])} problem(s)")
