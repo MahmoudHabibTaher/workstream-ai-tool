@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-12: Open decisions surface in briefs, settle and the stop rules
+
+Merged as `324f86618a`. Verified: test pass, audit pass. [Evidence](evidence/RF-12.md).
+
 ## 2026-11-04: RF-11: Acceptance can be corrected, citing a decision
 
 Merged as `17eba41aa8`. Verified: test pass, audit pass. [Evidence](evidence/RF-11.md).

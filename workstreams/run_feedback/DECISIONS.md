@@ -99,3 +99,15 @@ Rejected: letting it combine with the other flags, which makes the done-task ref
 `act.py` isn't in the task's files, and `check_checkout`, `commit` and `restore` are already public there, so the step composes them in `cli.py`.
 
 Rejected: an `act.commit_acceptance` beside `commit_decision`, which matches the pattern better but goes outside the listed files. **Closed.**
+
+## D020 (2026-11-04, RF-12): "tasks waiting" means unfinished tasks, direct or transitive
+
+`ws settle` and the handoff name every task with status todo, in-progress or blocked that waits on the decision's task through any chain, using `graph.dependents`. Done and deferred tasks aren't waiting on anything, and T16 is why the chain has to be followed.
+
+Rejected: listing direct dependents only, which repeats the MBZ-07 miss. **Closed.**
+
+## D021 (2026-11-04, RF-12): an open decision belongs to the task in its `who` field
+
+The brief and the waiting list tie a decision to a task only through who recorded it, so an open decision recorded by the coordinator or the user reaches no brief's new section and shows `no task waiting`, though the handoff still lists it. D-OPEN says "from the closure of the task's blockers", and this is the field that says so.
+
+Rejected: matching task ids mentioned in the entry's text, since a passing mention would raise false stops. **Closed.**

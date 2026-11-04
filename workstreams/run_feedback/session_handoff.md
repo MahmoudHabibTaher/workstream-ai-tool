@@ -1,13 +1,13 @@
 # Session handoff
 
-**State:** 12/16 done on `main` at `17eba41`, as of 2026-11-04.
+**State:** 13/16 done on `main` at `324f866`, as of 2026-11-04.
 
-**Just landed:** RF-11 (`17eba41aa8`)
+**Just landed:** RF-12 (`324f86618a`)
 
-**Next:** `ws claim --commit RF-12` (phase 3).
+**Next:** `ws claim --commit RF-13 RF-14` (phase 4).
 
 **Gotchas:**
-- RF-11: - A bare `ws update --commit <id>` now takes the id as the hash, then argparse refuses the missing id. Only that order is affected.
-- The test imports `fill_in` from `tests/test_protocol.py`, so running `tests.test_tasks` also loads that module.
-- `--acceptance` checks the decision in the current checkout's `DECISIONS.md` and writes the current checkout's queue, like the rest of `ws update`. From a worktree without `--commit` it would change that worktree's copy, which the brief doesn't read. With `--commit` the integration-branch check refuses it.
-- A second correction names only the later decision, because the whole text is replaced. The earlier one stays in git history and the decision log.
+- RF-12: - `decisions.relevant` is unchanged, so "Decisions that apply" can still show a closed entry with its `**Open.**` mark, as RF-10 noted. The new section uses `open_entries` and is right; the two can disagree in one brief. An open entry from a direct blocker also appears in both.
+- The brief's line sends the worker to `ws decisions --open`, which reads the current checkout, so from a worktree it can miss closures made since the claim, as RF-10 noted. The brief's own section reads the tracking copy and may be the more current of the two.
+- `make test` under `ws verify` took 238.0s, so the 180s shell limit moved it to the background again.
+- `docs/rule-map.md` has no row for the new stop rule. It isn't in this task's files.
