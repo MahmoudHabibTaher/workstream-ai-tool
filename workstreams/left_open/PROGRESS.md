@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-08: ws show and the web screen show blockedReason
+
+Merged as `7eb2d7bf38`. Verified: test pass. [Evidence](evidence/LO-08.md).
+
 ## 2026-11-04: LO-07: ws decisions reads the integration checkout
 
 Merged as `fab69c3982`. Verified: test pass. [Evidence](evidence/LO-07.md).
