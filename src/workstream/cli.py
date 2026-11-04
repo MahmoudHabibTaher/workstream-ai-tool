@@ -442,10 +442,17 @@ def cmd_next(args: argparse.Namespace) -> int:
     _, path = _queue(project, args)
     data = tasks.load(path, project.config)
     candidates = graph.actionable(data["tasks"])
-    if not candidates:
+    holds = graph.file_holds(candidates, data["tasks"])
+    held = {hold["id"] for hold in holds}
+    free = [t for t in candidates if t["id"] not in held]
+    if holds and not free:
+        print("(no actionable task: every candidate is held back)")
+        _print_held(holds)
+        return 0
+    if not free:
         print("(no actionable task: everything is done, blocked, or needs a user decision)")
         return 0
-    task = min(candidates, key=lambda t: t["priority"])
+    task = min(free, key=lambda t: t["priority"])
     if args.json:
         print(json.dumps(task, indent=2))
     else:
@@ -465,15 +472,19 @@ def _print_leftovers(rows: list[dict]) -> None:
               f"  baseCommit={t.get('baseCommit') or '-'}  {t['title']}")
 
 
+def _print_held(holds: list[dict]) -> None:
+    """Each task held back by a shared file, with what holds it. Prints nothing when none is."""
+    if holds:
+        print(f"held back: {len({h['id'] for h in holds})} sharing files with unfinished work")
+        for hold in holds:
+            print(f"  {hold['id']}  shares {hold['path']} with {hold['by']}")
+
+
 def _print_held_and_blocked(rows: list[dict], wave: dict) -> None:
     """What the wave can't offer and why: tasks held back by a shared file, and blocked tasks
     with their reason. Prints nothing when there are neither."""
-    if wave["heldBack"]:
-        print(f"held back: {len({h['id'] for h in wave['heldBack']})} sharing files with "
-              "unfinished work")
-        for hold in wave["heldBack"]:
-            print(f"  {hold['id']}  shares {hold['path']} with {hold['by']}")
-    blocked = [t for t in rows if t["status"] == "blocked"]
+    _print_held(wave["heldBack"])
+    blocked =[t for t in rows if t["status"] == "blocked"]
     if blocked:
         print(f"blocked: {len(blocked)}")
         for t in blocked:
