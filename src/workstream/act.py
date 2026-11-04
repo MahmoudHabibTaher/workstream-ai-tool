@@ -27,7 +27,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from workstream import gitutil, registry, snapshot, tasks
+from workstream import decisions, gitutil, registry, snapshot, tasks
 from workstream.errors import Refused, WsError
 from workstream.fsutil import sha256
 from workstream.project import Project
@@ -230,3 +230,27 @@ def commit_claim(project: Project, ws: dict, ids: list[str], base: str | None,
         restore(originals)
         raise
     return base, short
+
+
+def commit_decision(project: Project, ws: dict, date: str, who: str, title: str,
+                    why: str) -> tuple[str, str]:
+    """Record a decision and commit only DECISIONS.md, in one step. (decision id, commit).
+
+    A lite workstream has no log until its first decision, and `git commit --only` refuses an
+    untracked path, so a new file is staged first and unstaged again if the commit fails.
+    """
+    rows = registry.load(project)["workstreams"]
+    check_checkout(project, snapshot.git_facts(project, rows), "decide", ws["id"], rows)
+    path = project.folder(ws) / "DECISIONS.md"
+    before = path.read_bytes() if path.exists() else None
+    try:
+        number = decisions.record(path, date, who, title, why)
+        if before is None:
+            _git(project.root, "add", "--", project.rel(path))
+        short = commit(project, [path], f"{ws['id']}: {number}")
+    except BaseException:
+        restore({path: before})
+        if before is None:
+            _git(project.root, "reset", "-q", "--", project.rel(path))
+        raise
+    return number, short

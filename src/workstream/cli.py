@@ -666,6 +666,10 @@ def cmd_decisions(args: argparse.Namespace) -> int:
 def cmd_decide(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, _ = _queue(project, args)
+    if args.commit:
+        number, short = act.commit_decision(project, ws, today(), args.by, args.title, args.why)
+        print(f"{number}; committed {short}")
+        return 0
     path = project.folder(ws) / "DECISIONS.md"
     print(f"{decisions.record(path, today(), args.by, args.title, args.why)}; commit it")
     return 0
@@ -1096,6 +1100,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("title", help="the call, in one line")
     p.add_argument("--why", required=True, help="the reason, and what was rejected")
     p.add_argument("--by", default="coordinator", help="`user` makes it apply to every task")
+    p.add_argument("--commit", action="store_true",
+                   help="commit DECISIONS.md on the integration branch too, and print the hash")
 
     p = command("evidence", cmd_evidence, "start a task's evidence file, or check it's ready")
     p.add_argument("action", choices=("new", "check"))
