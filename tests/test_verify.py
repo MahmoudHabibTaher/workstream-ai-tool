@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 
 from tests.helpers import WsTestCase, task
+from tests.test_schema import load_schema, problems
+from tests.test_settle import SettleTestCase
 from workstream import verify
 from workstream.gitutil import common_dir
 
@@ -246,3 +248,147 @@ class BaselineTests(VerifyTestCase):
     def test_only_named_keys_are_recorded(self) -> None:
         self.arrange_lint()
         self.assertIn("not in [commands]", self.fails("baseline", "record", "nope"))
+
+
+ASKED = "75/2/16"
+ITEM = {"text": "the counts match", "expect": ASKED}
+
+
+class ExpectTests(VerifyTestCase):
+    def arrange_item(self, item: object, **commands: str) -> None:
+        self.set_commands(**commands)
+        self.seed_ok([task("T1", 10, verify=list(commands), acceptance=[item])])
+        self.commit_all("seeded")
+
+    def test_a_string_missing_from_the_log_fails(self) -> None:
+        self.arrange_item(ITEM, test="echo 72/5/16")
+        out = self.fails("verify", "T1")
+        self.assertIn("PASS test", out)
+        self.assertIn(f"acceptance 1: expected output not in the logs: {ASKED}", out)
+        run = verify.load_run(self.project(), "alpha", "T1")
+        self.assertEqual(run["missingOutput"], [{"item": 1, "expect": ASKED}])
+        self.assertEqual(verify.run_problems(run, ["test"]),
+                         [f"acceptance 1: expected output not in the logs: {ASKED}"])
+
+    def test_a_string_split_by_ansi_codes_is_found(self) -> None:
+        colored = self.script("colored", "print('\\x1b[32m75/\\x1b[0m2/\\x1b[1;31m16\\x1b[0m')\n")
+        self.arrange_item(ITEM, test=colored)
+        self.ok("verify", "T1")
+        run = verify.load_run(self.project(), "alpha", "T1")
+        self.assertIn(b"\x1b[", Path(run["results"][0]["log"]).read_bytes())
+        self.assertEqual(run["problems"], [])
+
+    def test_no_expect_behaves_as_before(self) -> None:
+        self.set_commands(test="true")
+        self.seed_ok([task("T1", 10, verify=["test"], acceptance=[
+            "plain", {"text": "object"}, {"text": "a person", "kind": "manual"}])])
+        self.commit_all("seeded")
+        self.ok("verify", "T1")
+        run = verify.load_run(self.project(), "alpha", "T1")
+        self.assertEqual((run["problems"], run["missingOutput"]), ([], []))
+
+    def test_a_record_from_before_the_field_still_reads(self) -> None:
+        self.assertEqual(verify.run_problems({"results": []}, []), [])
+
+    def test_a_manual_item_with_expect_is_refused(self) -> None:
+        code, out, err = self.seed([task("T1", 10, verify=["true x"], acceptance=[
+            {"text": "a person", "kind": "manual", "expect": ASKED}])])
+        self.assertEqual(code, 1, out + err)
+        self.assertIn("acceptance 1: a manual item has no command output", out + err)
+
+    def test_an_expect_nothing_could_check_is_refused(self) -> None:
+        for fields, reason in (({"expect": " "}, "non-empty string"),
+                               ({"expect": 7}, "non-empty string")):
+            code, out, err = self.seed([task("T1", 10, verify=["true x"],
+                                             acceptance=[{"text": "x", **fields}])])
+            self.assertEqual(code, 1, out + err)
+            self.assertIn(reason, out + err)
+        code, out, err = self.seed([task("T1", 10, acceptance=[ITEM])])
+        self.assertEqual(code, 1, out + err)
+        self.assertIn("needs a verify command", out + err)
+
+    def test_a_subset_does_not_fail_until_every_key_ran_on_one_tree(self) -> None:
+        self.arrange_item(ITEM, lint=f"echo {ASKED}", test="echo other")
+        self.fails("verify", "T1", "--key", "test")
+        self.assertEqual(verify.load_run(self.project(), "alpha", "T1")["problems"],
+                         ["lint: not run"])
+        self.ok("verify", "T1", "--key", "lint")
+        self.ok("verify", "T1", "--key", "test")
+
+    def test_a_string_no_key_printed_fails_once_all_have_run(self) -> None:
+        self.arrange_item(ITEM, lint="echo a", test="echo b")
+        out = self.fails("verify", "T1", "--key", "lint")
+        self.assertNotIn("expected output", out)
+        self.assertIn("expected output", self.fails("verify", "T1", "--key", "test"))
+
+    def test_a_subset_does_not_count_logs_from_another_tree(self) -> None:
+        self.arrange_item(ITEM, lint=f"echo {ASKED}", test="echo b")
+        self.ok("verify", "T1")
+        (self.root / "new.txt").write_text("x")
+        out = self.fails("verify", "T1", "--key", "test")
+        self.assertNotIn("expected output", out)
+        self.assertEqual(verify.load_run(self.project(), "alpha", "T1")["problems"],
+                         ["lint: not run"])
+
+    def test_a_key_missing_from_the_config_has_no_log_to_read(self) -> None:
+        self.seed_ok([task("T1", 10, verify=["nope"], acceptance=[ITEM])])
+        out = self.fails("verify", "T1")
+        self.assertIn("not in [commands]", out)
+        self.assertIn("expected output", out)
+
+    def test_the_brief_says_what_the_output_must_hold(self) -> None:
+        self.arrange_item(ITEM, test="true")
+        self.assertIn(f"must contain `{ASKED}`", self.ok("brief", "T1", "-w", "alpha"))
+
+    def test_a_corrected_item_drops_the_old_literal(self) -> None:
+        self.arrange_item(ITEM, test="echo 72/5/16")
+        self.ok("decide", "Moved", "--why", "the counts moved", "--by", "user", "-w", "alpha")
+        self.ok("update", "-w", "alpha", "T1", "--acceptance", "1", "they are 72/5/16",
+                "--because", "D001")
+        self.assertEqual(self.by_id("T1")["acceptance"],
+                         [{"text": "they are 72/5/16 (changed by D001)"}])
+
+    def test_the_schema_matches_the_rules(self) -> None:
+        schema = load_schema("tasks")
+        items = schema["$defs"]["task"]["properties"]["acceptance"]["items"]
+        for good in ("x", {"text": "x"}, {"text": "x", "kind": "manual"}, ITEM,
+                     {**ITEM, "kind": "command"}):
+            self.assertEqual(problems(good, items, schema), [], good)
+        for bad in ({**ITEM, "kind": "manual"}, {"text": "x", "expect": 7}, {"text": "x", "kind": "y"}):
+            self.assertTrue(problems(bad, items, schema), bad)
+
+    def test_the_protocol_and_ws_plan_name_it(self) -> None:
+        self.assertIn('"expect"', self.ok("protocol", "task-schema"))
+        skill = Path(verify.__file__).parent / "assets" / "skills" / "ws-plan" / "SKILL.md"
+        self.assertIn("`expect`", skill.read_text())
+
+
+class ExpectGateTests(SettleTestCase):
+    def worked(self) -> Path:
+        self.set_commands(check="echo 72/5/16")
+        self.arrange(task("T1", 10, verify=["check"], acceptance=[ITEM]))
+        where = self.claim("T1")[0]
+        (where / "T1.txt").write_text("x\n")
+        code, out, err = self.ws_at(where, "verify", "T1", "-w", "alpha")
+        self.assertEqual(code, 1, out + err)
+        self.finish(where, "T1", run_verify=False)
+        return where
+
+    def test_the_evidence_check_and_settle_see_the_missing_string(self) -> None:
+        where = self.worked()
+        code, out, err = self.ws_at(where, "evidence", "check", "T1", "-w", "alpha")
+        self.assertEqual(code, 1, out + err)
+        self.assertIn(f"expected output not in the logs: {ASKED}", out + err)
+        out = self.fails("settle", "T1")
+        self.assertIn(f"expected output not in the logs: {ASKED}", out)
+        self.assertNotEqual(self.by_id("T1")["status"], "done")
+
+    def test_a_present_string_settles(self) -> None:
+        self.set_commands(check=f"echo {ASKED}")
+        self.arrange(task("T1", 10, verify=["check"], acceptance=[ITEM]))
+        where = self.claim("T1")[0]
+        self.finish(where, "T1")
+        code, out, err = self.ws_at(where, "evidence", "check", "T1", "-w", "alpha")
+        self.assertEqual(code, 0, out + err)
+        self.ok("settle", "T1")
+        self.assertEqual(self.by_id("T1")["status"], "done")

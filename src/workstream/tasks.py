@@ -214,8 +214,16 @@ def is_raw_command(entry: str) -> bool:
 def acceptance_text(item: object) -> str:
     if isinstance(item, dict):
         suffix = " (manual)" if item.get("kind") == "manual" else ""
+        if item.get("expect"):
+            suffix += f" (the output must contain `{item['expect']}`)"
         return f"{item.get('text', '')}{suffix}"
     return str(item)
+
+
+def expected_outputs(task: dict) -> list[tuple[int, str]]:
+    """(item number, literal) for each acceptance item naming the output it expects."""
+    return [(n, item["expect"]) for n, item in enumerate(task.get("acceptance", []), 1)
+            if isinstance(item, dict) and isinstance(item.get("expect"), str) and item["expect"]]
 
 
 # --- validation ---------------------------------------------------------------------------
@@ -246,6 +254,23 @@ def _is_acceptance_item(item: object) -> bool:
 
 def _label(task: dict, n: int) -> str:
     return task["id"] if isinstance(task.get("id"), str) and task["id"] else f"task #{n + 1}"
+
+
+def _expect_errors(task: dict, label: str) -> list[str]:
+    """An `expect` must be something `ws verify` can look for, in a log a command wrote."""
+    items = task.get("acceptance", [])
+    errors = []
+    for n, item in enumerate(items if isinstance(items, list) else [], 1):
+        if not isinstance(item, dict) or "expect" not in item:
+            continue
+        where = f"{label}: acceptance {n}"
+        if item.get("kind") == "manual":
+            errors.append(f"{where}: a manual item has no command output to expect")
+        elif not isinstance(item["expect"], str) or not item["expect"].strip():
+            errors.append(f"{where}: expect must be a non-empty string")
+        elif not task.get("verify"):
+            errors.append(f"{where}: expect needs a verify command to read the output of")
+    return errors
 
 
 def _typed_field_errors(task: dict, label: str, config: Config) -> list[str]:
@@ -279,6 +304,7 @@ def _field_errors(task: dict, label: str, config: Config) -> list[str]:
         if field in task and not is_type(task[field], kind):
             errors.append(
                 f"{label}: {field} must be {TYPE_DESCRIPTIONS[kind]}, got {task[field]!r}")
+    errors += _expect_errors(task, label)
     for field in ("id", "title"):
         if task.get(field) == "":
             errors.append(f"{label}: {field} is empty")
@@ -499,7 +525,8 @@ def update(path: Path, task_id: str, config: Config, *, status: str | None = Non
 def correct_acceptance(path: Path, task_id: str, number: str, text: str, because: str,
                        config: Config) -> dict:
     """Replace one acceptance item, naming the decision that changed it. Its position and kind
-    stay, since evidence pairs with acceptance by number."""
+    stay, since evidence pairs with acceptance by number. Its `expect` goes: that literal belonged
+    to the old text, and keeping it could leave the corrected item impossible to pass."""
     data = load(path, config)
     task = find_task(data, task_id)
     if task.get("status") not in OPEN_STATUSES:
@@ -513,6 +540,7 @@ def correct_acceptance(path: Path, task_id: str, number: str, text: str, because
     index = int(number) - 1
     if isinstance(items[index], dict):
         items[index]["text"] = corrected
+        items[index].pop("expect", None)
     else:
         items[index] = corrected
     data["updated"] = today()

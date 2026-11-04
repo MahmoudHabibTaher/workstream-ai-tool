@@ -111,10 +111,26 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "command",
-                      "manual"
-                    ]
+                    "const": "command"
+                  },
+                  "expect": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": [
+                  "text",
+                  "kind"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "manual"
                   }
                 },
                 "additionalProperties": false
