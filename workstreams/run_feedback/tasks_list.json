@@ -492,7 +492,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/rf-09",
       "blockedBy": [
         "RF-08"
       ],
@@ -501,10 +501,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T10:44:16Z",
+      "baseCommit": "62de8c85a5ffd23ddc877313739eac699719ba49",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
