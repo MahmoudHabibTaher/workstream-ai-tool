@@ -27,7 +27,7 @@ import re
 import shutil
 from pathlib import Path
 
-from workstream import gitutil, tasks
+from workstream import gitutil, plan, tasks
 from workstream.errors import Refused, WsError
 from workstream.fsutil import today, write_json
 from workstream.project import TASKS_NAME, TEMPLATES_DIR, Project
@@ -333,6 +333,11 @@ def _queue_problems(project: Project, ws: dict, path: Path, problems: list[str],
             tid = t.get("id")
             if isinstance(tid, str) and not tid.startswith(prefix):
                 problems.append(f"{wid}: task {tid} lacks prefix {prefix!r}")
+    plan_path = path.parent / "PLAN.md"
+    plan_text = plan_path.read_text() if plan_path.exists() else ""
+    cited = plan.citation_warning(plan_text, queue["tasks"])
+    if cited:
+        warnings.append(f"{wid}: {cited}")
     return queue["tasks"]
 
 
