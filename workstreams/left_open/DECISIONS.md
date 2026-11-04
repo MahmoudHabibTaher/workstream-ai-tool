@@ -69,3 +69,18 @@ Rejected: calling `tasks.update` anyway, which would rewrite the file while repo
 A hash and a status are short and worth seeing, and acceptance requires `status=<value>`; notes and verify can be long, and the task asks only for the fields to be named. The bare `--commit` path keeps its `verify and notes; committed <hash>` line, whose words are also its commit subject.
 
 Rejected: printing every value, which would echo whole notes into the line. **Closed.**
+
+## D014 (2026-11-04, LO-09): LO-09 was claimed only after the other 13 tasks had landed
+
+Its `blockedBy` names only LO-01 to LO-08, and D002 leaves LO-10 to LO-14 to the phase order. Each batch landed before `ws wave` was asked again, and the wave first offered LO-09 at phase 6, with `1 open in total`. So the replay and the evals ran with all 13 landed.
+Rejected: adding LO-10 to LO-14 to its `blockedBy`, which changes an approved task for an order that held anyway. **Closed.**
+
+## D015 (2026-11-04, LO-09): the replay also ran LO-10 to LO-14 with the real CLI
+
+The plan's end-to-end section doesn't name them, and D002 leaves them to their tests. A few commands more on a sample repo showed what their tests can't: that the real CLI behaves that way end to end. It found the no-op `--verify --commit` wording listed under Left open.
+Rejected: following the section to the letter, which would leave five of the fourteen fixes off the only end-to-end run. **Closed.**
+
+## D016 (2026-11-04, LO-09): LO-08's dead worker was replaced on the same worktree, with no new claim
+
+Its worker died in a network outage with edits uncommitted and no evidence. Requeueing would have discarded them, and `ws settle` correctly refused. A fresh worker got the usual prompt plus two lines saying what it would find, checked the edits against the brief and kept them.
+Rejected: `ws worktree remove` and `ws unclaim`, the skill's other route for a leftover, which loses finished work. **Closed.**

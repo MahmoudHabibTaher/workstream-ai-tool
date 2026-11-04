@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-09: Prove it end to end
+
+Merged as `7db8a8f889`. Verified: test pass, audit pass. [Evidence](evidence/LO-09.md).
+
 ## 2026-11-04: LO-14: ws update says what it changed
 
 Merged as `bdae70dbf5`. Verified: test pass. [Evidence](evidence/LO-14.md).

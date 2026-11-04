@@ -782,13 +782,29 @@
         "browser"
       ],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T18:35:28Z",
       "baseCommit": "806dba98648b6f0103f720f4f517ca9427245a1a",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-04T18:49:39Z",
+      "commit": "7db8a8f88980bc575ded057e951423c9408697f8",
+      "verification": {
+        "tree": "f95306a389f6613bfc2516c951142afd488500fa",
+        "at": "2026-11-04T18:48:58Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     }
   ],

@@ -1,10 +1,14 @@
 # Session handoff
 
-**State:** 13/14 done on `main` at `bdae70d`, as of 2026-11-04.
+**State:** 14/14 done on `main` at `7db8a8f`, as of 2026-11-04.
 
-**Just landed:** LO-14 (`bdae70dbf5`)
+**Just landed:** LO-09 (`7db8a8f889`)
 
-**Next:** `ws claim --commit LO-09` (phase 6).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- LO-14: - `--requires` can raise `mode` to foreground without `--mode` being given. The line names only the fields given, as the task asks, so that raise stays unreported.
+- LO-09: - The `ws-run` skill still says a foreground task should "return to the integration branch, then settle it", which contradicts LO-05's brief. I followed the brief. The source is `src/workstream/assets/skills/ws-run/SKILL.md:25`, outside this task's files.
+- The `ws-run` skill has no path for a worker that dies mid-task with uncommitted work (D016).
+- `ws update T-1 --verify test --commit` with an unchanged value says `refused: commit failed, tracking files restored: nothing to commit, working tree clean`. Harmless, but a no-op reads as a failure. A changed value works: `updated T-1: verify; committed b7bb854`.
+- `is_open` still matches `**Open.**` anywhere in a reason (LO-04's gotcha). The rest of what stays open is in `docs/decisions/0013-left-open.md`.
+- Stop rule 10 never fired in this run: only the replay's planted landing warned.
