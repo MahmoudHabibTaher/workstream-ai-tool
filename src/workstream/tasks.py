@@ -548,6 +548,20 @@ def correct_acceptance(path: Path, task_id: str, number: str, text: str, because
     return task
 
 
+def correct_summary(path: Path, task_id: str, text: str, because: str, config: Config) -> dict:
+    """Replace a task's summary, naming the decision that changed it."""
+    data = load(path, config)
+    task = find_task(data, task_id)
+    if task.get("status") not in OPEN_STATUSES:
+        raise WsError(f"{task_id} is {task.get('status')}: its summary stays as it was")
+    if not text.strip():
+        raise WsError("--summary needs the new text")
+    task["summary"] = f"{text.strip()} (changed by {because})"
+    data["updated"] = today()
+    save(path, data)
+    return task
+
+
 def _unique(ids: list[str]) -> list[str]:
     return list(dict.fromkeys(ids))
 
