@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from tests.helpers import WsTestCase, task
+from tests.test_schema import load_schema, problems
 from workstream import fsutil, graph, tasks
 from workstream.config import Config
 
@@ -679,6 +680,21 @@ class TypedFieldTests(WsTestCase):
         path.write_text(json.dumps({"schemaVersion": 2, "tasks": []}))
         self.assertIn("schemaVersion 2 is not 3", self.fails("next", "-w", "alpha"))
         self.assertIn("schemaVersion 2 is not 3", self.fails("validate", "-w", "alpha"))
+
+    def test_a_queue_from_before_blocked_reason_still_loads_and_matches_the_schema(self) -> None:
+        path = self.ws_dir / "alpha" / "tasks_list.json"
+        old = task("X-09", 90, status="blocked", notes="old reason")
+        old.pop("blockedReason", None)
+        queue = {"schemaVersion": 3, "tasks": [old]}
+        path.write_text(json.dumps(queue))
+        self.assertNotIn("blockedReason", json.loads(path.read_text())["tasks"][0])
+        self.assertEqual(problems(queue, load_schema("tasks"), load_schema("tasks")), [])
+        self.ok("validate", "-w", "alpha")
+        self.ok("update", "-w", "alpha", "X-09", "--status", "blocked")
+        written = self.by_id("X-09")
+        self.assertIsNone(written["blockedReason"])
+        self.assertEqual(written["notes"], "old reason")
+        self.assertEqual(problems(self.queue(), load_schema("tasks"), load_schema("tasks")), [])
 
     def test_broken_json_is_an_error_not_a_traceback(self) -> None:
         (self.ws_dir / "alpha" / "tasks_list.json").write_text("{broken")

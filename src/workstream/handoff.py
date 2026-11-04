@@ -50,7 +50,8 @@ def render(project: Project, ws: dict, rows: list[dict], outcomes: list[dict],
     blocked = [t for t in rows if t["status"] == "blocked"]
     if blocked:
         lines.append("**Blocked:**")
-        lines += [f"- {t['id']}: {t.get('notes') or t['title']}" for t in blocked]
+        lines += [f"- {t['id']}: {t.get('blockedReason') or t.get('notes') or t['title']}"
+                  for t in blocked]
         lines.append("")
     running = [t for t in rows if t["status"] == "in-progress"]
     if running:
