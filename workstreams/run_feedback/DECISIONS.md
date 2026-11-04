@@ -59,3 +59,7 @@ A task held by two tasks, or on two paths, gets one entry each, so every cause i
 ## D012 (2026-11-04, RF-08): the claim test and lanes test sit outside the listed test files
 
 The `ws claim --commit` test is in `tests/test_protocol.py`, beside the other batch refusals and their git setup. The lanes test is in `ui/web/tests/logic.test.mjs`, the only place JS runs, which needed `waveNotes` exported from `lanes.js`. Rejected: calling `batch_problems` directly from `tests/test_tasks.py`, which wouldn't prove the command refuses. **Closed.**
+
+## D013 (2026-11-04, user): briefs get their own 4500-token budget, separate from worker orientation
+
+RF-15's brief went over the shared 2500 worker budget at RF-08's settle (2873 at RF-10's claim) because its Builds on section repeats every earlier task's gotchas, and that failed make audit for every task verifying with audit. The user chose to raise the budget. 4500 allows for about 310 tokens per landing across the five remaining tasks, the fastest growth seen. Worker orientation stays at 2500. Rejected: capping Builds on in brief.py (the coordinator's recommendation), and exempting RF-15. This adds RF-16. **Closed.** **Closed.**
