@@ -522,6 +522,44 @@
       "blockedReason": null
     },
     {
+      "id": "RF-16",
+      "phase": 3,
+      "priority": 95,
+      "title": "Briefs get their own budget",
+      "kind": "prompts",
+      "findings": [],
+      "summary": "Give task briefs their own 4500-token audit budget so make audit passes again; worker orientation stays at 2500.",
+      "files": [
+        "src/workstream/audit.py",
+        "tests/test_protocol.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "audit checks each brief against a 4500-token budget of its own",
+        "BUDGETS[WORKER] stays 2500 and still applies to worker orientation",
+        "make audit passes on main's queue, with brief RF-15 ok"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "Added at the user's call: see the decision on the brief budget.",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
       "id": "RF-10",
       "phase": 3,
       "priority": 100,
