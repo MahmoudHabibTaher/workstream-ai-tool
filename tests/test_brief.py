@@ -175,3 +175,37 @@ class SourceTests(WsTestCase):
         self.assertNotIn("from the other branch", brief)
         self.at_tree("verify", "T1", "-w", "alpha")
         self.assertEqual(self.where.read_text().splitlines(), ["old"])
+
+
+class OpenDecisionTests(WsTestCase):
+    LOG = ("# Decisions\n\n---\n\n"
+           "## D001 (2026-01-01, T1): direct call\n\nPick. **Open.**\n\n"
+           "## D002 (2026-01-01, T0): transitive call\n\nPick. **Open.**\n\n"
+           "## D003 (2026-01-01, T1): closed call\n\nPick. **Open.**\n\n"
+           "## D004 (2026-01-01, T1): closes it\n\nCloses: D003.\n\nPicked. **Closed.**\n\n"
+           "## D005 (2026-01-01, T9): unrelated call\n\nPick. **Open.**\n")
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("T0", 1), task("T1", 2, blockedBy=["T0"]),
+                      task("T2", 3, blockedBy=["T1"], acceptance=["works"], verify=["test"]),
+                      task("T9", 4)])
+        self.set_commands(test="true")
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text(self.LOG)
+
+    def test_blockers_open_decisions_come_right_after_acceptance_and_closed_ones_do_not(self) -> None:
+        brief = self.ok("brief", "T2", "-w", "alpha")
+        after = brief.split("## Acceptance\n\n1. works\n\n", 1)[1]
+        self.assertTrue(after.startswith("## Open decisions\n"), after[:80])
+        section = after.split("\n\n## ", 1)[0]
+        self.assertIn("report blocked if one changes it", section)
+        self.assertIn("`ws decisions --open -w alpha`", section)
+        self.assertEqual([line for line in section.splitlines() if line.startswith("- ")],
+                         ["- D001: direct call", "- D002: transitive call"])
+
+    def test_no_open_decision_from_a_blocker_means_no_section(self) -> None:
+        self.assertNotIn("## Open decisions", self.ok("brief", "T0", "-w", "alpha"))
+
+    def test_it_is_there_with_no_acceptance_too(self) -> None:
+        self.assertIn("- D002: transitive call", self.ok("brief", "T1", "-w", "alpha"))

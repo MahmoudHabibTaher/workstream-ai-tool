@@ -742,6 +742,54 @@ class BookkeepingTests(SettleTestCase):
         self.assertIn("The D001 fix leaves the cache cold.", text)
         self.assertNotIn("P1", text)
 
+    OPEN = "### P1: pick a side\nSomeone must pick. **Open.**\n\n### P2: settled\nWhy. Rejected: x."
+
+    def land_open_decision(self) -> str:
+        self.arrange(self.t("T1"), self.t("T2", 20, blockedBy=["T1"]),
+                     self.t("T3", 30, blockedBy=["T2"]), self.t("T4", 40))
+        self.work(evidence=evidence_text("T1", proposals=self.OPEN))
+        return self.ok("settle", "T1")
+
+    def test_settle_prints_what_it_numbered_open_and_the_tasks_waiting(self) -> None:
+        out = self.land_open_decision()
+        self.assertIn("open: D001: pick a side (waiting: T2, T3)\n", out)
+        self.assertNotIn("D002: settled", out)
+        self.assertNotIn("T4", out.split("open: ", 1)[1])
+
+    def test_settle_says_when_nothing_waits_on_an_open_decision(self) -> None:
+        self.arrange(self.t("T1"))
+        self.work(evidence=evidence_text("T1", proposals=self.OPEN))
+        self.assertIn("open: D001: pick a side (no task waiting)\n", self.ok("settle", "T1"))
+
+    def test_settle_prints_only_the_open_decisions_it_numbered(self) -> None:
+        self.arrange(self.t("T1"))
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text(
+            "# Decisions\n\n---\n\n## D001 (2026-01-01, T9): older\n\nPick. **Open.**\n")
+        self.commit_all("older decision")
+        self.work()
+        self.assertNotIn("open: ", self.ok("settle", "T1"))
+
+    def test_the_handoff_lists_open_decisions(self) -> None:
+        self.land_open_decision()
+        text = (self.ws_dir / "alpha" / "session_handoff.md").read_text()
+        self.assertIn("**Open decisions:**\n- D001: pick a side (waiting: T2, T3)\n", text)
+        self.assertNotIn("D002", text)
+
+    def test_the_handoff_lists_an_open_decision_settle_did_not_number(self) -> None:
+        self.arrange(self.t("T1"))
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text(
+            "# Decisions\n\n---\n\n## D001 (2026-01-01, T9): older\n\nPick. **Open.**\n")
+        self.commit_all("older decision")
+        self.work()
+        self.ok("settle", "T1")
+        text = (self.ws_dir / "alpha" / "session_handoff.md").read_text()
+        self.assertIn("- D001: older (no task waiting)", text)
+
+    def test_claim_still_succeeds_with_a_decision_open(self) -> None:
+        self.land_open_decision()
+        self.assertIn("D001", self.ok("decisions", "--open", "-w", "alpha"))
+        self.assertIn("claimed T2", self.ok("claim", "--commit", "T2"))
+
     def test_the_registry_is_synced_in_the_same_commit(self) -> None:
         self.arrange(self.t("T1"))
         self.work()

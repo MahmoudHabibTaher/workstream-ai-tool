@@ -826,6 +826,8 @@ def cmd_settle(args: argparse.Namespace) -> int:
             print(f"{out['id']}: ready to settle")
     if result["decisions"]:
         print(f"numbered {', '.join(result['decisions'])}")
+    for line in result["open"]:
+        print(f"open: {line}")
     for warning in result["warnings"]:
         print(f"warning: {warning}")
     return 1 if stopped else 0

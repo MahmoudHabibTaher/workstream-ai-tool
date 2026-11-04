@@ -311,7 +311,7 @@ def _clean_up(project: Project, ws: dict, out: dict) -> list[str]:
 def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None = None,
            skip_post_verify: bool = False, keep: bool = False, dry_run: bool = False,
            note: str | None = None) -> dict:
-    """Settle these tasks. {outcomes, decisions, warnings}; a task that couldn't land is in
+    """Settle these tasks. {outcomes, decisions, open, warnings}; a task that couldn't land is in
     outcomes with state "stopped" and its reason, not raised, so the ones before it still
     count. Raises Refused only when nothing could be tried at all."""
     rows = registry.load(project)["workstreams"]
@@ -330,11 +330,14 @@ def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None =
         outcomes.append(out)
         if out["state"] == STOPPED:
             break
-    result = {"outcomes": outcomes, "decisions": [], "warnings": []}
+    result = {"outcomes": outcomes, "decisions": [], "open": [], "warnings": []}
     settled = [o for o in outcomes if o["state"] in (MERGED, BLOCKED)]
     if dry_run or not settled:
         return result
     result["decisions"] = _record(project, ws, settled, note)
+    rows_now = tasks.load(project.tasks_path(ws), project.config)["tasks"]
+    result["open"] = [d["line"] for d in handoff.open_decisions(project, ws, rows_now)
+                      if d["id"] in result["decisions"]]
     if not keep:
         for out in settled:
             if out["state"] == MERGED:
