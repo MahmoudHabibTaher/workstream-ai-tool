@@ -157,6 +157,75 @@ class ClosingTests(WsTestCase):
         self.assertIn("Closes: D015.", self.git("show", "HEAD:workstreams/alpha/DECISIONS.md"))
 
 
+class FromAWorktreeTests(WsTestCase):
+    """The worktree's copy of the log stops at the claim; `ws decisions` reads past it."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([{"id": "T1", "phase": 1, "priority": 1, "title": "t", "status": "todo",
+                       "findings": ["the cache"]},
+                      {"id": "T2", "phase": 1, "priority": 2, "title": "u", "status": "todo"}])
+        self.log = self.ws_dir / "alpha" / "DECISIONS.md"
+        self.log.write_text(LOG)
+        self.commit_all("seed")
+        self.ok("claim", "T1", "-w", "alpha")
+        self.commit_all("claim")
+        self.ok("worktree", "create", "T1", "-w", "alpha")
+        self.tree = self.root / self.project().config.worktree_dir / "t1"
+        self.frozen = self.tree / "workstreams" / "alpha" / "DECISIONS.md"
+
+    def at_tree(self, *argv: str) -> str:
+        code, out, err = self.ws_at(self.tree, *argv)
+        self.assertEqual(code, 0, out + err)
+        return out
+
+    def after_the_claim(self, title: str, why: str) -> None:
+        self.ok("decide", title, "--why", why, "--by", "T2", "-w", "alpha", "--commit")
+        self.assertNotIn(title, self.frozen.read_text())
+
+    def test_an_entry_recorded_after_the_claim_shows(self) -> None:
+        self.after_the_claim("Use the new store", "The old one lies.")
+        listed = self.at_tree("decisions", "-w", "alpha")
+        self.assertIn("## D016", listed)
+        self.assertIn("Use the new store", listed)
+
+    def test_open_sees_an_entry_opened_after_the_claim(self) -> None:
+        self.after_the_claim("Which store", "Someone must pick. **Open.**")
+        listed = self.at_tree("decisions", "--open", "-w", "alpha")
+        self.assertIn("Which store", listed)
+        self.assertIn("## D014", listed)
+
+    def test_open_sees_an_entry_closed_after_the_claim(self) -> None:
+        self.ok("decide", "pick B", "--why", "B won.", "--closes", "D015", "-w", "alpha", "--commit")
+        self.assertIn("## D015", self.at_tree("decisions", "-w", "alpha"))
+        listed = self.at_tree("decisions", "--open", "-w", "alpha")
+        self.assertIn("## D014", listed)
+        self.assertNotIn("## D015", listed)
+
+    def test_for_sees_an_entry_recorded_after_the_claim(self) -> None:
+        self.after_the_claim("Drop the old store", "It breaks the cache.")
+        self.after_the_claim("Rename the logs", "Nothing to do with it.")
+        listed = self.at_tree("decisions", "--for", "T1", "-w", "alpha")
+        self.assertIn("Drop the old store", listed)
+        self.assertNotIn("Rename the logs", listed)
+
+    def test_open_and_for_together_see_it(self) -> None:
+        self.after_the_claim("Which store", "It breaks the cache. **Open.**")
+        self.after_the_claim("Rename the logs", "Which name? **Open.**")
+        listed = self.at_tree("decisions", "--open", "--for", "T1", "-w", "alpha")
+        self.assertIn("Which store", listed)
+        self.assertNotIn("Rename the logs", listed)
+
+    def test_for_finds_a_task_added_after_the_claim(self) -> None:
+        self.after_the_claim("Which store", "Settled for T3.")
+        self.ok("add", "--id", "T3", "--title", "later", "--phase", "1", "--priority", "3",
+                "-w", "alpha")
+        self.commit_all("add T3")
+        self.assertNotIn('"T3"', (self.tree / "workstreams/alpha/tasks_list.json").read_text())
+        self.assertIn("Which store", self.at_tree("decisions", "--for", "T3", "-w", "alpha"))
+
+
 class SkillTests(unittest.TestCase):
     def test_ws_coordinate_names_both_and_they_parse(self) -> None:
         text = protocol.skill_text("ws-coordinate")
