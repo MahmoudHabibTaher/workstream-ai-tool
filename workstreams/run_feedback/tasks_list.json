@@ -552,7 +552,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/rf-10",
       "blockedBy": [
         "RF-09"
       ],
@@ -561,10 +561,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T10:50:55Z",
+      "baseCommit": "dff37cfce7ef083c28e7e7ee5712106951bc1f76",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
