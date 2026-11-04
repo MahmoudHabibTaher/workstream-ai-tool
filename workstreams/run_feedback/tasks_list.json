@@ -61,7 +61,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-02",
@@ -111,7 +112,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-03",
@@ -172,7 +174,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-04",
@@ -226,7 +229,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-05",
@@ -277,7 +281,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-06",
@@ -336,7 +341,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-07",
@@ -391,7 +397,8 @@
             "verdict": "pass"
           }
         ]
-      }
+      },
+      "blockedReason": null
     },
     {
       "id": "RF-08",
@@ -427,7 +434,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/rf-08",
       "blockedBy": [
         "RF-05",
         "RF-06",
@@ -438,13 +445,14 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T10:35:33Z",
+      "baseCommit": "61d5006d7f7db37bb6a2232f8490c0ab730052bd",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-09",
@@ -488,7 +496,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-10",
@@ -536,7 +545,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-11",
@@ -587,7 +597,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-12",
@@ -640,7 +651,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-13",
@@ -691,7 +703,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-14",
@@ -745,7 +758,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     },
     {
       "id": "RF-15",
@@ -811,7 +825,8 @@
       "claimedBy": null,
       "completedAt": null,
       "commit": null,
-      "verification": null
+      "verification": null,
+      "blockedReason": null
     }
   ],
   "scope": {
