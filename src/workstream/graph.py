@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 WAVE_READY, WAVE_FINISHED, WAVE_STUCK = 0, 2, 3  # `ws wave` exit codes, so scripts can branch.
+HOLDING_STATUSES = ("in-progress", "blocked")  # Unfinished work that keeps its files from others.
 
 
 def _str_list(value: object) -> list[str]:
@@ -78,6 +79,20 @@ def file_overlaps(tasks: list[dict]) -> list[tuple[str, str, str]]:
     return overlaps
 
 
+def file_holds(candidates: list[dict], tasks: list[dict]) -> list[dict]:
+    """{id, by, path} for each candidate naming a `files` path that an in-progress or blocked
+    task also names. That task's work is unfinished, so starting on its files would collide."""
+    holders = [t for t in tasks if t["status"] in HOLDING_STATUSES]
+    holds = []
+    for t in candidates:
+        files = set(_str_list(t.get("files", [])))
+        for holder in holders:
+            if holder["id"] != t["id"]:
+                holds += [{"id": t["id"], "by": holder["id"], "path": path}
+                          for path in sorted(files & set(_str_list(holder.get("files", []))))]
+    return holds
+
+
 def overlap_warning(a: str, b: str, path: str) -> str:
     return f"{a} and {b} both list {path!r} in files; run together they would collide"
 
@@ -97,26 +112,33 @@ def compute_wave(tasks: list[dict]) -> dict:
     `phase` is metadata, but blockedBy can cross phases (a phase-1 task needing a phase-2
     one), so the wave is "lowest phase with an actionable task", not "lowest unfinished
     phase": a phase's blocked leftovers come back in a later wave once their blockers land.
+    An actionable task sharing a files path with an in-progress or blocked task is held back,
+    whatever its phase, and the wave forms from what remains.
 
-    Returns {state, phase, ids, open, overlaps, leftovers}: state is "ready", "finished"
-    (every task done or deferred) or "stuck" (open tasks, none actionable); phase and ids
-    are the wave (None and [] unless ready); open and leftovers (the in-progress tasks) are
-    ids in priority order; overlaps are [a, b, path] for wave tasks sharing a files path.
-    In-progress tasks never change the state: a queue whose only open tasks are in progress
-    is stuck.
+    Returns {state, phase, ids, open, overlaps, leftovers, heldBack}: state is "ready",
+    "finished" (every task done or deferred) or "stuck" (open tasks, none that can start);
+    phase and ids are the wave (None and [] unless ready); open and leftovers (the in-progress
+    tasks) are ids in priority order; overlaps are [a, b, path] for wave tasks sharing a files
+    path; heldBack is {id, by, path} per path holding a task back. In-progress tasks never
+    change the state except by holding a task back: a queue whose only open tasks are in
+    progress is stuck.
     """
     tasks = sorted(tasks, key=lambda t: t["priority"])
     open_ids = [t["id"] for t in tasks if t["status"] not in ("done", "deferred")]
     leftovers = [t["id"] for t in tasks if t["status"] == "in-progress"]
     result = {"state": "finished", "phase": None, "ids": [], "open": open_ids,
-              "overlaps": [], "leftovers": leftovers}
+              "overlaps": [], "leftovers": leftovers, "heldBack": []}
     if not open_ids:
         return result
     candidates = actionable(tasks)
-    if not candidates:
+    holds = file_holds(candidates, tasks)
+    result["heldBack"] = holds
+    held = {hold["id"] for hold in holds}
+    free = [t for t in candidates if t["id"] not in held]
+    if not free:
         return {**result, "state": "stuck"}
-    phase = min(t["phase"] for t in candidates)
-    wave = [t for t in candidates if t["phase"] == phase]
+    phase = min(t["phase"] for t in free)
+    wave = [t for t in free if t["phase"] == phase]
     return {**result, "state": "ready", "phase": phase, "ids": [t["id"] for t in wave],
             "overlaps": [list(o) for o in file_overlaps(wave)]}
 

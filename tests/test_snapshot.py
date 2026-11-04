@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 from tests.helpers import WsTestCase, task
+from tests.test_schema import load_schema, problems
 from workstream import snapshot, tasks
 from workstream.config import Config
 from workstream.fsutil import sha256
@@ -343,6 +344,18 @@ class BuildSnapshotTests(RepoTestCase):
         data = json.loads(self.ok("snapshot", "-w", "alpha", "--stale-hours", "100000"))
         self.assertEqual((data["snapshotVersion"], data["wave"]["ids"]), (1, ["AL-03"]))
         self.assertEqual(data["health"], [])
+
+    def test_held_back_tasks_reach_the_snapshot_and_pass_its_schema(self) -> None:
+        self.write_queue([task("AL-01", 10, status="in-progress", branch="task/al-one",
+                               startedAt="2026-10-01T00:00:00Z", files=["a.py"]),
+                          task("AL-02", 20, status="todo", files=["a.py"]),
+                          task("AL-03", 30, status="todo")])
+        data = json.loads(self.ok("snapshot", "-w", "alpha", "--stale-hours", "100000"))
+        self.assertEqual(data["wave"]["heldBack"], [{"id": "AL-02", "by": "AL-01", "path": "a.py"}])
+        self.assertEqual(data["wave"]["ids"], ["AL-03"])
+        schema = load_schema("snapshot")
+        self.assertEqual(problems(data, schema, schema), [])
+        self.assertIn("heldBack", schema["properties"]["wave"]["required"])
 
 
 if __name__ == "__main__":

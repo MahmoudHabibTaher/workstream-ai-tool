@@ -86,7 +86,8 @@
         "ids",
         "open",
         "overlaps",
-        "leftovers"
+        "leftovers",
+        "heldBack"
       ],
       "additionalProperties": false,
       "properties": {
@@ -128,6 +129,29 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "heldBack": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "by",
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "by": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
           }
         }
       }

@@ -17,9 +17,13 @@ function card(ctx, task, snap) {
   )
 }
 
-function waveNotes(wave) {
+export function waveNotes(wave, tasks = []) {
   const notes = []
   for (const pair of wave?.overlaps ?? []) notes.push(`${pair.join(' and ')} touch the same files, so they can't run together.`)
+  for (const hold of wave?.heldBack ?? []) notes.push(`${hold.id} is held back: it shares ${hold.path} with ${hold.by}.`)
+  for (const task of tasks) {
+    if (task.status === 'blocked') notes.push(`${task.id} is blocked: ${task.blockedReason || task.notes || task.title}`)
+  }
   if (wave?.leftovers?.length) notes.push(`Left over from earlier phases: ${wave.leftovers.join(', ')}.`)
   return notes
 }
@@ -63,7 +67,7 @@ export function view(ctx) {
       DOC_NAMES.filter(name => snap.paths?.[name]).map(name => link(hrefs.doc(ws, name), name[0].toUpperCase() + name.slice(1))),
     ),
     h('div', { class: 'wave-line' }, h('strong', null, waveLine(snap.wave))),
-    waveNotes(snap.wave).map(note => h('p', { class: 'note warn' }, note)),
+    waveNotes(snap.wave, snap.tasks).map(note => h('p', { class: 'note warn' }, note)),
     snap.tasks.length === 0 && h('p', { class: 'dim' }, 'No tasks yet.'),
     h(
       'div',

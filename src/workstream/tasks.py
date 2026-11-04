@@ -393,9 +393,7 @@ def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
     open_tasks = [t for t in tasks
                   if t.get("status") in OPEN_STATUSES and isinstance(t.get("id"), str)]
     for a, b, path in graph.file_overlaps(open_tasks):
-        ta, tb = (next(t for t in open_tasks if t["id"] == x) for x in (a, b))
-        if ta.get("phase") == tb.get("phase") and b not in closure.get(a, ()) \
-                and a not in closure.get(b, ()):
+        if b not in closure.get(a, ()) and a not in closure.get(b, ()):
             warnings.append(graph.overlap_warning(a, b, path))
     return errors, warnings
 
@@ -527,9 +525,9 @@ def claim(path: Path, ids: list[str], base: str, by: str | None, config: Config)
 
 
 def batch_problems(rows: list[dict], ids: list[str]) -> list[str]:
-    """Why these tasks shouldn't run together. Each phase lands and goes green before anything
-    builds on it, a foreground task needs the session to itself, and two workers on one file
-    only find out at the merge."""
+    """Why these tasks shouldn't run together, or now. Each phase lands and goes green before
+    anything builds on it, a foreground task needs the session to itself, and two workers on one
+    file only find out at the merge, which goes for a task already in progress or blocked too."""
     chosen = [t for t in rows if t["id"] in set(ids)]
     problems = []
     phases = sorted({t["phase"] for t in chosen})
@@ -540,6 +538,10 @@ def batch_problems(rows: list[dict], ids: list[str]) -> list[str]:
         problems.append(f"foreground tasks run alone: {', '.join(foreground)}")
     problems += [f"{a} and {b} both name {path}: claim one now, or chain them with blockedBy"
                  for a, b, path in graph.file_overlaps(chosen)]
+    status = {t["id"]: t["status"] for t in rows}
+    problems += [f"{h['id']} shares {h['path']} with {h['by']}, which is {status[h['by']]}: "
+                 f"land or unclaim {h['by']} first"
+                 for h in graph.file_holds(chosen, rows)]
     return problems
 
 
