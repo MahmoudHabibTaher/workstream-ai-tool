@@ -697,8 +697,7 @@ def cmd_brief(args: argparse.Namespace) -> int:
 
 
 def cmd_decisions(args: argparse.Namespace) -> int:
-    project = _project(args)
-    ws, path = _queue(project, args)
+    project, ws, path = _tracking(args)
     file = project.folder(ws) / "DECISIONS.md"
     entries = decisions.parse(file.read_text()) if file.exists() else []
     if args.open:  # before --for: whether an entry is open takes the whole log
