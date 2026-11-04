@@ -428,9 +428,25 @@ def _print_leftovers(rows: list[dict]) -> None:
               f"  baseCommit={t.get('baseCommit') or '-'}  {t['title']}")
 
 
+def _print_held_and_blocked(rows: list[dict], wave: dict) -> None:
+    """What the wave can't offer and why: tasks held back by a shared file, and blocked tasks
+    with their reason. Prints nothing when there are neither."""
+    if wave["heldBack"]:
+        print(f"held back: {len({h['id'] for h in wave['heldBack']})} sharing files with "
+              "unfinished work")
+        for hold in wave["heldBack"]:
+            print(f"  {hold['id']}  shares {hold['path']} with {hold['by']}")
+    blocked = [t for t in rows if t["status"] == "blocked"]
+    if blocked:
+        print(f"blocked: {len(blocked)}")
+        for t in blocked:
+            reason = t.get("blockedReason") or t.get("notes") or t["title"]
+            print(f"  {t['id']}  phase={t['phase']}  {reason}")
+
+
 def cmd_wave(args: argparse.Namespace) -> int:
-    """Print the wave and exit with its code (0 ready, 2 finished, 3 stuck). In-progress
-    tasks are listed after it under a leftovers heading and never change the code."""
+    """Print the wave and exit with its code (0 ready, 2 finished, 3 stuck). Held-back, blocked
+    and in-progress tasks are listed after it, each under its own heading."""
     project = _project(args)
     _, path = _queue(project, args)
     rows = sorted(tasks.load(path, project.config)["tasks"], key=lambda t: t["priority"])
@@ -444,6 +460,7 @@ def cmd_wave(args: argparse.Namespace) -> int:
         for t in (by_id[i] for i in wave["open"]):
             reason = "needsUserDecision" if t.get("needsUserDecision") else t["status"]
             print(f"  {t['id']}  phase={t['phase']}  {reason}  {t['title']}")
+        _print_held_and_blocked(rows, wave)
         _print_leftovers(rows)
         return graph.WAVE_STUCK
     print(f"phase {wave['phase']}: {len(wave['ids'])} actionable, {len(wave['open'])} open in total")
@@ -457,6 +474,7 @@ def cmd_wave(args: argparse.Namespace) -> int:
             print(f"      notes: {t['notes']}")
     for a, b, overlap in wave["overlaps"]:
         print(f"  warning: {graph.overlap_warning(a, b, overlap)}")
+    _print_held_and_blocked(rows, wave)
     _print_leftovers(rows)
     return graph.WAVE_READY
 

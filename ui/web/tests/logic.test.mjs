@@ -7,8 +7,25 @@ import {
   ageOf, badgesOf, commitLine, fileNote, findingsFor, gateSummary, hrefs, lanes, neighbourFile, neighbours, offers, parseDiff,
   parseRoute, percent, rangeLine, splitRows, statLine, statusActions, waveLine,
 } from '../../../src/workstream/assets/web/logic.js'
+import { waveNotes } from '../../../src/workstream/assets/web/lanes.js'
 
 const task = (id, fields) => ({ id, phase: 1, priority: 10, status: 'todo', blockedBy: [], mode: 'background', ...fields })
+
+test('the lanes screen says what is held back and blocked, and why', () => {
+  const wave = { overlaps: [], leftovers: [], heldBack: [{ id: 'b', by: 'a', path: 'x.py' }] }
+  const tasks = [
+    task('a', { status: 'blocked', blockedReason: 'no key', notes: 'a hint' }),
+    task('b'),
+    task('c', { status: 'blocked', notes: 'old reason' }),
+    task('d', { status: 'blocked', title: 'The title' }),
+  ]
+  assert.deepEqual(waveNotes(wave, tasks), [
+    'b is held back: it shares x.py with a.',
+    'a is blocked: no key',
+    'c is blocked: old reason',
+    'd is blocked: The title',
+  ])
+})
 
 test('the wave line says what state the queue is in', () => {
   assert.equal(waveLine({ state: 'finished' }), 'Queue finished')

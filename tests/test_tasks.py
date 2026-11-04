@@ -326,6 +326,53 @@ class WaveTests(WsTestCase):
         self.assertIn("X-01  phase=1  claimedBy=batch-1  baseCommit=cafe123", out)
 
 
+class WaveHeldAndBlockedOutputTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+
+    def wave(self) -> tuple[int, str]:
+        code, out, _ = self.ws("wave", "-w", "alpha")
+        return code, out
+
+    def test_a_ready_wave_prints_blocked_tasks_and_held_tasks_with_their_causes(self) -> None:
+        self.seed_ok([task("X-01", 10, status="blocked", blockedReason="the key is missing",
+                           files=["a.py"]),
+                      task("X-02", 20, files=["a.py"]),
+                      task("X-03", 30)])
+        code, out = self.wave()
+        self.assertEqual(code, graph.WAVE_READY)
+        self.assertIn("phase 1: 1 actionable, 3 open in total", out)
+        self.assertIn("held back: 1 sharing files with unfinished work\n"
+                      "  X-02  shares a.py with X-01\n", out)
+        self.assertIn("blocked: 1\n  X-01  phase=1  the key is missing\n", out)
+
+    def test_a_block_with_no_reason_falls_back_to_its_notes(self) -> None:
+        self.seed_ok([task("X-01", 10, status="blocked", notes="old reason"), task("X-02", 20)])
+        self.assertIn("  X-01  phase=1  old reason\n", self.wave()[1])
+
+    def test_a_wave_of_held_tasks_exits_stuck_and_says_why(self) -> None:
+        self.seed_ok([task("X-01", 10, status="in-progress", files=["a.py"]),
+                      task("X-02", 20, files=["a.py"])])
+        code, out = self.wave()
+        self.assertEqual((code, graph.WAVE_STUCK), (3, 3))
+        self.assertIn("stuck", out)
+        self.assertIn("  X-02  shares a.py with X-01\n", out)
+        self.assertIn("leftovers: 1 in progress", out)
+
+    def test_a_stuck_wave_prints_blocked_reasons(self) -> None:
+        self.seed_ok([task("X-01", 10, status="blocked", blockedReason="the key is missing")])
+        code, out = self.wave()
+        self.assertEqual(code, graph.WAVE_STUCK)
+        self.assertIn("blocked: 1\n  X-01  phase=1  the key is missing\n", out)
+
+    def test_nothing_is_printed_when_nothing_is_held_or_blocked(self) -> None:
+        self.seed_ok([task("X-01", 10)])
+        out = self.wave()[1]
+        self.assertNotIn("held back", out)
+        self.assertNotIn("blocked", out)
+
+
 class ComputeWaveTests(unittest.TestCase):
     def full(self, tid: str, phase: int = 1, priority: int = 10, status: str = "todo",
              **extra) -> dict:
@@ -343,7 +390,7 @@ class ComputeWaveTests(unittest.TestCase):
         self.assertEqual(graph.compute_wave(rows), {
             "state": "ready", "phase": 1, "ids": ["X-02", "X-03"],
             "open": ["X-01", "X-02", "X-03", "X-04", "X-05"],
-            "overlaps": [["X-02", "X-03", "a.py"]], "leftovers": ["X-01"],
+            "overlaps": [["X-02", "X-03", "a.py"]], "leftovers": ["X-01"], "heldBack": [],
         })
 
     def test_a_blocked_low_phase_falls_through_to_the_next_phase(self) -> None:
@@ -357,7 +404,7 @@ class ComputeWaveTests(unittest.TestCase):
                 self.full("X-02", priority=20, status="deferred")]
         self.assertEqual(graph.compute_wave(rows), {
             "state": "finished", "phase": None, "ids": [], "open": [], "overlaps": [],
-            "leftovers": [],
+            "leftovers": [], "heldBack": [],
         })
 
     def test_stuck_keeps_its_open_tasks_and_leftovers(self) -> None:
@@ -366,8 +413,55 @@ class ComputeWaveTests(unittest.TestCase):
                 self.full("X-03", priority=30, status="blocked")]
         self.assertEqual(graph.compute_wave(rows), {
             "state": "stuck", "phase": None, "ids": [], "open": ["X-01", "X-02", "X-03"],
-            "overlaps": [], "leftovers": ["X-01"],
+            "overlaps": [], "leftovers": ["X-01"], "heldBack": [],
         })
+
+    def test_a_task_sharing_a_file_with_blocked_or_running_work_is_held_back(self) -> None:
+        rows = [self.full("X-01", status="blocked", files=["a.py"]),
+                self.full("X-02", priority=20, status="in-progress", files=["b.py", "c.py"]),
+                self.full("X-03", priority=30, files=["a.py", "b.py", "free.py"]),
+                self.full("X-04", priority=40, files=["c.py"]),
+                self.full("X-05", priority=50, files=["free.py"])]
+        wave = graph.compute_wave(rows)
+        self.assertEqual((wave["state"], wave["phase"], wave["ids"]), ("ready", 1, ["X-05"]))
+        self.assertEqual(wave["heldBack"], [{"id": "X-03", "by": "X-01", "path": "a.py"},
+                                            {"id": "X-03", "by": "X-02", "path": "b.py"},
+                                            {"id": "X-04", "by": "X-02", "path": "c.py"}])
+
+    def test_finished_work_and_other_todo_tasks_hold_nothing_back(self) -> None:
+        rows = [self.full("X-01", status="done", commit="abc", files=["a.py"]),
+                self.full("X-02", priority=20, status="deferred", files=["a.py"]),
+                self.full("X-03", priority=30, files=["a.py"]),
+                self.full("X-04", priority=40, files=["a.py"])]
+        wave = graph.compute_wave(rows)
+        self.assertEqual((wave["ids"], wave["heldBack"]), (["X-03", "X-04"], []))
+        self.assertEqual(wave["overlaps"], [["X-03", "X-04", "a.py"]])
+
+    def test_a_wave_with_every_candidate_held_back_is_stuck(self) -> None:
+        rows = [self.full("X-01", status="in-progress", files=["a.py"]),
+                self.full("X-02", priority=20, files=["a.py"])]
+        self.assertEqual(graph.compute_wave(rows), {
+            "state": "stuck", "phase": None, "ids": [], "open": ["X-01", "X-02"],
+            "overlaps": [], "leftovers": ["X-01"],
+            "heldBack": [{"id": "X-02", "by": "X-01", "path": "a.py"}],
+        })
+
+    def test_an_unrelated_later_phase_task_is_still_offered(self) -> None:
+        # A blocked task isn't a barrier: only what shares its files waits.
+        rows = [self.full("X-01", phase=1, status="blocked", files=["a.py"]),
+                self.full("X-02", phase=1, priority=20, files=["a.py"]),
+                self.full("X-03", phase=2, priority=30, files=["b.py"])]
+        wave = graph.compute_wave(rows)
+        self.assertEqual((wave["state"], wave["phase"], wave["ids"]), ("ready", 2, ["X-03"]))
+        self.assertEqual(wave["heldBack"], [{"id": "X-02", "by": "X-01", "path": "a.py"}])
+
+    def test_a_later_phase_task_is_held_by_an_earlier_phases_block(self) -> None:
+        # The report this came from: a later task offered while one on its files was unfinished.
+        rows = [self.full("X-01", phase=1, status="blocked", files=["a.py"]),
+                self.full("X-02", phase=2, priority=20, files=["a.py"])]
+        wave = graph.compute_wave(rows)
+        self.assertEqual((wave["state"], wave["ids"]), ("stuck", []))
+        self.assertEqual(wave["heldBack"], [{"id": "X-02", "by": "X-01", "path": "a.py"}])
 
 
 class ValidateTests(WsTestCase):
@@ -509,19 +603,20 @@ class ValidateTests(WsTestCase):
             "X-01: files path 'new.py' does not exist (yet)",
         )
 
-    def test_warns_but_passes_on_a_same_wave_files_overlap(self) -> None:
+    def test_warns_but_passes_on_a_files_overlap_even_across_phases(self) -> None:
         for name in ("shared.py", "other.py"):
             (self.root / name).write_text("x")
         out = self.assert_ok_with_warnings(
             [self.open_task("X-01", 10, phase=2, files=["shared.py"]),
              self.open_task("X-02", 20, phase=2, files=["shared.py", "other.py"]),
-             # X-03 waits on X-02, so never shares its wave; X-04 is in another phase.
+             # X-03 waits on X-02, so never runs beside it; a wave can reach X-04 past a phase.
              self.open_task("X-03", 30, phase=2, files=["other.py"], blockedBy=["X-02"]),
              self.open_task("X-04", 40, phase=3, files=["shared.py"])],
             "X-01 and X-02 both list 'shared.py' in files",
+            "X-01 and X-04 both list 'shared.py' in files",
+            "X-02 and X-04 both list 'shared.py' in files",
         )
         self.assertNotIn("X-03", out)
-        self.assertNotIn("X-04", out)
 
     def test_validate_tasks_returns_errors_and_warnings(self) -> None:
         errors, warnings = tasks.validate_tasks(

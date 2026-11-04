@@ -204,6 +204,19 @@ class NewGateTests(WsTestCase):
         self.arrange(task("T1", 10, files=["a.py"]), task("T2", 20, files=["a.py"]))
         self.assertIn("T1 and T2 both name a.py", self.fails("claim", "--commit", "T1", "T2"))
 
+    def test_a_claim_refuses_files_shared_with_unfinished_work(self) -> None:
+        self.arrange(task("T1", 10, status="blocked", files=["a.py"]),
+                     task("T2", 20, status="in-progress", files=["b.py"]),
+                     task("T3", 30, phase=2, files=["a.py"]),
+                     task("T4", 40, phase=2, files=["b.py"]),
+                     task("T5", 50, phase=2))
+        self.assertIn("T3 shares a.py with T1, which is blocked",
+                      self.fails("claim", "--commit", "T3"))
+        self.assertIn("T4 shares b.py with T2, which is in-progress",
+                      self.fails("claim", "--commit", "T4"))
+        self.assertEqual(self.by_id("T3")["status"], "todo")
+        self.ok("claim", "--commit", "T5")
+
     def test_a_foreground_task_is_claimed_alone(self) -> None:
         self.arrange(task("T1", 10, mode="foreground"), task("T2", 20))
         self.assertIn("foreground tasks run alone", self.fails("claim", "--commit", "T1", "T2"))
