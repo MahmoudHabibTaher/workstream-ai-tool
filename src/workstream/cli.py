@@ -653,6 +653,8 @@ def cmd_decisions(args: argparse.Namespace) -> int:
     ws, path = _queue(project, args)
     file = project.folder(ws) / "DECISIONS.md"
     entries = decisions.parse(file.read_text()) if file.exists() else []
+    if args.open:  # before --for: whether an entry is open takes the whole log
+        entries = decisions.open_entries(entries)
     if args.for_task:
         task = tasks.find_task_by_prefix(tasks.load(path, project.config), args.for_task)
         entries = decisions.relevant(entries, task)
@@ -666,12 +668,16 @@ def cmd_decisions(args: argparse.Namespace) -> int:
 def cmd_decide(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, _ = _queue(project, args)
+    path = project.folder(ws) / "DECISIONS.md"
+    why = args.why
+    if args.closes is not None:
+        entries = decisions.parse(path.read_text()) if path.exists() else []
+        why = decisions.closing_body(entries, args.closes, why)
     if args.commit:
-        number, short = act.commit_decision(project, ws, today(), args.by, args.title, args.why)
+        number, short = act.commit_decision(project, ws, today(), args.by, args.title, why)
         print(f"{number}; committed {short}")
         return 0
-    path = project.folder(ws) / "DECISIONS.md"
-    print(f"{decisions.record(path, today(), args.by, args.title, args.why)}; commit it")
+    print(f"{decisions.record(path, today(), args.by, args.title, why)}; commit it")
     return 0
 
 
@@ -1095,11 +1101,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = command("decisions", cmd_decisions, "the decisions log, or the entries one task needs")
     p.add_argument("--for", dest="for_task", metavar="ID")
+    p.add_argument("--open", action="store_true", help="only entries still open")
 
     p = command("decide", cmd_decide, "record a coordinator's or user's call, with the next number")
     p.add_argument("title", help="the call, in one line")
     p.add_argument("--why", required=True, help="the reason, and what was rejected")
     p.add_argument("--by", default="coordinator", help="`user` makes it apply to every task")
+    p.add_argument("--closes", metavar="IDS",
+                   help="open decisions this settles, comma-separated; their text stays as it is")
     p.add_argument("--commit", action="store_true",
                    help="commit DECISIONS.md on the integration branch too, and print the hash")
 
