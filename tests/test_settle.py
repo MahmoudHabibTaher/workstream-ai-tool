@@ -631,6 +631,69 @@ class RecoveryTests(SettleTestCase):
         self.assertEqual(self.by_id("T1")["status"], "done")
 
 
+class BlockedReasonTests(SettleTestCase):
+    BLOCKED = "# T1\n\n- **Status:** blocked (needs a key)\n"
+
+    def block(self) -> Path:
+        self.arrange(self.t("T1", notes="the planner's hint"))
+        where = self.work(evidence=self.BLOCKED, run_verify=False)
+        self.ok("settle", "T1")
+        return where
+
+    def test_a_blocked_task_keeps_its_notes_and_records_the_reason(self) -> None:
+        self.block()
+        t = self.by_id("T1")
+        self.assertEqual(t["status"], "blocked")
+        self.assertEqual(t["notes"], "the planner's hint")
+        self.assertIn("needs a key", t["blockedReason"])
+        self.assertIn("task/t1", t["blockedReason"])
+        self.ok("validate")
+        self.assertEqual(problems(self.queue(), load_schema("tasks"), load_schema("tasks")), [])
+
+    def test_the_handoff_lists_the_reason_and_not_the_notes(self) -> None:
+        self.block()
+        handoff = (self.ws_dir / "alpha" / "session_handoff.md").read_text()
+        blocked = next(line for line in handoff.splitlines() if line.startswith("- T1:"))
+        self.assertIn("needs a key", blocked)
+        self.assertNotIn("the planner's hint", blocked)
+
+    def test_the_handoff_falls_back_to_notes_for_a_block_with_no_reason(self) -> None:
+        """An older queue's block has its reason in notes, and `ws update` records none."""
+        self.arrange(self.t("T1", notes="old reason"), self.t("T2", 20))
+        self.claim("T1", "T2")
+        self.ok("update", "T1", "--status", "blocked")
+        self.commit_all("blocked by hand")
+        self.finish(self.root / ".workstream" / "worktrees" / "t2", "T2")
+        self.ok("settle", "T2")
+        handoff = (self.ws_dir / "alpha" / "session_handoff.md").read_text()
+        self.assertIn("- T1: old reason", handoff)
+
+    def test_landing_clears_the_reason(self) -> None:
+        where = self.block()
+        self.finish(where, "T1", files={"more.txt": "x"})
+        self.ok("settle", "T1")
+        t = self.by_id("T1")
+        self.assertEqual(t["status"], "done")
+        self.assertIsNone(t["blockedReason"])
+        self.assertEqual(t["notes"], "the planner's hint")
+
+    def test_unclaim_clears_the_reason(self) -> None:
+        self.block()
+        self.ok("unclaim", "T1", "-w", "alpha")
+        t = self.by_id("T1")
+        self.assertEqual(t["status"], "todo")
+        self.assertIsNone(t["blockedReason"])
+        self.assertEqual(t["notes"], "the planner's hint")
+
+    def test_reset_clears_the_reason(self) -> None:
+        self.block()
+        self.ok("reset", "T1", "--yes")
+        t = self.by_id("T1")
+        self.assertEqual(t["status"], "todo")
+        self.assertIsNone(t["blockedReason"])
+        self.assertEqual(t["notes"], "the planner's hint")
+
+
 class BookkeepingTests(SettleTestCase):
     def test_decisions_are_numbered_across_a_batch_in_merge_order(self) -> None:
         self.arrange(self.t("T1"), self.t("T2", 20))

@@ -267,7 +267,7 @@ def _record(project: Project, ws: dict, outcomes: list[dict], note: str | None) 
                          verification=verify.summary(out["run"] or {}, how))
         for out in blocked:
             tasks.update(queue, out["id"], config, status="blocked",
-                         notes=f"{out['why']}; evidence on {out['branch']}")
+                         blocked_reason=f"{out['why']}; evidence on {out['branch']}")
         _progress_entries(project, ws, outcomes)
         registry.sync(project)
         handoff.write(project, ws, outcomes, note)

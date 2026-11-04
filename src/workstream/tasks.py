@@ -41,7 +41,8 @@ MODE_VALUES = ("background", "foreground")
 RELEASE_IMPACT_VALUES = ("none", "patch", "minor", "major")
 ACCEPTANCE_KINDS = ("command", "manual")
 # Written by the CLI as a task runs; `reset` clears them.
-RUNTIME_FIELDS = ("startedAt", "baseCommit", "claimedBy", "completedAt", "commit", "verification")
+RUNTIME_FIELDS = ("startedAt", "baseCommit", "claimedBy", "completedAt", "commit", "verification",
+                  "blockedReason")
 
 # Every field but id/phase/priority/title, in the order a task is written.
 TASK_FIELD_DEFAULTS = {
@@ -66,6 +67,7 @@ TASK_FIELD_DEFAULTS = {
     "completedAt": None,
     "commit": None,
     "verification": None,
+    "blockedReason": None,
 }
 FIELD_ORDER = ["id", "phase", "priority", "title", *TASK_FIELD_DEFAULTS]
 # Without one of these a task can't be queued; every other field reads as its default.
@@ -80,6 +82,7 @@ FIELD_TYPES = {
     "needsUserDecision": BOOL, "notes": STR, "mode": STR, "requires": STR_LIST,
     "releaseImpact": OPT_STR, "status": STR, "startedAt": OPT_STR, "baseCommit": OPT_STR,
     "claimedBy": OPT_STR, "completedAt": OPT_STR, "commit": OPT_STR, "verification": OPT_OBJECT,
+    "blockedReason": OPT_STR,
 }
 TYPE_DESCRIPTIONS = {
     STR: "a string", OPT_STR: "a string or null", OPT_OBJECT: "an object or null", INT: "an integer", BOOL: "a boolean",
@@ -454,7 +457,7 @@ def update(path: Path, task_id: str, config: Config, *, status: str | None = Non
            commit: str | None = None, notes: str | None = None,
            requires: list[str] | None = None, mode: str | None = None,
            release_impact: str | None = None, verify: list[str] | None = None,
-           verification: dict | None = None) -> dict:
+           verification: dict | None = None, blocked_reason: str | None = None) -> dict:
     data = load(path, config)
     task = find_task(data, task_id)
     if status is not None:
@@ -467,6 +470,10 @@ def update(path: Path, task_id: str, config: Config, *, status: str | None = Non
             task["startedAt"] = now_iso()
         if status == "done" and not task.get("completedAt"):
             task["completedAt"] = now_iso()
+        if status != "blocked":
+            task["blockedReason"] = None
+    if blocked_reason is not None:
+        task["blockedReason"] = blocked_reason
     if commit is not None:
         task["commit"] = commit
     if notes is not None:
@@ -544,7 +551,7 @@ def set_scope(path: Path, scope: dict, config: Config) -> None:
 
 
 def unclaim(path: Path, ids: list[str], config: Config) -> list[str]:
-    """Put started tasks back in the queue: todo, with startedAt and the claim cleared."""
+    """Put started tasks back in the queue: todo, with startedAt, the claim and any block cleared."""
     data = load(path, config)
     known = {t["id"] for t in data["tasks"]}
     ids = _unique(ids)
@@ -555,7 +562,8 @@ def unclaim(path: Path, ids: list[str], config: Config) -> list[str]:
     if problems:
         raise WsError("unclaimed nothing:\n" + "\n".join(f"  - {p}" for p in problems))
     for i in ids:
-        find_task(data, i).update(status="todo", startedAt=None, baseCommit=None, claimedBy=None)
+        find_task(data, i).update(status="todo", startedAt=None, baseCommit=None, claimedBy=None,
+                                  blockedReason=None)
     data["updated"] = today()
     save(path, data)
     return ids

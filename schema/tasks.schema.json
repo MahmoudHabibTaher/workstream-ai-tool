@@ -207,6 +207,13 @@
               "$ref": "#/$defs/verification"
             }
           ]
+        },
+        "blockedReason": {
+          "description": "Written by `ws settle` when a task comes back blocked; cleared when it lands, is unclaimed or is reset.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
