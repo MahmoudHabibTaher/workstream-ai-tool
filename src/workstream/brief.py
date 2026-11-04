@@ -8,12 +8,16 @@ tool exists to remove.
 
 from __future__ import annotations
 
+import re
+
 from workstream import adapt, baseline, decisions, evidence, plan, protocol, tasks, worktree
 from workstream.project import Project
 
 DEFAULT_MAX_CHARS = 10_000
 MAX_SECTION_LINES = 80
-MAX_GOTCHA_CHARS = 400
+MAX_GOTCHA_CHARS = 1_200
+BULLET_RE = re.compile(r"(?:[-*+]|\d+[.)])\s")
+SENTENCE_END_RE = re.compile(r"[.!?][\"')\]`*_]*(?=\s|$)")
 
 
 def _plan_sections(project: Project, ws: dict, task: dict) -> tuple[list[str], list[str]]:
@@ -34,6 +38,45 @@ def _plan_sections(project: Project, ws: dict, task: dict) -> tuple[list[str], l
     return found, missing
 
 
+def _gotcha_entries(gotchas: str) -> list[str]:
+    """The top-level bullets, each with its continuation lines. Text before the first bullet is
+    an entry of its own, and text with no bullets is one entry."""
+    entries: list[list[str]] = []
+    for line in gotchas.splitlines():
+        if not entries or BULLET_RE.match(line):
+            entries.append([])
+        entries[-1].append(line)
+    return ["\n".join(entry).rstrip() for entry in entries]
+
+
+def _cut_at_sentence(entry: str, limit: int) -> str:
+    """The most of entry that fits and ends a sentence; failing that, one that ends a word."""
+    head = entry[:limit]
+    # One character past the limit, so a sentence ending right at it can be seen to end.
+    ends = [m.end() for m in SENTENCE_END_RE.finditer(entry[:limit + 1]) if m.end() <= limit]
+    if ends:
+        return head[:ends[-1]]
+    return head.rsplit(None, 1)[0] if len(head.split(None, 1)) > 1 else head
+
+
+def _gotcha_lines(gotchas: str, pointer_path: str) -> list[str]:
+    """A blocker's gotchas, indented under it, up to the cap. Whole entries are kept wherever they
+    fit; one is cut only when no entry fits whole. A worker is told what it isn't seeing."""
+    entries = _gotcha_entries(gotchas)
+    kept, used = [], 0
+    for entry in entries:
+        if used + len(entry) <= MAX_GOTCHA_CHARS:
+            kept.append(entry)
+            used += len(entry)
+    left = len(entries) - len(kept)
+    if not kept:  # the cut entry counts as one more: its rest is what the pointer leads to
+        kept = [_cut_at_sentence(entries[0], MAX_GOTCHA_CHARS)]
+    lines = [f"  {line}" if line.strip() else "" for e in kept for line in e.splitlines()]
+    if left:
+        lines.append(f"  ({left} more in {pointer_path})")
+    return lines
+
+
 def _builds_on(project: Project, ws: dict, task: dict, rows: list[dict]) -> list[str]:
     """One line per finished blocker, with whatever it left the next task to know."""
     by_id = {t["id"]: t for t in rows}
@@ -48,7 +91,7 @@ def _builds_on(project: Project, ws: dict, task: dict, rows: list[dict]) -> list
         text = evidence.read_at(project, ws, blocker, None)
         gotchas = evidence.parse(text)["gotchas"] if text else ""
         if gotchas and gotchas.lower().rstrip(".") != "none":
-            lines.append(f"  {gotchas[:MAX_GOTCHA_CHARS]}")
+            lines += _gotcha_lines(gotchas, project.rel(evidence.path_for(project, ws, blocker)))
     return lines
 
 
