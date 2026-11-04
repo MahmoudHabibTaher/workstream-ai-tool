@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from tests.helpers import WsTestCase, task
 from tests.test_schema import load_schema, problems
 from tests.test_settle import SettleTestCase
-from workstream import verify
+from workstream import gates, registry, tasks, verify
 from workstream.gitutil import common_dir
 
 
@@ -159,6 +161,46 @@ class RecordTests(VerifyTestCase):
 class CodeTreeTests(VerifyTestCase):
     def tree(self, rev: str | None = None) -> str:
         return verify.code_tree(self.project(), rev)
+
+    def racy_edit(self) -> Path:
+        """A committed file, edited to the same size in the same second as its index entry,
+        which only git's racy check can catch. No sleeping: the file and the real index are put
+        at one old time, and without ctime the stat data then says nothing changed."""
+        self.git("config", "core.trustctime", "false")
+        path = self.root / "code.txt"
+        path.write_text("before\n")
+        old = int(time.time()) - 3600
+        os.utime(path, (old, old))
+        self.commit_all("the code")
+        path.write_text("after!\n")
+        os.utime(path, (old, old))
+        os.utime(self.root / ".git" / "index", (old, old))
+        # No optional locks: a plain status would rewrite the index and spoil the setup.
+        self.assertIn(" M code.txt", self.git("--no-optional-locks", "status", "--porcelain"))
+        return path
+
+    def test_a_racy_same_size_edit_changes_the_hash(self) -> None:
+        self.racy_edit()
+        first = self.tree()
+        self.assertNotEqual(first, self.tree("HEAD"))
+        self.assertEqual(self.tree(), first)
+        self.commit_all("the edit")
+        self.assertEqual(self.tree("HEAD"), first)
+
+    def test_a_discarded_racy_edit_leaves_a_record_the_gate_refuses(self) -> None:
+        seen = self.root.parent / "seen.txt"
+        self.arrange(test=f"cat code.txt > {seen}")
+        path = self.racy_edit()
+        self.assertIn("PASS test", self.ok("verify", "T1"))
+        self.assertEqual(seen.read_text(), "after!\n")
+        self.git("checkout", "--", "code.txt")
+        self.assertEqual(path.read_text(), "before\n")
+        project = self.project()
+        ws = registry.find(registry.load(project), "alpha")
+        task_ = tasks.find_task(tasks.load(project.tasks_path(ws), project.config), "T1")
+        found = gates.verification_gates(project, ws, task_, {self.tree("HEAD")})
+        same = next(g for g in found if g["name"] == "the verified code is what would land")
+        self.assertFalse(same["ok"], found)
 
     def test_the_working_tree_matches_its_commit(self) -> None:
         self.commit_all("x")

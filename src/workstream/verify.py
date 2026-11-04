@@ -63,7 +63,9 @@ def code_tree(project: Project, rev: str | None = None) -> str:
         else:
             real = gitutil.run(root, "rev-parse", "--git-path", "index").stdout.strip()
             if real and (root / real).exists():
-                shutil.copyfile(root / real, index)  # keeps the stat cache: add -A stays quick
+                # Keeps the stat cache, so add -A stays quick, and the index's mtime: a newer copy
+                # would stop git's racy check rereading a same-size edit, and hash HEAD's tree.
+                shutil.copy2(root / real, index)
             steps = [("add", "-A")]
         # Forced: this index is meant to differ from HEAD, which `git rm` otherwise refuses.
         steps.append(("rm", "-r", "-q", "-f", "--cached", "--ignore-unmatch", "--",
