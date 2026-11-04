@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-15: Prove it end to end
+
+Merged as `4b44e0144c`. Verified: test pass, audit pass. [Evidence](evidence/RF-15.md).
+
 ## 2026-11-04: RF-13: Resuming a blocked task
 
 Merged as `5a48e4bd36`. Verified: test pass, audit pass. [Evidence](evidence/RF-13.md).

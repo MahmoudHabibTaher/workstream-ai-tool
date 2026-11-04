@@ -147,3 +147,11 @@ Rejected: letting it through, which is a gate that silently checks nothing. **Cl
 `acceptance_text` adds ``(the output must contain `75/2/16`)``, so a worker sees the requirement before `ws verify` fails on it. The missing-output line also appears in `format_run`, since `ws verify` otherwise printed only a problem count for it.
 
 Rejected: leaving the literal out of `acceptance_text`, which keeps a worker from seeing what it must produce. **Closed.**
+
+## D028 (2026-11-04, RF-15): the resume scenario's block is set up by the harness
+
+A real first worker would cost more, and could fail in ways that have nothing to do with resuming. So `block_first_attempt` commits the work and blocked evidence, settles it, and records the answer. 0012 lists this as not proven. Rejected: two real agents in sequence. **Closed.**
+
+## D029 (2026-11-04, RF-15): RF-15 and RF-16 ran in a plain `git worktree add` checkout
+
+The brief says to switch the main checkout to the task branch, and this run's instruction was to stay on `main`, while `ws worktree create` refuses a foreground task. `ws` followed the checkout, and its brief then named it as the place to work. Rejected: switching the shared checkout. **Closed.**

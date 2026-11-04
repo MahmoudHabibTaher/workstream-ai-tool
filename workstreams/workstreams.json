@@ -180,9 +180,9 @@
       "progress": {
         "total": 16,
         "todo": 0,
-        "in-progress": 1,
+        "in-progress": 0,
         "blocked": 0,
-        "done": 15,
+        "done": 16,
         "deferred": 0
       },
       "notes": ""
