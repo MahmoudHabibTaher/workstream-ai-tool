@@ -12,6 +12,7 @@ description: Manage workstreams over their life (what's next, adding a task, pau
 - **A task the plan didn't foresee:** `ws add`, then `ws decide "..." --why "..."` to say why. `PLAN.md` stays as approved.
 - **An open decision, settled:** `ws decisions --open -w <id>` lists what is still open. `ws decide "..." --why "..." --closes D015,D014 -w <id>` closes those with a new entry, because the log is append-only.
 - **A `verify` a worker found wrong:** `ws update <task> --verify <key>`, after reading their proposal.
+- **A decision that changes what a task must prove:** `ws update <task> --acceptance <n> "<text>" --because <Dnnn> --commit -w <id>` replaces that item, unless the task is done or deferred.
 - **Pause, resume, abandon:** `ws set-status`, only on the user's say-so. Abandoning needs `--notes`.
 - **Replay:** `ws reset --dry-run` first, since it discards the record of what ran.
 
