@@ -764,7 +764,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/lo-09",
       "blockedBy": [
         "LO-01",
         "LO-02",
@@ -782,10 +782,10 @@
         "browser"
       ],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T18:35:28Z",
+      "baseCommit": "806dba98648b6f0103f720f4f517ca9427245a1a",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
