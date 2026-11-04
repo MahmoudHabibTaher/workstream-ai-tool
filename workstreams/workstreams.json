@@ -178,11 +178,11 @@
       "baseCommit": "e18f900",
       "dependsOn": [],
       "progress": {
-        "total": 15,
+        "total": 16,
         "todo": 5,
         "in-progress": 1,
         "blocked": 0,
-        "done": 9,
+        "done": 10,
         "deferred": 0
       },
       "notes": ""
