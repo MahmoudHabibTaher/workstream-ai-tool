@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -900,8 +902,48 @@ class BriefTests(SettleTestCase):
     def test_a_foreground_task_says_to_land_it_too(self) -> None:
         self.arrange(self.t("T1", mode="foreground"))
         brief = self.ok("brief", "T1")
-        self.assertIn("`git switch main`, then `ws settle T1 -w alpha`", brief)
+        self.assertIn(f"`ws --root {self.root} settle T1 -w alpha`", brief)
         self.assertNotIn("5. Report:", brief)
+
+    def test_a_foreground_brief_never_switches_a_checkout(self) -> None:
+        self.arrange(self.t("T1", mode="foreground"),
+                     self.t("T2", 20, phase=2, requires=["browser"]))
+        for task_id in ("T1", "T2"):
+            with self.subTest(task_id, worktree=False):
+                brief = self.ok("brief", task_id)
+                self.assertIn(f"`ws worktree create {task_id} -w alpha`", brief)
+                self.assertNotIn("git switch", brief)
+        where = self.claim("T1")[0]
+        with self.subTest("T1", worktree=True):
+            brief = self.ok("brief", "T1")
+            self.assertIn(f"Work in `{where}`", brief)
+            self.assertNotIn("ws worktree create", brief)
+            self.assertNotIn("git switch", brief)
+
+    def land_a_foreground_task_from_its_worktree(self) -> None:
+        self.arrange(self.t("T1", mode="foreground"))
+        where = self.claim("T1")[0]
+        self.finish(where, "T1")
+        command = re.search(r"`(ws --root [^`]+ settle [^`]+)`", self.ok("brief", "T1")).group(1)
+        env = {**os.environ, "PYTHONPATH": str(Path(workstream.__file__).parents[1])}
+        done = subprocess.run([sys.executable, "-m", "workstream", *shlex.split(command)[1:]],
+                              cwd=where, env=env, capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(self.by_id("T1")["status"], "done")
+        self.assertEqual(self.git("branch", "--show-current").strip(), "main")
+        self.assertTrue((self.root / "T1.txt").exists())
+        self.assertFalse(where.exists())
+
+    def test_a_foreground_briefs_landing_step_works_from_its_worktree(self) -> None:
+        self.land_a_foreground_task_from_its_worktree()
+
+    def test_the_landing_step_survives_a_space_in_the_checkouts_path(self) -> None:
+        moved = self.root.parent / "a place"
+        self.root.rename(moved)
+        self.root = moved
+        self.ws_dir = moved / "workstreams"
+        self.registry = self.ws_dir / "workstreams.json"
+        self.land_a_foreground_task_from_its_worktree()
 
     def test_a_citation_with_no_section_is_flagged(self) -> None:
         self.arrange(self.t("T1", findings=["T9"]))

@@ -67,7 +67,7 @@ Required: `id` (`<PREFIX>-01`), `phase`, `priority` (10, 20, 30; the real order)
 | `verify` | Keys from `[commands]`, or a raw command. Must run what the task produces |
 | `blockedBy` | Task ids. Tasks sharing files must be chained |
 | `needsUserDecision` | True only for what planning couldn't settle |
-| `mode` | `background`, or `foreground` for what a worktree can't do |
+| `mode` | `background`, or `foreground` for a task needing a session to itself. Both get a worktree |
 | `requires` | The config's values, such as `browser` or `user`; some force foreground |
 | `releaseImpact` | `none`, `patch`, `minor` or `major`, required on a `full` workstream |
 | `notes` | Hints. Nothing branches on free text |

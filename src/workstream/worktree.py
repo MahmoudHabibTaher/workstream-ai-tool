@@ -104,9 +104,6 @@ def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool]:
     task = tasks.find_task(data, task_id)
     if task["status"] != "in-progress":
         raise Refused(f"{task_id} is {task['status']}; `ws claim --commit {task_id}` first")
-    if task["mode"] == "foreground":
-        raise Refused(f"{task_id} runs in the foreground, in the session that claimed it"
-                      + (f" (it needs {', '.join(task['requires'])})" if task["requires"] else ""))
     branch = task.get("branch") or config.branch_for(task_id)
     if branch.startswith("-"):
         raise Refused(f"branch {branch!r} looks like an option")
