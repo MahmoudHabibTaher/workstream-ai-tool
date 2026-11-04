@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from workstream import decisions, handoff, tasks
@@ -26,6 +27,8 @@ from workstream.project import Project
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
 FENCE_RE = re.compile(r"^(`{3,}|~{3,})\s*(.*?)\s*$")
+TABLE_ROW_RE = re.compile(r"^\s*\|\s*((?:[^|\\]|\\.)*?)\s*(?:\||$)")
+TABLE_ROW_LEVEL = 0  # no heading, so no level
 TASKS_BLOCK = "ws-tasks"
 DECISIONS_BLOCK = "ws-decisions"
 SLOT_RE = r"\{\{%s[^}]*\}\}"
@@ -41,17 +44,24 @@ class Section:
     text: str  # the heading line and the body, down to the next heading at this level or above
 
 
-def sections(text: str) -> list[Section]:
-    """Every heading's section, in order. A `#` line inside a code fence isn't a heading."""
-    lines = text.splitlines()
-    heads = []
+def _outside_fences(lines: list[str]) -> Iterator[tuple[int, str]]:
+    """(line number, line) for each line that isn't in a code fence or a fence marker."""
     fence = ""
     for n, line in enumerate(lines):
         match = FENCE_RE.match(line)
         if match and (not fence or (match[1].startswith(fence) and not match[2])):
             fence = "" if fence else match[1]
             continue
-        heading = HEADING_RE.match(line) if not fence else None
+        if not fence:
+            yield n, line
+
+
+def sections(text: str) -> list[Section]:
+    """Every heading's section, in order. A `#` line inside a code fence isn't a heading."""
+    lines = text.splitlines()
+    heads = []
+    for n, line in _outside_fences(lines):
+        heading = HEADING_RE.match(line)
         if heading:
             heads.append((n, len(heading[1]), heading[2]))
     found = []
@@ -63,12 +73,31 @@ def sections(text: str) -> list[Section]:
 
 def find_section(text: str, ref: str) -> Section | None:
     """The section whose heading is ref, or starts with it as a whole word (`T3` finds
-    `### T3: the cache lies`, and not `### T30: ...`)."""
+    `### T3: the cache lies`, and not `### T30: ...`). Failing a heading, a table row whose
+    first cell starts with ref the same way, as a section holding only that row."""
     pattern = re.compile(rf"^{re.escape(ref)}(?=$|[\s:.,)-])")
     for section in sections(text):
         if pattern.match(section.title):
             return section
+    for _, line in _outside_fences(text.splitlines()):
+        row = TABLE_ROW_RE.match(line)
+        if row and pattern.match(row[1]):
+            return Section(TABLE_ROW_LEVEL, row[1], line.strip())
     return None
+
+
+def citation_warning(text: str, rows: list[dict]) -> str | None:
+    """One line naming the refs open tasks cite and the plan doesn't have, None if there are
+    none. A plan not written yet has no sections to miss."""
+    if not text.strip() or PLACEHOLDER in text:
+        return None
+    cited = [ref for t in rows if t.get("status") in tasks.OPEN_STATUSES
+             and isinstance(t.get("findings"), list)
+             for ref in t["findings"] if isinstance(ref, str)]
+    missing = [ref for ref in dict.fromkeys(cited) if find_section(text, ref) is None]
+    if not missing:
+        return None
+    return f"open tasks cite what PLAN.md doesn't have: {', '.join(missing)}"
 
 
 def split_blocks(text: str) -> tuple[str, dict[str, str]]:
@@ -177,4 +206,8 @@ def seed_from_plan(project: Project, ws: dict, text: str, force: bool = False
     _fill(folder / handoff.FILE_NAME, {"NEXT": " ".join(handoff.next_lines(rows)),
                                        "GOTCHAS": "None."})
     # Plans name files their tasks will create, so that warning would fire on nearly every line.
-    return len(new_tasks), [w for w in warnings if not w.endswith(tasks.MISSING_FILES_SUFFIX)]
+    warnings = [w for w in warnings if not w.endswith(tasks.MISSING_FILES_SUFFIX)]
+    cited = citation_warning(body, rows)
+    if cited:
+        warnings.append(f"{ws.get('id', '?')}: {cited}")
+    return len(new_tasks), warnings

@@ -56,6 +56,31 @@ class SectionTests(unittest.TestCase):
     def test_a_heading_inside_a_fence_is_not_one(self) -> None:
         self.assertIsNone(plan.find_section(PLAN, "not"))
 
+    def test_a_table_row_is_found_by_its_first_cell(self) -> None:
+        text = "# Plan\n\n| Id | What |\n|---|---|\n| G70 | wrong |\n| G7 | right |\n"
+        found = plan.find_section(text, "G7")
+        self.assertEqual(found.text, "| G7 | right |")
+        self.assertEqual(found.title, "G7")
+        self.assertEqual(plan.find_section(text, "G70").text, "| G70 | wrong |")
+
+    def test_a_table_row_can_start_with_the_ref_and_go_on(self) -> None:
+        text = "| G7: the cache | high |\n"
+        self.assertEqual(plan.find_section(text, "G7").text, "| G7: the cache | high |")
+
+    def test_a_table_row_only_counts_on_its_first_cell_and_as_a_whole_word(self) -> None:
+        text = "| G70 | wrong |\n| other | G7 |\n"
+        self.assertIsNone(plan.find_section(text, "G7"))
+        self.assertIsNone(plan.find_section(text, "G"))
+
+    def test_a_table_row_inside_a_fence_is_not_one(self) -> None:
+        self.assertIsNone(plan.find_section("```\n| G7 | fenced |\n```\n", "G7"))
+
+    def test_a_heading_wins_over_a_table_row(self) -> None:
+        text = "| G7 | the row comes first |\n\n### G7: the heading\nBody.\n"
+        found = plan.find_section(text, "G7")
+        self.assertEqual(found.title, "G7: the heading")
+        self.assertIn("Body.", found.text)
+
 
 class SplitTests(unittest.TestCase):
     def test_splits_the_blocks_out(self) -> None:
@@ -100,6 +125,52 @@ class SeedFromPlanTests(WsTestCase):
         self.assertIn("ruled out caching", (self.folder / "DECISIONS.md").read_text())
         self.assertIn("X-01", (self.folder / "session_handoff.md").read_text())
         self.ok("validate")
+
+    def _seed_citing(self, *rows: dict) -> None:
+        start = PLAN.index('[{"id"')
+        end = PLAN.index("]\n```\n\n```text") + 1
+        self.plan_file.write_text(PLAN[:start] + json.dumps(list(rows)) + PLAN[end:])
+
+    def test_validate_warns_once_for_a_workstream_listing_what_open_tasks_cite(self) -> None:
+        self._seed_citing(task("X-01", 10, findings=["T1", "G7"]),
+                          task("X-02", 20, findings=["G7", "G8"]))
+        self.ok("seed", "--from-plan", str(self.plan_file))
+        lines = [line for line in self.ok("validate").splitlines() if "PLAN.md" in line]
+        self.assertEqual(lines, ["  - alpha: open tasks cite what PLAN.md doesn't have: G7, G8"])
+
+    def test_seed_prints_the_same_warning(self) -> None:
+        self._seed_citing(task("X-01", 10, findings=["T1", "G7"]),
+                          task("X-02", 20, findings=["G7", "G8"]))
+        out = self.ok("seed", "--from-plan", str(self.plan_file))
+        lines = [line for line in out.splitlines() if "PLAN.md" in line and line.startswith("warning")]
+        self.assertEqual(lines, ["warning: alpha: open tasks cite what PLAN.md doesn't have: G7, G8"])
+
+    def test_a_ref_in_a_table_row_gets_no_warning(self) -> None:
+        self._seed_citing(task("X-01", 10, findings=["G7"]))
+        self.plan_file.write_text(self.plan_file.read_text() + "\n| G7 | a finding |\n")
+        self.assertNotIn("PLAN.md doesn't", self.ok("seed", "--from-plan", str(self.plan_file)))
+        self.assertNotIn("PLAN.md doesn't", self.ok("validate"))
+
+    def test_a_done_task_citation_gets_no_warning(self) -> None:
+        self._seed_citing(task("X-01", 10, findings=["G7"]), task("X-02", 20, findings=["T1"]))
+        self.assertIn("G7", self.ok("seed", "--from-plan", str(self.plan_file)))
+        queue = self.queue()
+        queue["tasks"][0]["status"] = "done"
+        (self.folder / "tasks_list.json").write_text(json.dumps(queue))
+        self.assertNotIn("PLAN.md doesn't", self.ws("validate")[1])
+
+    def test_a_workstream_with_no_written_plan_gets_no_warning(self) -> None:
+        self.ok("seed", str(self._seed_file()))
+        plan_path = self.folder / "PLAN.md"
+        self.assertIn("{{", plan_path.read_text())
+        self.assertNotIn("PLAN.md doesn't", self.ws("validate")[1])
+        plan_path.unlink()
+        self.assertNotIn("PLAN.md doesn't", self.ws("validate")[1])
+
+    def _seed_file(self):
+        seed = self.root.parent / "seed.json"
+        seed.write_text(json.dumps([task("X-01", 10, findings=["G7"])]))
+        return seed
 
     def test_it_does_not_warn_about_files_tasks_will_create(self) -> None:
         self.plan_file.write_text(PLAN.replace('"findings": ["T1"]',
