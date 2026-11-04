@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-08: The wave shows blocked tasks and holds back shared files
+
+Merged as `cf6cca8998`. Verified: test pass. [Evidence](evidence/RF-08.md).
+
 ## 2026-11-04: RF-06: Blocking a task keeps its notes
 
 Merged as `1a49870834`. Verified: test pass. [Evidence](evidence/RF-06.md).

@@ -47,3 +47,15 @@ Rejected: clearing only in settle's landing path, which leaves the `ws update` r
 ## D009 (2026-11-04, RF-07): `_at_task` returns the opened checkout's registry row, not the integration checkout's
 
 The folder paths in the returned row must fit the checkout that will write evidence, and a row changed on the integration branch since the claim might not. Only the task itself comes from the integration checkout, as D-SOURCE says. Rejected: returning the integration checkout's row, which is simpler but could point a worktree's evidence at a path its branch doesn't have. **Closed.**
+
+## D010 (2026-11-04, RF-08): `ws wave` and the lanes screen use the handoff's reason chain
+
+A blocked task shows `blockedReason`, then `notes`, then its title, as D007 does for the handoff, so older queues' reasons still appear. Rejected: reason only, which would show nothing for a hand-blocked task. **Closed.**
+
+## D011 (2026-11-04, RF-08): `heldBack` has one entry per task, holder and path
+
+A task held by two tasks, or on two paths, gets one entry each, so every cause is visible and each must clear. The schema's `{id, by, path}` shape can't hold more than one cause per entry. Rejected: first cause only, which hides what else must land. **Closed.**
+
+## D012 (2026-11-04, RF-08): the claim test and lanes test sit outside the listed test files
+
+The `ws claim --commit` test is in `tests/test_protocol.py`, beside the other batch refusals and their git setup. The lanes test is in `ui/web/tests/logic.test.mjs`, the only place JS runs, which needed `waveNotes` exported from `lanes.js`. Rejected: calling `batch_problems` directly from `tests/test_tasks.py`, which wouldn't prove the command refuses. **Closed.**

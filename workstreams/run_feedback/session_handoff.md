@@ -1,16 +1,14 @@
 # Session handoff
 
-**State:** 7/15 done on `main` at `a48a8ef`, as of 2026-11-04.
+**State:** 8/15 done on `main` at `cf6cca8`, as of 2026-11-04.
 
-**Just landed:** RF-06 (`1a49870834`), RF-07 (`a48a8effa0`)
+**Just landed:** RF-08 (`cf6cca8998`)
 
-**Next:** `ws claim --commit RF-08` (phase 2).
+**Next:** `ws claim --commit RF-09` (phase 2).
 
 **Gotchas:**
-- RF-06: - The reason no longer appears on the web task screen or in `ws show`. Both only print `notes` (`src/workstream/assets/web/task.js:33`, `src/workstream/cli.py:373`), and until now the reason reached them by overwriting it. `blockedReason` is already in the snapshot's task data, so showing it is a small follow-up. Left alone: neither file is in this task's list, and D-REASON names only the handoff.
-- `ws update` has no way to set `blockedReason`, so a hand-blocked task has no reason until someone adds that.
-- I avoided the shared-TMPDIR problem RF-02 and RF-05 reported by setting a private TMPDIR, so this run neither reproduced nor ruled it out. Not fixed: out of scope.
-- RF-07: - A workstream that exists only on a side branch can't be briefed or verified while another checkout is on the integration branch. `ws new` doesn't require the integration branch, so this can arise. From a linked checkout on `feature`, I got `error: no workstream with id 'gamma' (see `ws list --all`)` from `ws brief` after `ws new gamma` there. Before this change it read that checkout's registry. Claimed tasks aren't affected, since a claim has to be on the integration branch. Not worked around, because D-SOURCE says everything the brief reads comes from the integration checkout. A fallback for a workstream the integration checkout doesn't have would be small if this matters.
-- From a worktree with no `-w`, the "only open workstream" fallback now counts the integration checkout's open workstreams. One opened since the claim gives a "several open" refusal rather than a guess. Briefs always pass `-w`, so workers don't hit it.
-- `ws decisions` still reads the current checkout, so from a worktree it misses decisions made since the claim, including the "N more" a brief points to with `ws decisions --for`. Outside this task's issue as written.
-- `ws verify` still reads `[commands]` and baselines from the worktree: the task's list is current, but what a key expands to is as of the claim. From reading the code, not run: a command key added to the config on the integration branch after the claim shows in the brief, but the worktree's config doesn't have it when verify runs.
+- RF-08: - `ws next` still uses `graph.actionable` alone (`src/workstream/cli.py`, `cmd_next`), so it can name a held-back task, which `ws claim --commit` then refuses. Not in D-WAVE, so left alone.
+- Plain `ws claim` without `--commit` skips `batch_problems`, as it already did, so it doesn't refuse the overlap.
+- D-WAVE's rule is applied literally: a task hand-marked blocked that also has `blockedBy` on a todo task sharing its file holds that todo task back, and neither can move until someone acts. The wave reports it as stuck or held back, so it is visible. `validate` doesn't warn about that pair, because it skips overlaps along a `blockedBy` chain.
+- Validate's overlap warning now fires for cross-phase overlaps between open tasks, so existing queues may show more warnings. That is the decision's intent, and they stay warnings.
+- `ui/mod` (the Claude Code pane) doesn't show heldBack. Its types name only what it reads, and it wasn't in this task's list.
