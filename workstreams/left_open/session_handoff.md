@@ -1,11 +1,11 @@
 # Session handoff
 
-**State:** 9/14 done on `main` at `7eb2d7b`, as of 2026-11-04.
+**State:** 10/14 done on `main` at `3bfbb7b`, as of 2026-11-04.
 
-**Just landed:** LO-08 (`7eb2d7bf38`)
+**Just landed:** LO-10 (`3bfbb7b0d3`)
 
-**Next:** `ws claim --commit LO-10` (phase 5).
+**Next:** `ws claim --commit LO-11` (phase 5).
 
 **Gotchas:**
-- LO-08: - This work was resumed from an earlier worker's uncommitted edits. I checked them against the brief and kept them unchanged.
-- `blocked && h(...)` passes `''` to `append` in `dom.js` when there is no reason, which adds an empty text node. It draws nothing, and `task.summary && ...` beside it does the same, so I left it.
+- LO-10: - `src/workstream/assets/skills/ws-coordinate/SKILL.md` names `ws update --acceptance` for a decision that changes a task, but not `--summary`. It is outside this task's files, so I left it.
+- The Mac slept repeatedly during `ws verify`: the process showed about 1h55m elapsed while verify recorded 294.7s. A worker that judges a hang from elapsed time could wrongly kill such a run. I held off idle sleep with `caffeinate -i -w <pid>` while waiting; it exited with the process.

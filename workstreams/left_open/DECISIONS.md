@@ -41,3 +41,11 @@ Rejected: calling `_print_held_and_blocked` directly, which would also list bloc
 `test_every_command_they_mention_parses` parses every backticked `ws` command, and `ws update --acceptance` alone fails to parse because the flag takes two arguments. The rewording says the same thing and leaves that test as it is.
 
 Rejected: adding an exception to that test, which would weaken a check to suit one phrase; and dropping the backticks, which would make the command the only unmarked one in the row. **Closed.**
+
+## D008 (2026-11-04, LO-10): --summary and --acceptance share one `_correct` helper in cli.py
+
+The refusals and the commit-and-restore path are the same for both, so `_correct_acceptance` now passes its label and write into `_correct`, and its existing tests still pass unchanged. Rejected: copying the function, because the two would then drift apart on refusal terms that D002 wants the same. **Closed.**
+
+## D009 (2026-11-04, LO-10): the bare --commit refusal also names --summary
+
+The brief asks only for the --because refusal to name it, but `--commit needs a hash, except with --acceptance` would be false once --summary takes a bare --commit. Rejected: leaving that wording as it was. **Closed.**
