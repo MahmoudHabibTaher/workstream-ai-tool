@@ -34,6 +34,8 @@ PLANNER = "planner"
 REVIEWER = "reviewer"
 BUDGETS = {ALWAYS_ON: 150, WORKER: 2500, COORDINATOR: 3000, PER_TASK: 400, PLANNER: 3000,
            REVIEWER: 1500}
+# Briefs have their own limit: a task's "Builds on" section grows as its dependencies land.
+BRIEF_BUDGET = 4500
 SKILLS_BY_ROLE = {COORDINATOR: ("ws-run", "ws-coordinate"), PLANNER: ("ws-plan",),
                   REVIEWER: ("ws-review",)}
 SPAWN_PROMPT = "Run `ws brief {task} -w {ws}` and follow it."
@@ -209,8 +211,8 @@ def project_rows(project: Project, ws: dict) -> list[dict]:
         text = brief.render(project, ws, task, data["tasks"], scope=data.get("scope"),
                             cited=False)
         used = tokens(text)
-        rows.append({"role": f"brief {task['id']}", "tokens": used, "budget": BUDGETS[WORKER],
-                     "ok": used <= BUDGETS[WORKER]})
+        rows.append({"role": f"brief {task['id']}", "tokens": used, "budget": BRIEF_BUDGET,
+                     "ok": used <= BRIEF_BUDGET})
     return rows
 
 

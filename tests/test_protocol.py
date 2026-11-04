@@ -108,6 +108,7 @@ class AuditTests(unittest.TestCase):
     def test_the_plans_targets_are_what_is_enforced(self) -> None:
         self.assertEqual(audit.BUDGETS[audit.ALWAYS_ON], 150)
         self.assertEqual(audit.BUDGETS[audit.WORKER], 2500)
+        self.assertEqual(audit.BRIEF_BUDGET, 4500)
         self.assertEqual(audit.BUDGETS[audit.COORDINATOR], 3000)
         self.assertEqual(audit.BUDGETS[audit.PER_TASK], 400)
         self.assertEqual(audit.BUDGETS[audit.PLANNER], 3000)
@@ -157,7 +158,7 @@ class AuditCommandTests(WsTestCase):
 
     def test_a_task_whose_brief_is_too_big_fails(self) -> None:
         self.new_ws()
-        self.seed_ok([task("T1", 10, summary="word " * 3000)])
+        self.seed_ok([task("T1", 10, summary="word " * 4000)])
         code, out, err = self.ws("audit", "context")
         self.assertEqual(code, 1, out + err)
         self.assertIn("brief T1", out)
