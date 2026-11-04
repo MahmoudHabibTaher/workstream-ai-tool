@@ -371,7 +371,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/lo-07",
       "blockedBy": [
         "LO-04",
         "LO-06"
@@ -381,10 +381,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T14:45:36Z",
+      "baseCommit": "d6b5059e5a85b1b5456c26301bd3c1c388b5a58f",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
@@ -416,7 +416,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/lo-12",
       "blockedBy": [
         "LO-05"
       ],
@@ -425,10 +425,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T14:45:36Z",
+      "baseCommit": "d6b5059e5a85b1b5456c26301bd3c1c388b5a58f",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
