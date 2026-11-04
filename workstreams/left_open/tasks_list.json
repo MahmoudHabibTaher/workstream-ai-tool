@@ -315,6 +315,50 @@
       "blockedReason": null
     },
     {
+      "id": "LO-12",
+      "phase": 4,
+      "priority": 75,
+      "title": "The task schema says how to catch a test filter that matches nothing",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T11"
+      ],
+      "summary": "A test filter that matches nothing can exit 0, so ws verify passes without the test existing. ws sees only the exit code and the log, and core can't name a runner, so expect is the answer: say so in the task schema. Adds no check.",
+      "files": [
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_protocol.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "ws protocol task-schema says a name filter matching nothing can still exit 0, and that expect should then name the line the runner prints for that test passing, because a bare test name can match an echoed command",
+        "ws protocol task-schema says ws add and ws update --acceptance can't set expect, and that ws seed can add such a task to an existing queue",
+        "A test in tests/test_protocol.py pins both statements",
+        "tests/test_no_project_literals.py and make audit pass, with no runner named in the text"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "Checked while planning (D002) on a sample repo: a no-match filter passed ws verify with no expect, and with a bare-name expect because make echoed the command; an expect of the pass line failed it; the real test passed. Edit the expect wording in the acceptance row only; no change under .claude/. See D002.",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
       "id": "LO-08",
       "phase": 5,
       "priority": 80,
@@ -348,6 +392,176 @@
       ],
       "needsUserDecision": false,
       "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-10",
+      "phase": 5,
+      "priority": 81,
+      "title": "ws update corrects a task's summary",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T11"
+      ],
+      "summary": "ws update has no --summary, so a wrong summary stays in the task's brief. Add it, on the same terms as --acceptance.",
+      "files": [
+        "src/workstream/cli.py",
+        "src/workstream/tasks.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws update <id> --summary <text> --because <Dnnn> replaces the summary, ending it (changed by Dnnn) as --acceptance does, and ws brief shows the new text",
+        "A test: --summary without --because, with an unknown decision, or with empty text is refused and leaves the queue unchanged",
+        "A test: --summary on a done or a deferred task is refused and leaves the summary as it was",
+        "A test: --summary goes alone, as --acceptance does, and --commit with it commits the queue and prints the hash"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-08"
+      ],
+      "needsUserDecision": false,
+      "notes": "Model it on _correct_acceptance in cli.py and tasks.correct_acceptance. Its refusal that --because goes with --acceptance needs to name --summary too. See D002.",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-11",
+      "phase": 5,
+      "priority": 82,
+      "title": "ws update --commit works with --verify and --notes",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T11"
+      ],
+      "summary": "Bare --commit commits the queue with --acceptance but is refused with --verify or --notes, so those changes need a separate manual commit.",
+      "files": [
+        "src/workstream/cli.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws update <id> --verify <key> --commit commits the queue on the integration branch and prints the hash; the same for --notes, and for both together",
+        "A test: when that commit fails, the queue is restored to what it was",
+        "A test: bare --commit alone, or with --status, --mode, --requires or --release-impact, is still refused, and --commit <hash> still records the hash"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-10"
+      ],
+      "needsUserDecision": false,
+      "notes": "cmd_update refuses at its 'needs a hash' check; reuse the check_checkout, act.commit and act.restore path _correct_acceptance uses rather than a second copy. tests/test_tasks.py pins the refusal for bare --commit. See D002.",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-13",
+      "phase": 5,
+      "priority": 83,
+      "title": "The VAR=x warning offers separate verify entries too",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T11"
+      ],
+      "summary": "The warning for VAR=x a && b says only to export the variable, but separate verify entries also fix it, provided each entry that needs the variable sets it.",
+      "files": [
+        "src/workstream/tasks.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: the warning names both fixes, export or separate verify entries that each set the variable, and still names the entry and the variable",
+        "A test: the split form, verify entries A=1 a and A=1 b, gives no such warning"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-11"
+      ],
+      "needsUserDecision": false,
+      "notes": "The wording is in _verify_warnings in tasks.py. Each entry runs in its own shell, so a split entry that omits the prefix doesn't have the variable: the wording has to say so. See D002.",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-14",
+      "phase": 5,
+      "priority": 84,
+      "title": "ws update says what it changed",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T11"
+      ],
+      "summary": "A verify-only ws update prints updated <id>: status=todo, which doesn't say what changed. It should name the fields it was given.",
+      "files": [
+        "src/workstream/cli.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws update <id> --verify <key> prints a line naming verify, and not status",
+        "A test: each of --notes, --mode, --requires, --release-impact and --commit <hash> is named when given, and several given together are all named",
+        "A test: --status still prints status=<value>",
+        "A test: ws update <id> with no change flags says nothing changed"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-13"
+      ],
+      "needsUserDecision": false,
+      "notes": "The line is at the end of cmd_update. It must also fit the --commit path LO-11 adds, which prints a hash. See D002.",
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
