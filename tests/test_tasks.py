@@ -454,6 +454,59 @@ class UpdateCommitsVerifyAndNotesTests(WsTestCase):
         self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
 
 
+class UpdateSaysWhatChangedTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10)])
+
+    def says(self, *flags: str) -> str:
+        return self.ok("update", "-w", "alpha", "X-01", *flags)
+
+    def test_verify_alone_is_named_and_status_is_not(self) -> None:
+        out = self.says("--verify", "make one")
+        self.assertIn("updated X-01: verify\n", out)
+        self.assertNotIn("status", out)
+
+    def test_each_field_given_is_named(self) -> None:
+        cases = (
+            ("notes", ("--notes", "new")),
+            ("mode", ("--mode", "foreground")),
+            ("requires", ("--requires", "browser")),
+            ("release-impact", ("--release-impact", "minor")),
+            ("commit=abc1234", ("--commit", "abc1234")),
+        )
+        for what, flags in cases:
+            with self.subTest(what=what):
+                out = self.says(*flags)
+                self.assertIn(f"updated X-01: {what}\n", out)
+                self.assertNotIn("status", out)
+
+    def test_several_given_together_are_all_named(self) -> None:
+        out = self.says("--notes", "new", "--verify", "make one", "--mode", "foreground",
+                        "--requires", "browser", "--release-impact", "minor",
+                        "--commit", "abc1234", "--status", "in-progress")
+        self.assertIn("updated X-01: status=in-progress, commit=abc1234, verify, notes, mode, "
+                      "requires, release-impact\n", out)
+
+    def test_an_emptied_field_is_still_named(self) -> None:
+        self.assertIn("updated X-01: requires\n", self.says("--requires", ""))
+
+    def test_status_still_prints_its_value(self) -> None:
+        self.assertIn("updated X-01: status=blocked\n", self.says("--status", "blocked"))
+
+    def test_no_change_flags_says_nothing_changed_and_writes_nothing(self) -> None:
+        path = self.ws_dir / "alpha" / "tasks_list.json"
+        before = path.read_bytes()
+        out = self.says()
+        self.assertIn("X-01: nothing changed\n", out)
+        self.assertNotIn("updated", out)
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_no_change_flags_on_an_unknown_task_still_fails(self) -> None:
+        self.assertIn("X-99", self.fails("update", "-w", "alpha", "X-99"))
+
+
 class DoneNeedsCommitTests(WsTestCase):
     def setUp(self) -> None:
         super().setUp()
