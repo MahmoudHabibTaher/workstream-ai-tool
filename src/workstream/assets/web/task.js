@@ -1,7 +1,7 @@
 // One task: everything the queue says about it, and the way to its review.
 import { urls } from './api.js'
 import { button, crumbs, dl, h, link, mono, pill, section } from './dom.js'
-import { badgesOf, hrefs, offers, statusKind } from './logic.js'
+import { badgesOf, blockedLine, hrefs, offers, statusKind } from './logic.js'
 
 export const fetches = route => ({ ws: urls.snapshot(route.ws) })
 
@@ -13,12 +13,14 @@ export function view(ctx) {
   const task = snap.tasks.find(t => t.id === id)
   if (!task) return h('div', null, crumbs(['Workstreams', hrefs.registry()], [ws, hrefs.lanes(ws)], [id]), h('p', null, `No task ${id} in ${ws}.`))
   const badges = badgesOf(task, snap.tasks, snap.wave, ctx.now)
+  const blocked = blockedLine(task)
   return h(
     'div',
     null,
     crumbs(['Workstreams', hrefs.registry()], [ws, hrefs.lanes(ws)], [id]),
     h('div', { class: 'title-row' }, h('h1', null, task.title), pill(task.status, statusKind(task.status))),
     h('div', { class: 'badges spaced' }, mono(id), badges.map(b => pill(b.text, b.kind))),
+    blocked && h('p', { class: 'note warn' }, blocked),
     task.summary && h('p', { class: 'lede' }, task.summary),
     h(
       'div',

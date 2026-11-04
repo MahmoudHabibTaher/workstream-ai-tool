@@ -31,6 +31,10 @@ export function badgesOf(task, tasks, wave, now) {
   return badges
 }
 
+export function blockedLine(task) {
+  return task.blockedReason ? `Blocked: ${task.blockedReason}` : ''
+}
+
 export function lanes(tasks) {
   const phases = [...new Set(tasks.map(t => t.phase))].sort((a, b) => a - b)
   return phases.map(phase => ({
