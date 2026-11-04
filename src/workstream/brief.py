@@ -9,8 +9,10 @@ tool exists to remove.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
-from workstream import adapt, baseline, decisions, evidence, graph, plan, protocol, tasks, worktree
+from workstream import (adapt, baseline, decisions, evidence, gitutil, graph, plan, protocol, tasks,
+                        worktree)
 from workstream.project import Project
 
 DEFAULT_MAX_CHARS = 10_000
@@ -116,14 +118,69 @@ def _verify_lines(project: Project, ws: dict, task: dict) -> list[str]:
     return lines
 
 
-def _finish_lines(project: Project, ws: dict, task: dict) -> list[str]:
+def _resume_evidence(project: Project, ws: dict, task: dict) -> str | None:
+    """Where a blocked task's evidence already is, or None if it has none, as when it was blocked
+    by hand. `ws evidence new` refuses a file that exists, so the finish steps depend on this."""
+    branch = task.get("branch") or project.config.branch_for(task["id"])
+    rel = project.rel(evidence.path_for(project, ws, task["id"]))
+    tree = worktree.for_branch(project, branch)
+    if tree and (Path(tree) / rel).exists():
+        return str(Path(tree) / rel)
+    return rel if evidence.read_at(project, ws, task["id"], branch) is not None else None
+
+
+def _resume_lines(project: Project, ws: dict, task: dict, evidence_path: str | None) -> list[str]:
+    """What a fresh worker needs to pick up a blocked task without checking finished work again."""
+    branch = task.get("branch") or project.config.branch_for(task["id"])
+    integration = project.config.integration
+    if gitutil.branch_exists(project.root, branch):
+        count = gitutil.run(project.root, "rev-list", "--count", f"{integration}..{branch}")
+        commits = f"{count.stdout.strip()} (`git log {integration}..{branch}`)"
+    else:
+        commits = "none, as the branch doesn't exist yet"
+    lines = ["", "## Resuming", "",
+             "This task was blocked and has been started again. Keep the finished work: don't redo "
+             "or re-check it, and pick up from the reason below. `ws verify` proves the whole at "
+             "the end. If the reason still stands, report blocked again.", "",
+             f"- **Reason:** {task.get('blockedReason') or 'none recorded'}",
+             f"- **Commits on `{branch}`:** {commits}",
+             f"- **Evidence:** {f'`{evidence_path}`' if evidence_path else 'none yet'}"]
+    lacking = _decisions_branch_lacks(project, ws, branch)
+    if lacking:
+        path = project.folder(ws) / "DECISIONS.md"
+        lines += [f"- **Decisions your branch's `DECISIONS.md` lacks:** check your work against "
+                  f"these. Read them in `{path}`, since `ws decisions` reads your branch's copy.",
+                  *[f"  - {e['id']}: {e['title']}" for e in lacking]]
+    else:
+        lines.append("- **Decisions your branch's `DECISIONS.md` lacks:** none")
+    return [*lines, "", "## The task"]
+
+
+def _decisions_branch_lacks(project: Project, ws: dict, branch: str) -> list[dict]:
+    """The entries made since the branch took its copy. A branch that isn't there has no copy to
+    be behind: its worker starts from the integration branch, with all of them."""
+    path = project.folder(ws) / "DECISIONS.md"
+    if not path.exists() or not gitutil.branch_exists(project.root, branch):
+        return []
+    proc = gitutil.run(project.root, "show", f"{branch}:{project.rel(path)}")
+    theirs = {e["id"] for e in decisions.parse(proc.stdout)} if proc.returncode == 0 else set()
+    return [e for e in decisions.parse(path.read_text()) if e["id"] not in theirs]
+
+
+def _finish_lines(project: Project, ws: dict, task: dict,
+                  existing_evidence: str | None = None) -> list[str]:
     tid = f"{task['id']} -w {ws['id']}"
+    evidence_step = (f"2. Update the existing evidence, `{existing_evidence}`, rather than starting "
+                     "a new file: set its Status again and quote the proof for each item."
+                     if existing_evidence else
+                     f"2. `ws evidence new {tid}`, then fill in what it wrote: quote the proof for "
+                     "each item.")
     lines = [
         "## When the work is done", "",
         f"1. `ws verify {tid}` runs the checks above and records the result. Use it rather than "
         "running them by hand: its output stays short, and only its record counts. Run it in the "
         "foreground with the longest timeout your shell allows, and wait for it.",
-        f"2. `ws evidence new {tid}`, then fill in what it wrote: quote the proof for each item.",
+        evidence_step,
         f"3. `ws commit {tid} -m \"<what changed>\"` commits the code and the evidence together on "
         "your branch.",
         f"4. `ws evidence check {tid}` must say OK. If you changed code, verify again first.",
@@ -188,6 +245,10 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
     the part the context limit covers."""
     parts = [f"# {task['id']}: {task['title']}",
              f"Workstream `{ws['id']}`, phase {task['phase']}, {task['mode']}."]
+    existing_evidence = None
+    if task["status"] == "blocked":
+        existing_evidence = _resume_evidence(project, ws, task)
+        parts += _resume_lines(project, ws, task, existing_evidence)
     if task.get("summary"):
         parts += ["", task["summary"]]
     parts += ["", *_start_lines(project, task), *_scope_lines(scope)]
@@ -216,7 +277,8 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
             parts += ["", section]
         if missing:
             parts += ["", f"Cited but not found in PLAN.md: {', '.join(missing)}"]
-    parts += ["", "## Rules", "", protocol.section("worker"), "", *_finish_lines(project, ws, task)]
+    parts += ["", "## Rules", "", protocol.section("worker"), "",
+              *_finish_lines(project, ws, task, existing_evidence)]
     text = "\n".join(parts)
     return _with_decisions(project, ws, task, text, max_chars) + "\n"
 
