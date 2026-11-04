@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import io
+import os
+from contextlib import redirect_stdout
+
 from tests.helpers import WsTestCase, evidence_text, task
+from workstream import verify
 from workstream.brief import MAX_GOTCHA_CHARS
+from workstream.cli import main
 
 POINTER_PATH = "workstreams/alpha/evidence/T1.md"
 
@@ -80,3 +86,92 @@ class GotchaTests(WsTestCase):
         two = "- Two ends. " + "y" * MAX_GOTCHA_CHARS
         self.assertEqual(self.builds_on(f"{one}\n{two}"),
                          ["  - One ends.", f"  (2 more in {POINTER_PATH})"])
+
+
+class SourceTests(WsTestCase):
+    """A brief and a task's definition come from the integration checkout, the work from the
+    worktree."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.where = self.root.parent / "where"
+        self.set_commands(old=f"echo old >> {self.where}",
+                          new=f"pwd >> {self.where}; echo new >> {self.where}")
+        self.new_ws()
+        self.seed_ok([task("T1", 1, verify=["old"], acceptance=["it works"])])
+        self.commit_all("seed")
+        self.ok("claim", "T1", "-w", "alpha")
+        self.commit_all("claim")
+        self.ok("worktree", "create", "T1", "-w", "alpha")
+        self.tree = self.root / self.project().config.worktree_dir / "t1"
+        self.assertTrue(self.tree.is_dir())
+
+    def at_tree(self, *argv: str) -> str:
+        code, out, err = self.ws_at(self.tree, *argv)
+        self.assertEqual(code, 0, out + err)
+        return out
+
+    def test_a_decision_and_a_note_made_after_the_claim_appear(self) -> None:
+        self.ok("decide", "Use the new cache", "--why", "the old one lies", "--by", "user")
+        self.ok("update", "T1", "--notes", "Watch the cache", "-w", "alpha")
+        brief = self.at_tree("brief", "T1", "-w", "alpha")
+        self.assertIn("Use the new cache", brief)
+        self.assertIn("**Notes:** Watch the cache", brief)
+        self.assertNotIn("Watch the cache", (self.tree / "workstreams/alpha/tasks_list.json").read_text())
+        self.commit_all("tracking")
+        self.assertEqual(self.at_tree("brief", "T1", "-w", "alpha"), brief)
+
+    def test_the_brief_finds_the_workstream_of_the_folder_it_stands_in(self) -> None:
+        self.new_ws("beta")
+        self.ok("decide", "Use the new cache", "--why", "the old one lies", "--by", "user", "-w", "alpha")
+        back = os.getcwd()
+        self.addCleanup(os.chdir, back)
+        os.chdir(self.tree / "workstreams" / "alpha")
+        out = io.StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(main(["brief", "T1"]), 0)
+        self.assertIn("Use the new cache", out.getvalue())
+
+    def test_verify_runs_the_list_the_integration_branch_has_now(self) -> None:
+        self.ok("update", "T1", "--verify", "new", "-w", "alpha")
+        self.assertIn('"old"', (self.tree / "workstreams/alpha/tasks_list.json").read_text())
+        self.at_tree("verify", "T1", "-w", "alpha")
+        self.assertEqual(self.where.read_text().splitlines(), [str(self.tree), "new"])
+        run = verify.load_run(self.project(), "alpha", "T1")
+        self.assertEqual([r["key"] for r in run["results"]], ["new"])
+
+    def test_verify_commit_and_evidence_still_act_on_the_worktree(self) -> None:
+        self.ok("update", "T1", "--verify", "new", "-w", "alpha")
+        before = self.git("rev-parse", "HEAD")
+        (self.tree / "code.txt").write_text("x")
+        self.ok("evidence", "new", "T1", "-w", "alpha")  # from the main checkout, on purpose
+        file = self.tree / "workstreams/alpha/evidence/T1.md"
+        self.assertTrue(file.exists())
+        self.assertFalse((self.root / "workstreams/alpha/evidence/T1.md").exists())
+        file.write_text(evidence_text("T1"))
+        self.ok("verify", "T1", "-w", "alpha")
+        self.assertEqual(self.where.read_text().splitlines()[0], str(self.tree))
+        self.ok("commit", "T1", "-w", "alpha", "-m", "the work")
+        self.assertEqual(self.git("rev-parse", "HEAD"), before)
+        self.assertEqual(self.git_at(self.tree, "log", "-1", "--format=%s").strip(), "the work")
+        self.assertEqual(self.git_at(self.tree, "status", "--porcelain"), "")
+        self.assertIn("OK", self.ok("evidence", "check", "T1", "-w", "alpha"))
+        self.assertIn("OK", self.at_tree("evidence", "check", "T1", "-w", "alpha"))
+
+    def test_the_evidence_check_asks_for_the_list_the_integration_branch_has_now(self) -> None:
+        self.at_tree("verify", "T1", "-w", "alpha")
+        self.ok("update", "T1", "--verify", "new", "-w", "alpha")
+        code, out, _ = self.ws_at(self.tree, "evidence", "check", "T1", "-w", "alpha")
+        self.assertEqual(code, 1, out)
+        self.assertIn("new: not run", out)
+
+    def test_with_no_checkout_on_the_integration_branch_it_reads_this_checkout(self) -> None:
+        self.git("switch", "-q", "-c", "elsewhere")
+        self.assertEqual(self.ok("root"), f"{self.root}\n")
+        self.ok("update", "T1", "--notes", "from the other branch", "-w", "alpha")
+        self.at_tree("update", "T1", "--notes", "from this checkout", "-w", "alpha")
+        brief = self.at_tree("brief", "T1", "-w", "alpha")
+        self.assertIn("**Notes:** from this checkout", brief)
+        self.assertNotIn("from the other branch", brief)
+        self.at_tree("verify", "T1", "-w", "alpha")
+        self.assertEqual(self.where.read_text().splitlines(), ["old"])

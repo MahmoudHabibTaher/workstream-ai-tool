@@ -4,8 +4,9 @@ Worktrees sit under the configured dir, inside the repo (where an agent's sandbo
 writing), and are kept out of `git status` through .git/info/exclude, so the project's
 .gitignore never has to know.
 
-A worktree branches from the integration tip, which must already hold the claim: a worker's
-queue and registry come from that commit. `create` refuses when the claim isn't committed.
+A worktree branches from the integration tip, which must already hold the claim: the queue and
+registry in it come from that commit, and `create` refuses when the claim isn't committed. They
+go stale from there, so a brief and a task's definition are read from `integration_checkout`.
 """
 
 from __future__ import annotations
