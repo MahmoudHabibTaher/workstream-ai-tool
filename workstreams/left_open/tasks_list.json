@@ -597,7 +597,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/lo-11",
       "blockedBy": [
         "LO-10"
       ],
@@ -606,10 +606,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-04T18:16:44Z",
+      "baseCommit": "34ea1c46d52af631f56c9ab3defbadb2e29b03c4",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
