@@ -9,6 +9,7 @@ tool exists to remove.
 from __future__ import annotations
 
 import re
+import shlex
 from pathlib import Path
 
 from workstream import (adapt, baseline, decisions, evidence, gitutil, graph, plan, protocol, tasks,
@@ -97,12 +98,16 @@ def _builds_on(project: Project, ws: dict, task: dict, rows: list[dict]) -> list
     return lines
 
 
-def _start_lines(project: Project, task: dict) -> list[str]:
+def _start_lines(project: Project, ws: dict, task: dict) -> list[str]:
     branch = task.get("branch") or project.config.branch_for(task["id"])
     path = worktree.for_branch(project, branch)
     if path:
         return [f"Work in `{path}`, on `{branch}`. It is already set up. Your shell may not stay "
                 "there, so give file paths in full. `ws` finds the worktree itself."]
+    if task["mode"] == "foreground":
+        return [f"Run `ws worktree create {task['id']} -w {ws['id']}`, and work in the path it "
+                f"prints, on `{branch}`. Your shell may not stay there, so give file paths in "
+                "full. `ws` finds the worktree itself."]
     return [f"Work on `{branch}`: `git switch -c {branch}` "
             f"(or `git switch {branch}` if it exists), from `{project.config.integration}`."]
 
@@ -186,10 +191,12 @@ def _finish_lines(project: Project, ws: dict, task: dict,
         f"4. `ws evidence check {tid}` must say OK. If you changed code, verify again first.",
     ]
     if task["mode"] == "foreground":
-        # No separate coordinator is coming to land this, so the rule against switching back,
-        # which is there to keep workers apart, doesn't apply.
-        return lines + [f"5. This task runs in the foreground, so you land it too: `git switch "
-                        f"{project.config.integration}`, then `ws settle {tid}`."]
+        # No separate coordinator is coming to land this. `ws settle` refuses a worktree, and
+        # other sessions share the integration checkout, so it is named rather than switched to.
+        checkout = shlex.quote(str(worktree.integration_checkout(project)))
+        return lines + [f"5. This task runs in the foreground, so you land it too: "
+                        f"`ws --root {checkout} settle {tid}`. That removes your worktree, so "
+                        "leave it first if your shell is there."]
     return lines + ["5. Report: done or blocked, the branch, and any proposed decisions. "
                     "Nothing more."]
 
@@ -251,7 +258,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
         parts += _resume_lines(project, ws, task, existing_evidence)
     if task.get("summary"):
         parts += ["", task["summary"]]
-    parts += ["", *_start_lines(project, task), *_scope_lines(scope)]
+    parts += ["", *_start_lines(project, ws, task), *_scope_lines(scope)]
     for label, field in (("Files you are expected to touch", "files"), ("Docs that bear on this (search them, as they may be long)", "docs"),
                          ("Needs", "requires")):
         if task.get(field):

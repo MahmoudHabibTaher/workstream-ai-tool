@@ -223,10 +223,21 @@ class NewGateTests(WsTestCase):
         self.assertIn("foreground tasks run alone", self.fails("claim", "--commit", "T1", "T2"))
         self.ok("claim", "--commit", "T1")
 
-    def test_a_foreground_task_gets_no_worktree(self) -> None:
-        self.arrange(task("T1", 10, requires=["browser"]))
-        self.ok("claim", "--commit", "T1")
-        self.assertIn("needs browser", self.fails("worktree", "create", "T1"))
+    def test_a_foreground_task_gets_a_worktree(self) -> None:
+        self.arrange(task("T1", 10, mode="foreground"),
+                     task("T2", 20, requires=["browser"]))
+        for task_id in ("T1", "T2"):
+            with self.subTest(task_id):
+                self.ok("claim", "--commit", task_id)
+                self.assertIn(f"{task_id}: {self.root}", self.ok("worktree", "create", task_id))
+                self.assertIn(f"task/{task_id.lower()}", self.ok("worktree", "list"))
+                self.assertEqual(gitutil.current_branch(self.root), "main")
+
+    def test_the_schema_does_not_say_foreground_means_no_worktree(self) -> None:
+        row = next(line for line in protocol.section("task-schema").splitlines()
+                   if line.startswith("| `mode` |"))
+        self.assertIn("a session to itself", row)
+        self.assertNotIn("a worktree can't", row)
 
     def test_a_paused_workstream_can_not_be_claimed(self) -> None:
         self.arrange(task("T1", 10))
