@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/left_open/PLAN.md",
+  "updated": "2026-11-04",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "LO-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "The scratch-repo test survives parallel suites",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "D-TMP"
+      ],
+      "summary": "test_the_scratch_repo_is_cleaned_up globs the shared TMPDIR, so another suite's scenario makes it fail.",
+      "files": [
+        "tests/test_evals.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "test_the_scratch_repo_is_cleaned_up no longer reads the shared TMPDIR and passes while another tests.test_evals run is going, with both commands quoted",
+        "A test: with the harness's cleanup patched out, the leftover folder is seen, so the check can still fail"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-02",
+      "phase": 2,
+      "priority": 20,
+      "title": "code_tree sees a same-size edit",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "D-INDEX"
+      ],
+      "summary": "code_tree's index copy defeats git's racy check, so a same-size edit in the same second can hash as HEAD's tree. That can fool the verified-code gate.",
+      "files": [
+        "src/workstream/verify.py",
+        "tests/test_verify.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a racy same-size edit gives a working-tree hash different from HEAD's, and two calls agree",
+        "A test: ws verify with a racy edit that is then discarded leaves a record verification_gates refuses",
+        "Both tests fail with shutil.copyfile put back, with that run quoted in the evidence",
+        "The evidence states whether the gate could be fooled before the fix, and how"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-03",
+      "phase": 2,
+      "priority": 30,
+      "title": "Settle warns when a brief goes over budget",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T4",
+        "T5",
+        "D-BUDGET"
+      ],
+      "summary": "A landing can push a waiting task's brief over budget, breaking make audit, while settle's post-merge check says same-tree.",
+      "files": [
+        "src/workstream/settle.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a landing that puts a waiting brief over budget lands, and ws settle prints a warning naming the task, its tokens and the budget, and exits 0",
+        "A test: a landing with every brief under budget prints no such warning",
+        "A test: --dry-run measures nothing",
+        "ws protocol stop lists a settle budget warning as a stop",
+        "make audit passes and coordinator per task stays under its budget"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "ws decide doesn't double the marker",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T9",
+        "D-MARK"
+      ],
+      "summary": "ws decide appends a second **Closed.** when --why already ends in one, as D013 in run_feedback shows.",
+      "files": [
+        "src/workstream/decisions.py",
+        "tests/test_decisions.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a body already ending in **Closed.** renders with one marker",
+        "A test: a body quoting the marker mid-text still gets its own at the end",
+        "A test: an open entry still gets no closed marker"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-05",
+      "phase": 3,
+      "priority": 50,
+      "title": "Foreground tasks get a worktree",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T6",
+        "D-FOREGROUND"
+      ],
+      "summary": "ws worktree create refuses a foreground task, and its brief then says to switch the main checkout's branch. RF-15 and RF-16 used a plain git worktree add.",
+      "files": [
+        "src/workstream/worktree.py",
+        "src/workstream/brief.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_protocol.py",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws worktree create makes a worktree for a claimed foreground task, with and without requires",
+        "A test: a foreground brief with no worktree says to run ws worktree create, and no foreground brief says git switch",
+        "A test: a foreground brief's landing step names the integration checkout with --root, and running that from the worktree lands the task with the main checkout still on the integration branch",
+        "A test: a foreground task is still claimed alone",
+        "ws protocol task-schema no longer says foreground means no worktree"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-06",
+      "phase": 3,
+      "priority": 60,
+      "title": "ws next skips held-back tasks",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T7",
+        "D-NEXT"
+      ],
+      "summary": "ws next can name a task that ws wave holds back and ws claim --commit refuses.",
+      "files": [
+        "src/workstream/cli.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: with a task held back by a shared file, ws next names the next free task",
+        "A test: with only held tasks left, ws next says what holds each and exits 0",
+        "A test: ws wave still lists the held task under heldBack"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-07",
+      "phase": 4,
+      "priority": 70,
+      "title": "ws decisions reads the integration checkout",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T8",
+        "D-DECISIONS"
+      ],
+      "summary": "ws decisions from a worktree reads the branch's copy of the log, which stops at the claim.",
+      "files": [
+        "src/workstream/cli.py",
+        "tests/test_decisions.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: an entry recorded on the integration branch after the claim shows in ws decisions run from the worktree",
+        "A test: the same holds for --open and --for"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-04",
+        "LO-06"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-08",
+      "phase": 5,
+      "priority": 80,
+      "title": "ws show and the web screen show blockedReason",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T10",
+        "D-REASON"
+      ],
+      "summary": "Settle records why a task blocked, but ws show and the web task screen don't show it.",
+      "files": [
+        "src/workstream/cli.py",
+        "src/workstream/assets/web/logic.js",
+        "src/workstream/assets/web/task.js",
+        "tests/test_tasks.py",
+        "ui/web/tests/logic.test.mjs"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws show on a blocked task with a reason prints it, and prints no such line for a task without one",
+        "A logic.test.mjs test covers the web helper with and without a reason",
+        "task.js draws the helper's result, and the suite's node tests ran rather than being skipped"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-07"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LO-09",
+      "phase": 6,
+      "priority": 90,
+      "title": "Prove it end to end",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T3",
+        "T6"
+      ],
+      "summary": "Replay each fix on a sample repo with the real CLI, run the Claude Code evals the user approved, and write down what's true.",
+      "files": [
+        "docs/decisions/0013-left-open.md",
+        ".claude/",
+        "CLAUDE.md",
+        ".workstream/adapters.json"
+      ],
+      "docs": [
+        "docs/decisions/0012-run-feedback.md"
+      ],
+      "acceptance": [
+        "Each step in the plan's end-to-end section is run, with the output quoted",
+        "This task itself ran in a worktree from ws worktree create, and landed with the main checkout never changing branch",
+        "ws adapt claude-code --check says OK, refreshing first if it doesn't",
+        "make eval AGENT=claude-code passes on Opus 5.5 at medium effort, with its cost recorded",
+        "docs/decisions/0013-left-open.md lists each bug, its fix, the answer on the verified-code gate, and what stays unproven"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LO-01",
+        "LO-02",
+        "LO-03",
+        "LO-04",
+        "LO-05",
+        "LO-06",
+        "LO-07",
+        "LO-08"
+      ],
+      "needsUserDecision": false,
+      "notes": "The user approved Claude Code eval spend for this task, about $2.24 last time. Don't run Copilot evals: they use paid work-account credits.",
+      "mode": "foreground",
+      "requires": [
+        "browser"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the ws CLI, its protocol and web task screen",
+      "the bugs under Left open in docs/decisions/0012-run-feedback.md",
+      "this repo's tests and decision record"
+    ],
+    "outOfScope": [
+      "Copilot evals",
+      "any change in subsonic-server",
+      "rewriting past decisions or finished tasks",
+      "changing the 4500 brief budget"
+    ],
+    "rule": "Fix only your task's bug: anything else you notice goes under Gotchas."
+  }
+}
