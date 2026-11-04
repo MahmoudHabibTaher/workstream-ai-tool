@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-11: ws update --commit works with --verify and --notes
+
+Merged as `83067cdc14`. Verified: test pass. [Evidence](evidence/LO-11.md).
+
 ## 2026-11-04: LO-10: ws update corrects a task's summary
 
 Merged as `3bfbb7b0d3`. Verified: test pass. [Evidence](evidence/LO-10.md).

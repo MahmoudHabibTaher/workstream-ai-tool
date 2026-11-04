@@ -49,3 +49,11 @@ The refusals and the commit-and-restore path are the same for both, so `_correct
 ## D009 (2026-11-04, LO-10): the bare --commit refusal also names --summary
 
 The brief asks only for the --because refusal to name it, but `--commit needs a hash, except with --acceptance` would be false once --summary takes a bare --commit. Rejected: leaving that wording as it was. **Closed.**
+
+## D010 (2026-11-04, LO-11): --verify and --notes with a bare --commit go through a new `_commit_queue` helper that `_correct` also calls
+
+The check_checkout, act.commit and act.restore path now lives in one place, as the task's notes ask. `_correct`'s existing tests pass unchanged. Rejected: a second copy of that path in cmd_update, and calling `_correct` itself, which requires --because and refuses --verify and --notes. **Closed.**
+
+## D011 (2026-11-04, LO-11): the bare --commit refusal now reads "--commit needs a hash, except with only --acceptance, --summary, --verify or --notes"
+
+"Only" keeps it true when --notes is mixed with --status, which is refused. This extends D009's reasoning that the wording must stay true, and the test pinning the old text was updated to match. Rejected: a second refusal message for the mixed case. **Closed.**
