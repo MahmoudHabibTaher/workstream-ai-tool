@@ -364,7 +364,9 @@ def _verify_warnings(task: dict, label: str, config: Config) -> list[str]:
         names = _short_env_prefix(command)
         if names:
             warnings.append(f"{label}: verify {entry!r} sets {', '.join(names)} for its first "
-                            f"command only; the rest runs without it (export it instead)")
+                            f"command only; the rest runs without it (export it, or use "
+                            f"separate verify entries that each set it: each entry runs in "
+                            f"its own shell)")
     return warnings
 
 
