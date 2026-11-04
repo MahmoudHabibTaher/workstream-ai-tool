@@ -670,6 +670,15 @@ class BookkeepingTests(SettleTestCase):
         self.assertIn("Watch the cache.", text)
         self.assertIn("Back on Monday.", text)
 
+    def test_the_handoff_gives_gotchas_the_decision_number(self) -> None:
+        self.arrange(self.t("T1"))
+        self.work(evidence=evidence_text("T1", proposals="### P1: alpha\nWhy. Rejected: x.",
+                                         gotchas="The P1 fix leaves the cache cold."))
+        self.ok("settle", "T1")
+        text = (self.ws_dir / "alpha" / "session_handoff.md").read_text()
+        self.assertIn("The D001 fix leaves the cache cold.", text)
+        self.assertNotIn("P1", text)
+
     def test_the_registry_is_synced_in_the_same_commit(self) -> None:
         self.arrange(self.t("T1"))
         self.work()
