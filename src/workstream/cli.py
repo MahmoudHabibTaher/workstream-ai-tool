@@ -316,6 +316,21 @@ def cmd_add(args: argparse.Namespace) -> int:
     return 0
 
 
+def _commit_queue(project: Project, ws: dict, path: Path, message: str,
+                  change: Callable[[], object]) -> str:
+    """Run `change` and commit only the queue, putting it back if either fails. Returns the
+    short hash."""
+    rows = registry.load(project)["workstreams"]
+    act.check_checkout(project, snapshot.git_facts(project, rows), "update", ws["id"], rows)
+    before = path.read_bytes()
+    try:
+        change()
+        return act.commit(project, [path], message)
+    except BaseException:
+        act.restore({path: before})
+        raise
+
+
 def _correct(project: Project, ws: dict, path: Path, args: argparse.Namespace, flag: str,
              what: str, change: Callable[[], object]) -> None:
     """Apply a correction that names its decision: `change` writes it, `what` labels it."""
@@ -335,15 +350,7 @@ def _correct(project: Project, ws: dict, path: Path, args: argparse.Namespace, f
         change()
         print(f"updated {args.id}: {what}, {args.because}; commit it")
         return
-    rows = registry.load(project)["workstreams"]
-    act.check_checkout(project, snapshot.git_facts(project, rows), "update", ws["id"], rows)
-    before = path.read_bytes()
-    try:
-        change()
-        short = act.commit(project, [path], f"{ws['id']}: {args.id} {what}, {args.because}")
-    except BaseException:
-        act.restore({path: before})
-        raise
+    short = _commit_queue(project, ws, path, f"{ws['id']}: {args.id} {what}, {args.because}", change)
     print(f"updated {args.id}: {what}, {args.because}; committed {short}")
 
 
@@ -360,6 +367,21 @@ def _correct_summary(project: Project, ws: dict, path: Path, args: argparse.Name
                                            project.config))
 
 
+def _commit_verify_or_notes(project: Project, ws: dict, path: Path,
+                            args: argparse.Namespace) -> None:
+    """Bare --commit on a plain update: only --verify and --notes may share it."""
+    others = (args.status, args.mode, args.requires, args.release_impact)
+    if any(v is not None for v in others) or (args.verify is None and args.notes is None):
+        raise Refused("--commit needs a hash, except with only --acceptance, --summary, "
+                      "--verify or --notes")
+    named = (("verify", args.verify), ("notes", args.notes))
+    what = " and ".join(name for name, value in named if value is not None)
+    short = _commit_queue(project, ws, path, f"{ws['id']}: {args.id} {what}",
+                          lambda: tasks.update(path, args.id, project.config, notes=args.notes,
+                                               verify=args.verify))
+    print(f"updated {args.id}: {what}; committed {short}")
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
@@ -372,7 +394,8 @@ def cmd_update(args: argparse.Namespace) -> int:
     if args.because:
         raise Refused("--because goes with --acceptance or --summary")
     if args.commit is True:
-        raise Refused("--commit needs a hash, except with --acceptance or --summary")
+        _commit_verify_or_notes(project, ws, path, args)
+        return 0
     requires = _split(args.requires) if args.requires is not None else None
     if args.status == "done":
         landed = args.commit or tasks.find_task(tasks.load(path, project.config), args.id).get("commit")
@@ -1112,7 +1135,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("id")
     p.add_argument("--status")
     p.add_argument("--commit", nargs="?", const=True,
-                   help="record this commit; bare, with --acceptance or --summary, commit the queue")
+                   help="record this commit; bare, with only --acceptance, --summary, --verify or "
+                        "--notes, commit the queue")
     p.add_argument("--notes")
     p.add_argument("--verify", action="append", help="replaces the list; repeatable")
     p.add_argument("--acceptance", nargs=2, metavar=("N", "TEXT"),

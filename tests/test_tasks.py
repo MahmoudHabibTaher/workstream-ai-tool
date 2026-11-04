@@ -342,7 +342,7 @@ class CorrectSummaryTests(WsTestCase):
     def test_a_stray_because_or_bare_commit_names_both_flags(self) -> None:
         self.refused("--because goes with --acceptance or --summary", "X-01",
                      "--because", "D001", "--notes", "n")
-        self.refused("--commit needs a hash, except with --acceptance or --summary", "X-01",
+        self.refused("--commit needs a hash, except with only --acceptance, --summary", "X-01",
                      "--commit")
 
     def test_commit_commits_only_the_queue_and_prints_the_hash(self) -> None:
@@ -374,6 +374,84 @@ class CorrectSummaryTests(WsTestCase):
         hook.write_text("#!/bin/sh\nexit 1\n")
         hook.chmod(0o755)
         self.refused("commit failed", "X-01", "--summary", "new", "--because", "D001", "--commit")
+
+
+class UpdateCommitsVerifyAndNotesTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10)])
+        self.queue_path = self.ws_dir / "alpha" / "tasks_list.json"
+        self.commit_all("tracking")
+
+    def refused(self, needle: str, *argv: str) -> None:
+        before = self.queue_path.read_bytes()
+        head = self.git("rev-parse", "HEAD").strip()
+        self.assertIn(needle, self.fails("update", "-w", "alpha", "X-01", *argv))
+        self.assertEqual(self.queue_path.read_bytes(), before)
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
+
+    def test_it_commits_only_the_queue_on_the_integration_branch_and_prints_the_hash(self) -> None:
+        cases = (
+            ("verify", ("--verify", "make one"), ["make one"], None),
+            ("notes", ("--notes", "first"), None, "first"),
+            ("verify and notes", ("--verify", "make two", "--verify", "make three",
+                                  "--notes", "second"), ["make two", "make three"], "second"),
+        )
+        (self.root / "other.txt").write_text("someone's edit\n")
+        for what, flags, verify, notes in cases:
+            with self.subTest(what=what):
+                before = self.by_id("X-01")
+                head = self.git("rev-parse", "HEAD").strip()
+                out = self.ok("update", "-w", "alpha", "X-01", *flags, "--commit")
+                short = self.git("rev-parse", "--short", "HEAD").strip()
+                self.assertIn(f"updated X-01: {what}; committed {short}", out)
+                self.assertEqual(self.git("rev-parse", "HEAD~1").strip(), head)
+                self.assertEqual(self.git("branch", "--show-current").strip(),
+                                 self.project().config.integration)
+                self.assertEqual(self.git("log", "-1", "--format=%s").strip(),
+                                 f"alpha: X-01 {what}")
+                self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(),
+                                 ["workstreams/alpha/tasks_list.json"])
+                self.assertEqual(self.git("status", "--porcelain").split(), ["??", "other.txt"])
+                after = self.by_id("X-01")
+                self.assertEqual(after["verify"], before["verify"] if verify is None else verify)
+                self.assertEqual(after["notes"], before["notes"] if notes is None else notes)
+                self.assertIsNone(after.get("commit"))
+
+    def test_a_failed_commit_restores_the_queue(self) -> None:
+        hook = self.root / ".git" / "hooks" / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        for flags in (("--verify", "make new"), ("--notes", "new"),
+                      ("--verify", "make new", "--notes", "new")):
+            with self.subTest(flags=flags):
+                self.refused("commit failed", *flags, "--commit")
+
+    def test_it_is_refused_off_the_integration_branch_or_with_a_dirty_queue(self) -> None:
+        self.queue_path.write_text(self.queue_path.read_text() + "\n")
+        self.refused("dirty tracking path", "--notes", "new", "--commit")
+        self.git("checkout", "--", "workstreams/alpha/tasks_list.json")
+        self.git("checkout", "-q", "-b", "elsewhere")
+        self.refused("not main", "--verify", "make new", "--commit")
+
+    def test_bare_commit_alone_or_with_the_other_flags_is_still_refused(self) -> None:
+        self.refused("--commit needs a hash", "--commit")
+        cases = (("--status", "blocked"), ("--mode", "foreground"), ("--requires", "db"),
+                 ("--release-impact", "none"))
+        for flags in cases:
+            for shared in ((), ("--notes", "new"), ("--verify", "make new")):
+                with self.subTest(flags=flags, shared=shared):
+                    self.refused("--commit needs a hash", *flags, *shared, "--commit")
+
+    def test_a_commit_hash_is_still_recorded_and_commits_nothing(self) -> None:
+        head = self.git("rev-parse", "HEAD").strip()
+        self.ok("update", "-w", "alpha", "X-01", "--notes", "new", "--verify", "make new",
+                "--commit", "abc1234")
+        after = self.by_id("X-01")
+        self.assertEqual((after["commit"], after["notes"], after["verify"]),
+                         ("abc1234", "new", ["make new"]))
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
 
 
 class DoneNeedsCommitTests(WsTestCase):
