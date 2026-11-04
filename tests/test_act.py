@@ -276,6 +276,90 @@ class FailedCommitTests(ActTestCase):
         self.assertEqual(self.tree_bytes(), before)
 
 
+class DecideCommitTests(ActTestCase):
+    LOG_REL = f"workstreams/{WS_ID}/DECISIONS.md"
+
+    def decide(self, *extra: str) -> tuple[int, str, str]:
+        return self.ws("decide", "keep it", "--why", "Because. Rejected: no.", "-w", WS_ID, *extra)
+
+    def fails_cleanly(self, needle: str, *extra: str) -> None:
+        before, head = self.tree_bytes(), self.head()
+        code, _, err = self.decide("--commit", *extra)
+        self.assertEqual(code, 1)
+        self.assertIn(needle, err)
+        self.assertEqual((self.tree_bytes(), self.head()), (before, head))
+
+    def test_one_commit_holding_only_the_log_and_prints_the_hash(self) -> None:
+        (self.root / "src" / "base.txt").write_text("someone's edit\n")
+        (self.root / "src" / "staged.txt").write_text("staged\n")
+        self.git("add", "src/staged.txt")
+        head = self.head()
+        out = self.ok("decide", "keep it", "--why", "Because. Rejected: no.", "-w", WS_ID,
+                      "--commit")
+        self.assert_committed(f"{WS_ID}: D001", [self.LOG_REL])
+        self.assertEqual(self.git("rev-parse", "HEAD~1").strip(), head)
+        short = self.git("rev-parse", "--short", "HEAD").strip()
+        self.assertEqual(out.strip(), f"D001; committed {short}")
+        self.assertIn("keep it", self.git("show", f"HEAD:{self.LOG_REL}"))
+        self.assertEqual(sorted(self.git("status", "--porcelain").splitlines()),
+                         [" M src/base.txt", "A  src/staged.txt"])
+
+    def test_it_works_where_there_is_no_log_yet(self) -> None:
+        self.ok("new", "small", "--title", "S", "--summary", "s", "--tier", "lite")
+        self.commit_all("lite")
+        log = self.ws_dir / "small" / "DECISIONS.md"
+        self.assertFalse(log.exists())
+        out = self.ok("decide", "x", "--why", "y", "--by", "user", "-w", "small", "--commit")
+        self.assertIn("D001; committed ", out)
+        self.assert_committed("small: D001", ["workstreams/small/DECISIONS.md"])
+        self.assertEqual(self.git("status", "--porcelain"), "")
+
+    def test_it_refuses_on_another_branch(self) -> None:
+        self.git("checkout", "-q", "-b", "task/flow-1")
+        self.fails_cleanly("the checkout is on task/flow-1, not trunk")
+
+    def test_it_refuses_with_dirty_tracking_files(self) -> None:
+        for path in (self.ws_dir / WS_ID / "PROGRESS.md", self.root / REGISTRY_REL):
+            original = path.read_bytes()
+            path.write_bytes(original + b"\n")
+            with self.subTest(path=path.name):
+                self.fails_cleanly("dirty tracking path")
+            path.write_bytes(original)
+
+    def test_a_failing_commit_restores_an_existing_log(self) -> None:
+        self.fail_commits()
+        self.fails_cleanly("commit failed, tracking files restored: hook says no")
+        self.assertEqual(self.git("status", "--porcelain"), "")
+
+    def test_a_failing_commit_removes_a_new_log_and_unstages_it(self) -> None:
+        log = self.ws_dir / WS_ID / "DECISIONS.md"
+        log.unlink()
+        self.commit_all("no log")
+        self.fail_commits()
+        self.fails_cleanly("commit failed, tracking files restored: hook says no")
+        self.assertFalse(log.exists())
+        self.assertEqual(self.git("status", "--porcelain"), "")
+
+    def test_without_the_flag_it_writes_and_leaves_the_commit_to_you(self) -> None:
+        head = self.head()
+        code, out, err = self.decide()
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(out.strip(), "D001; commit it")
+        self.assertEqual(self.head(), head)
+        self.assertEqual(self.git("status", "--porcelain").strip(), f"M {self.LOG_REL}")
+
+    def test_without_the_flag_it_still_writes_on_another_branch(self) -> None:
+        self.git("checkout", "-q", "-b", "task/flow-1")
+        self.assertEqual(self.decide()[0], 0)
+        self.assertIn("keep it", (self.ws_dir / WS_ID / "DECISIONS.md").read_text())
+
+    def fail_commits(self) -> None:
+        hook = self.root / ".git" / "hooks" / "pre-commit"
+        hook.parent.mkdir(exist_ok=True)
+        hook.write_text("#!/bin/sh\necho 'hook says no' >&2\nexit 1\n")
+        hook.chmod(0o755)
+
+
 class PureTests(unittest.TestCase):
     def test_commit_message(self) -> None:
         self.assertEqual(act.commit_message("ws", "unclaim", "WS-01"), "ws: unclaim WS-01 (ws act)")
