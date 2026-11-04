@@ -1,13 +1,14 @@
 # Session handoff
 
-**State:** 4/14 done on `main` at `4e80f04`, as of 2026-11-04.
+**State:** 6/14 done on `main` at `1842b2a`, as of 2026-11-04.
 
-**Just landed:** LO-02 (`c753594bbc`), LO-03 (`36ddfd9c7b`), LO-04 (`4e80f04fbd`)
+**Just landed:** LO-05 (`988d062018`), LO-06 (`1842b2a1b2`)
 
-**Next:** `ws claim --commit LO-05 LO-06` (phase 3).
+**Next:** `ws claim --commit LO-07 LO-12` (phase 4).
 
 **Gotchas:**
-- LO-02: - A plain `git status` rewrites the real index and smudges the racy entry, which hides this bug. My first version of the setup asserted with it, and both tests passed on `copyfile`. The setup now uses `git --no-optional-locks status`, and a comment there says why. Anyone reusing this setup needs the same.
-- `EDITED` in `tests/test_gates.py:11` is deliberately a different size, with a comment saying a same-size edit can look clean to `code_tree`. That comment is now out of date. I left it, as the file is outside this task.
-- LO-04: - `is_open` matches `**Open.**` anywhere in the text, so a closed reason that merely quotes that mark mid-text renders with no closed marker and counts as open. This is the same quoting problem as this task's, on the other mark. Not touched here.
-- The shell moved `ws verify` to the background after 180s despite the longest timeout, because the full suite takes about 323s. The run still finished and recorded its result.
+- LO-05: - `src/workstream/assets/skills/ws-run/SKILL.md:25` and its copy at `.claude/skills/ws-run/SKILL.md:25` still say a foreground task should "return to the integration branch, then settle it". That now contradicts the brief. Neither file is in this task's scope, and a background worker can't edit `.claude/`. Suggested text: "**Foreground tasks** run in this session, one at a time, after the batch: claim it alone, follow its brief yourself, and land it with the `ws --root` command the brief gives."
+- `docs/rule-map.md:81` quotes that rule as "Foreground tasks run alone in the main session". It may want the same review.
+- `src/workstream/assets/PROTOCOL.md:17` tells every worker "Don't merge, and don't switch to the integration branch", while a foreground brief's step 5 tells it to land the task. The step never switches a branch, but settle does merge, so the two read as a conflict for a foreground worker. The conflict predates this task.
+- `ws verify` ran long enough for the shell to move it to the background at 180s. It finished and recorded normally, in 299.7s for tests.
+- LO-06: - `ws wave` has no JSON output, so `heldBack` is checked through `graph.compute_wave` and the CLI's "held back" lines.

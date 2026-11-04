@@ -6,6 +6,14 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-05: Foreground tasks get a worktree
+
+Merged as `988d062018`. Verified: test pass, audit pass. [Evidence](evidence/LO-05.md).
+
+## 2026-11-04: LO-06: ws next skips held-back tasks
+
+Merged as `1842b2a1b2`. Verified: test pass. [Evidence](evidence/LO-06.md).
+
 ## 2026-11-04: LO-02: code_tree sees a same-size edit
 
 Merged as `c753594bbc`. Verified: test pass. [Evidence](evidence/LO-02.md).
