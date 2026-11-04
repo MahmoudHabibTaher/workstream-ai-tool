@@ -6,7 +6,7 @@ worth keeping belongs in the evidence, which stays.
 
 from __future__ import annotations
 
-from workstream import gitutil, graph, tasks
+from workstream import decisions, gitutil, graph, tasks
 from workstream.fsutil import today
 from workstream.project import Project
 
@@ -36,6 +36,20 @@ def next_lines(rows: list[dict]) -> list[str]:
     return ["Nothing is ready: see the blocked tasks below, or anything still in progress."]
 
 
+def open_decisions(project: Project, ws: dict, rows: list[dict]) -> list[dict]:
+    """Every open decision as {id, line}; the line names the unfinished tasks waiting on the task
+    that recorded it, directly or not."""
+    path = project.folder(ws) / "DECISIONS.md"
+    entries = decisions.parse(path.read_text()) if path.exists() else []
+    unfinished = {t["id"] for t in rows if t["status"] in tasks.OPEN_STATUSES}
+    found = []
+    for entry in decisions.open_entries(entries):
+        waiting = [i for i in graph.dependents(rows, entry["who"]) if i in unfinished]
+        says = f"waiting: {', '.join(waiting)}" if waiting else "no task waiting"
+        found.append({"id": entry["id"], "line": f"{entry['id']}: {entry['title']} ({says})"})
+    return found
+
+
 def render(project: Project, ws: dict, rows: list[dict], outcomes: list[dict],
            note: str | None) -> str:
     head = gitutil.rev_parse(project.root, "HEAD", short=True)
@@ -57,6 +71,9 @@ def render(project: Project, ws: dict, rows: list[dict], outcomes: list[dict],
     if running:
         lines += ["**Still in progress:** " + ", ".join(
             f"{t['id']} ({t.get('claimedBy') or 'unclaimed'})" for t in running), ""]
+    still_open = open_decisions(project, ws, rows)
+    if still_open:
+        lines += ["**Open decisions:**", *[f"- {d['line']}" for d in still_open], ""]
     lines += ["**Next:** " + " ".join(next_lines(rows)), ""]
     gotchas = []
     for out in outcomes:

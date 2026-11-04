@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-from workstream import adapt, baseline, decisions, evidence, plan, protocol, tasks, worktree
+from workstream import adapt, baseline, decisions, evidence, graph, plan, protocol, tasks, worktree
 from workstream.project import Project
 
 DEFAULT_MAX_CHARS = 10_000
@@ -151,6 +151,23 @@ def _cannot_edit_lines(project: Project, task: dict) -> list[str]:
             + ". Don't try: if one needs a change, put the exact text under Gotchas for someone who can."]
 
 
+def _open_decision_lines(project: Project, ws: dict, task: dict, rows: list[dict]) -> list[str]:
+    """Open decisions from anything this task waits on, directly or not: one that lands open can
+    make this task's acceptance wrong. Never trimmed, since it can change the whole task."""
+    path = project.folder(ws) / "DECISIONS.md"
+    if not path.exists():
+        return []
+    waits_on = graph.blockers_closure(graph.blocked_by_graph(rows)).get(task["id"], set())
+    found = [e for e in decisions.open_entries(decisions.parse(path.read_text()))
+             if e["who"] in waits_on]
+    if not found:
+        return []
+    return ["", "## Open decisions", "",
+            "Check your acceptance against these first, and report blocked if one changes it. "
+            f"Read them with `ws decisions --open -w {ws['id']}`.", "",
+            *[f"- {e['id']}: {e['title']}" for e in found]]
+
+
 def _scope_lines(scope: dict | None) -> list[str]:
     """The workstream's boundary. A worker that can't see it can't stay inside it."""
     if not scope:
@@ -185,6 +202,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
         parts += ["", "## Acceptance", ""]
         parts += [f"{n}. {tasks.acceptance_text(a)}"
                   for n, a in enumerate(task["acceptance"], 1)]
+    parts += _open_decision_lines(project, ws, task, rows)
     commands = _verify_lines(project, ws, task)
     if commands:
         parts += ["", "## Verify", "", *commands]

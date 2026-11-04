@@ -84,3 +84,4 @@ Stop, say exactly what fired and what is left, and ask. Never guess past one. Fi
 6. A round lands nothing, whatever the workers said.
 7. A workstream it depends on isn't done, or the queue closes with deferred tasks.
 8. A release would be `major`, or its checks go red.
+9. An open decision has tasks waiting on it: it goes to the user before those tasks are claimed.
