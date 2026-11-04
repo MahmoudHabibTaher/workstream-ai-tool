@@ -1,0 +1,743 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/run_feedback/PLAN.md",
+  "updated": "2026-11-04",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "RF-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Briefs keep whole gotchas",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T5",
+        "D-GOTCHA"
+      ],
+      "summary": "A brief cuts a finished blocker's gotchas at 400 characters, mid-sentence, and silently drops the rest. Keep whole entries and say what was left out.",
+      "files": [
+        "src/workstream/brief.py",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: gotchas under the limit appear whole, with every line indented",
+        "A test: gotchas over the limit keep whole bullets only and end with a line naming how many more and the evidence path",
+        "A test: one entry over the limit is cut at a sentence end, with the same pointer",
+        "make audit still passes the worker budget"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "The handoff uses decision numbers",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T6",
+        "D-IDS"
+      ],
+      "summary": "The handoff quotes gotchas with P numbers while the evidence and briefs say D numbers.",
+      "files": [
+        "src/workstream/settle.py",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a task whose gotchas mention P1 lands, and session_handoff.md says the D number and not P1",
+        "An existing batch-numbering test still passes unchanged"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "Docs a task names are in scope",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T7",
+        "D-DOCS"
+      ],
+      "summary": "Settle warns about a changed file the task lists under docs.",
+      "files": [
+        "src/workstream/gates.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_gates.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a changed path listed in docs gives no warning, in both settle_gates and ready_gates",
+        "A test: a changed path in neither list still warns",
+        "A test: a task with empty files and some docs still gets no check",
+        "ws protocol task-schema says docs paths may be changed"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-04",
+      "phase": 1,
+      "priority": 40,
+      "title": "Plan citations resolve, and validate warns early",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T8",
+        "D-CITE"
+      ],
+      "summary": "A finding that is a table row in the plan reads as missing, and nobody hears until a worker's brief says so.",
+      "files": [
+        "src/workstream/plan.py",
+        "src/workstream/registry.py",
+        "tests/test_plan_tools.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: find_section resolves G7 to a table row starting with G7, and not to one starting with G70",
+        "A test: a heading still wins over a table row",
+        "A test: ws validate warns once for a workstream, listing refs that open tasks cite and PLAN.md doesn't have",
+        "A test: ws seed --from-plan prints the same warning",
+        "A test: a done task's citation, and a workstream with no written PLAN.md, give no warning"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-05",
+      "phase": 1,
+      "priority": 50,
+      "title": "Validate warns about a verify prefix that stops short",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T9",
+        "D-ENV"
+      ],
+      "summary": "`VAR=x a && b` sets VAR for a only, so b can fail on a bare `ws verify`.",
+      "files": [
+        "src/workstream/tasks.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: an open task verifying with `A=1 cargo test && make lint` warns, naming A",
+        "A test: a [commands] key whose command has that shape warns too",
+        "A test: `A=1 cargo test`, `export A=1 && b` and a done task give no warning"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-06",
+      "phase": 2,
+      "priority": 60,
+      "title": "Blocking a task keeps its notes",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T10",
+        "D-REASON"
+      ],
+      "summary": "Settling a blocked task overwrites the planner's notes with the reason.",
+      "files": [
+        "src/workstream/tasks.py",
+        "src/workstream/settle.py",
+        "src/workstream/handoff.py",
+        "schema/tasks.schema.json",
+        "tests/test_settle.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a blocked task keeps its notes, and blockedReason holds the reason",
+        "A test: the handoff's Blocked list shows the reason",
+        "A test: landing, ws unclaim and ws reset each clear blockedReason",
+        "A test: an older queue without the field still loads and validates against the schema"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-02",
+        "RF-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-07",
+      "phase": 2,
+      "priority": 70,
+      "title": "Briefs and task definitions read from the integration checkout",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T11",
+        "D-SOURCE"
+      ],
+      "summary": "From a worktree, a brief misses decisions and notes made after the claim, and ws verify can run an old verify list.",
+      "files": [
+        "src/workstream/cli.py",
+        "src/workstream/worktree.py",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: after a claim, a decision and a note made on the integration branch appear in ws brief run from the worktree",
+        "A test: ws update --verify on the integration branch is what ws verify runs from the worktree",
+        "A test: ws verify, ws commit and evidence still act on the worktree",
+        "A test: with no checkout on the integration branch, the brief reads the current checkout"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-08",
+      "phase": 2,
+      "priority": 80,
+      "title": "The wave shows blocked tasks and holds back shared files",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T12",
+        "D-WAVE"
+      ],
+      "summary": "ws wave offered MBZ-08 while MBZ-06, on the same files, was unfinished, and doesn't list blocked tasks at all.",
+      "files": [
+        "src/workstream/graph.py",
+        "src/workstream/cli.py",
+        "src/workstream/tasks.py",
+        "schema/snapshot.schema.json",
+        "src/workstream/assets/web/lanes.js",
+        "tests/test_tasks.py",
+        "tests/test_snapshot.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a candidate sharing a file with a blocked or in-progress task isn't offered, and heldBack names it, the other task and the path",
+        "A test: when every candidate is held back the wave is stuck, exit 3",
+        "A test: an unrelated later-phase task is still offered, and the existing fall-through test passes unchanged",
+        "A test: ws wave prints blocked tasks with their reason, and held tasks with their cause",
+        "A test: ws claim --commit refuses the same overlap",
+        "A test: ws validate warns on an overlap across phases",
+        "ws snapshot output passes its schema with heldBack, and the lanes screen shows it"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-05",
+        "RF-06",
+        "RF-07"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-09",
+      "phase": 2,
+      "priority": 90,
+      "title": "ws decide --commit",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T13",
+        "D-COMMIT"
+      ],
+      "summary": "ws decide leaves the commit to you, and an uncommitted decision blocks settle's checkout check and a branch's view of it.",
+      "files": [
+        "src/workstream/cli.py",
+        "src/workstream/act.py",
+        "tests/test_act.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws decide --commit makes one commit holding only DECISIONS.md and prints the hash",
+        "A test: it works on a lite workstream with no DECISIONS.md yet",
+        "A test: on another branch, or with dirty tracking files, it refuses and writes nothing",
+        "A test: without the flag it behaves as before"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-08"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-10",
+      "phase": 3,
+      "priority": 100,
+      "title": "Decisions can be closed",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T14",
+        "D-CLOSE"
+      ],
+      "summary": "An open decision stays open forever: the log only grows, and nothing says a later entry settled it.",
+      "files": [
+        "src/workstream/decisions.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets/skills/ws-coordinate/SKILL.md",
+        "tests/test_decisions.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws decide --closes D015 adds an entry with a Closes line and leaves D015's text unchanged",
+        "A test: ws decisions --open lists D014 and not D015 afterwards",
+        "A test: an unknown id, or one already closed, is refused and writes nothing",
+        "ws-coordinate names both, and the protocol test parses them"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-09"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-11",
+      "phase": 3,
+      "priority": 110,
+      "title": "Acceptance can be corrected, citing a decision",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T15",
+        "D-ACCEPT"
+      ],
+      "summary": "When a decision changes what a task must prove, its acceptance can't follow, so a brief prints the old target beside a note correcting it.",
+      "files": [
+        "src/workstream/tasks.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets/skills/ws-coordinate/SKILL.md",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: ws update T --acceptance 3 text --because D018 replaces item 3 and appends the decision",
+        "A test: a manual item stays manual",
+        "A test: a missing --because, an unknown decision, an item that doesn't exist, and a done task are each refused",
+        "A test: --commit commits the queue",
+        "A test: the brief and evidence skeleton from a worktree show the new text",
+        "ws-coordinate names it, and the protocol test parses it"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-07",
+        "RF-10"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-12",
+      "phase": 3,
+      "priority": 120,
+      "title": "Open decisions surface in briefs, settle and the stop rules",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T16",
+        "D-OPEN"
+      ],
+      "summary": "MBZ-05 landed with D015 open. Its next task's acceptance still assumed the old result, and a worker spent 97k tokens finding that out.",
+      "files": [
+        "src/workstream/brief.py",
+        "src/workstream/settle.py",
+        "src/workstream/handoff.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_brief.py",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a brief shows an open decision from a direct or transitive blocker right after Acceptance, and not a closed one",
+        "A test: ws settle prints each open decision it numbers and the tasks waiting",
+        "A test: the handoff lists open decisions",
+        "A test: ws claim still succeeds with one open",
+        "ws protocol stop has the new rule, and make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-10",
+        "RF-11"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-13",
+      "phase": 4,
+      "priority": 130,
+      "title": "Resuming a blocked task",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T17",
+        "D-RESUME"
+      ],
+      "summary": "A blocked task can land later, but nothing says how, and a second worker spent 60k tokens re-checking finished work.",
+      "files": [
+        "src/workstream/brief.py",
+        "src/workstream/assets/skills/ws-run/SKILL.md",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a blocked task's brief opens with Resuming: its reason, commit count, evidence path and the decisions its branch lacks",
+        "A test: its finish steps don't say ws evidence new",
+        "A test: a todo or in-progress task's brief is unchanged",
+        "ws-run documents resuming and says not to unclaim",
+        "make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-06",
+        "RF-07",
+        "RF-12"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-14",
+      "phase": 4,
+      "priority": 140,
+      "title": "Acceptance items can name expected output",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T18",
+        "D-EXPECT"
+      ],
+      "summary": "The gates trust the evidence's shape: an item quoting 72/5/16 under an acceptance of 75/2/16 passes every one.",
+      "files": [
+        "src/workstream/tasks.py",
+        "src/workstream/verify.py",
+        "schema/tasks.schema.json",
+        "src/workstream/assets/PROTOCOL.md",
+        "src/workstream/assets/skills/ws-plan/SKILL.md",
+        "tests/test_verify.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: an expect string missing from the log fails ws verify, ws evidence check and ws settle",
+        "A test: a string that is present passes, with ANSI codes in the log",
+        "A test: an item with no expect behaves as before",
+        "A test: manual with expect is refused",
+        "A test: a --key subset doesn't fail until every key has run on one tree",
+        "The schema accepts the field, and the protocol and ws-plan name it"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-03",
+        "RF-11",
+        "RF-12"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    },
+    {
+      "id": "RF-15",
+      "phase": 5,
+      "priority": 150,
+      "title": "Prove it end to end",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T4"
+      ],
+      "summary": "Replay the MBZ-06 story on a sample repo with the real CLI, run the real evals, refresh the generated agent files and write down what's true.",
+      "files": [
+        "evals/harness.py",
+        "evals/stub_agent.py",
+        "tests/test_evals.py",
+        "docs/decisions/0012-run-feedback.md",
+        "README.md",
+        ".claude/",
+        "CLAUDE.md",
+        ".workstream/adapters.json"
+      ],
+      "docs": [
+        "docs/decisions/0009-pilot-gate.md"
+      ],
+      "acceptance": [
+        "Each step in the plan's end-to-end section is run on a sample repo, with the output quoted",
+        "evals gain a resume scenario, and tests/test_evals.py covers it with the stub agent",
+        "ws adapt claude-code --check says OK after refreshing",
+        "make eval AGENT=claude-code passes on Opus 5.5 at medium effort, with its cost recorded",
+        "docs/decisions/0012-run-feedback.md lists each issue, its fix, and what stays unproven"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "RF-01",
+        "RF-02",
+        "RF-03",
+        "RF-04",
+        "RF-05",
+        "RF-06",
+        "RF-07",
+        "RF-08",
+        "RF-09",
+        "RF-10",
+        "RF-11",
+        "RF-12",
+        "RF-13",
+        "RF-14"
+      ],
+      "needsUserDecision": false,
+      "notes": "The user approved Claude Code eval spend for this task, about $2 last time. Don't run Copilot evals: they use paid work-account credits.",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the ws CLI, its protocol and skills",
+      "the issues found on the MBZ-06 run",
+      "this repo's eval scenarios and decision record"
+    ],
+    "outOfScope": [
+      "any change in subsonic-server",
+      "Copilot evals",
+      "rewriting past decisions or finished tasks"
+    ],
+    "rule": "Fix only your task's issue: anything else you notice goes under Gotchas."
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-03",
+  "updated": "2026-11-04",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -163,6 +163,29 @@
         "commit": "cc62eebc215004cec2213dfbc7ac03023d6121de",
         "pruned": false
       }
+    },
+    {
+      "id": "run_feedback",
+      "title": "Run feedback",
+      "summary": "Fix each issue the MBZ-06 run exposed in ws, one worker per issue, and prove them together.",
+      "status": "planned",
+      "taskPrefix": "RF",
+      "path": "workstreams/run_feedback",
+      "tier": "standard",
+      "created": "2026-11-04",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "e18f900",
+      "dependsOn": [],
+      "progress": {
+        "total": 15,
+        "todo": 15,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }
