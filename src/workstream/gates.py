@@ -42,13 +42,15 @@ def tracking_violations(paths: list[str], registry_rel: str, folders: list[str],
     return bad
 
 
-def out_of_scope(paths: list[str], files: list[str], own_evidence: str) -> list[str]:
-    """Changed paths the task never named. `files` entries may be a path, a folder or a glob."""
+def out_of_scope(paths: list[str], files: list[str], docs: list[str],
+                 own_evidence: str) -> list[str]:
+    """Changed paths the task never named. Entries may be a path, a folder or a glob. Empty
+    `files` means no check, whatever `docs` lists: docs alone don't describe the expected diff."""
     if not files:
         return []
     def named(path: str) -> bool:
         return any(path == f or path.startswith(f.rstrip("/") + "/") or fnmatch(path, f)
-                   for f in files)
+                   for f in [*files, *docs])
     return [p for p in paths if p != own_evidence and not named(p)]
 
 
@@ -108,7 +110,7 @@ def settle_gates(project: Project, ws: dict, task: dict, rev: str, *, text: str 
     own = project.rel(evidence.path_for(project, ws, task["id"]))
     bad = tracking_violations(paths, project.rel(project.registry_path), folders, own)
     out.append(gate("the branch leaves tracking files alone", not bad, ", ".join(bad[:8])))
-    extra = out_of_scope(paths, task.get("files", []), own)
+    extra = out_of_scope(paths, task.get("files", []), task.get("docs", []), own)
     out.append(gate("the diff stays within the task's files", not extra,
                     ", ".join(extra[:8]), blocking=False))
     return out
@@ -132,7 +134,7 @@ def ready_gates(project: Project, ws: dict, task: dict, folders: list[str]) -> l
     paths = changed_paths(project, "HEAD") + [d[3:] for d in dirty]
     bad = tracking_violations(paths, project.rel(project.registry_path), folders, own)
     out.append(gate("tracking files are untouched", not bad, ", ".join(sorted(set(bad))[:8])))
-    extra = out_of_scope(sorted(set(paths)), task.get("files", []), own)
+    extra = out_of_scope(sorted(set(paths)), task.get("files", []), task.get("docs", []), own)
     out.append(gate("the diff stays within the task's files", not extra, ", ".join(extra[:8]),
                     blocking=False))
     return out

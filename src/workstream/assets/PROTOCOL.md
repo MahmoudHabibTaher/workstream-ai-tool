@@ -61,8 +61,8 @@ Required: `id` (`<PREFIX>-01`), `phase`, `priority` (10, 20, 30; the real order)
 | `kind` | What it produces; `[adequacy]` in the config says what that kind must verify with |
 | `summary` | What the task requires |
 | `findings` | Plan sections to read: `T1`, `D-API` |
-| `files` | Expected paths, folders or globs. Touching others warns |
-| `docs` | Paths that bear on the task; each must exist |
+| `files` | Expected paths, folders or globs. Touching anything not here or in `docs` warns |
+| `docs` | Paths that bear on the task; each must exist, and may be changed |
 | `acceptance` | Observable facts: a named test, a command and its output. `{"text": "...", "kind": "manual"}` for a person's check |
 | `verify` | Keys from `[commands]`, or a raw command. Must run what the task produces |
 | `blockedBy` | Task ids. Tasks sharing files must be chained |
