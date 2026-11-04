@@ -367,6 +367,45 @@ class NextTests(WsTestCase):
         self.seed_ok([task("X-01", 10, status="blocked"), task("X-02", 20, blockedBy=["X-01"])])
         self.assertIsNone(self.next_id())
 
+    def test_skips_a_task_held_back_by_a_shared_file(self) -> None:
+        self.seed_ok([task("X-01", 10, status="in-progress", files=["a.py"]),
+                      task("X-02", 20, files=["a.py"]),
+                      task("X-03", 30, files=["b.py"])])
+        self.assertEqual(self.next_id(), "X-03")
+
+    def test_a_held_task_stays_in_the_wave_report_and_the_actionable_list(self) -> None:
+        rows = [task("X-01", 10, status="blocked", files=["a.py"]),
+                task("X-02", 20, files=["a.py"]),
+                task("X-03", 30)]
+        self.seed_ok(rows)
+        code, out, _ = self.ws("wave", "-w", "alpha")
+        self.assertEqual(code, graph.WAVE_READY)
+        self.assertIn("held back: 1 sharing files with unfinished work\n"
+                      "  X-02  shares a.py with X-01\n", out)
+        full = [tasks.normalize_task(row, Config()) for row in rows]
+        self.assertEqual(graph.compute_wave(full)["heldBack"],
+                         [{"id": "X-02", "by": "X-01", "path": "a.py"}])
+        self.assertEqual([t["id"] for t in graph.actionable(full)], ["X-02", "X-03"])
+
+    def test_keeps_the_lowest_priority_across_phases_when_skipping(self) -> None:
+        self.seed_ok([task("X-01", 10, status="in-progress", files=["a.py"]),
+                      task("X-02", 20, phase=1, files=["a.py"]),
+                      task("X-03", 30, phase=2),
+                      task("X-04", 40, phase=1)])
+        self.assertEqual(self.next_id(), "X-03")
+
+    def test_with_only_held_tasks_left_says_what_holds_each_and_exits_0(self) -> None:
+        self.seed_ok([task("X-01", 10, status="in-progress", files=["a.py", "b.py"]),
+                      task("X-02", 20, status="blocked", files=["c.py"]),
+                      task("X-03", 30, files=["a.py", "b.py"]),
+                      task("X-04", 40, files=["c.py"])])
+        code, out, _ = self.ws("next", "-w", "alpha")
+        self.assertEqual(code, 0)
+        self.assertIn("held back: 2 sharing files with unfinished work\n"
+                      "  X-03  shares a.py with X-01\n"
+                      "  X-03  shares b.py with X-01\n"
+                      "  X-04  shares c.py with X-02\n", out)
+
 
 class WaveTests(WsTestCase):
     def setUp(self) -> None:
