@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-13: The VAR=x warning offers separate verify entries too
+
+Merged as `54d4e10e80`. Verified: test pass. [Evidence](evidence/LO-13.md).
+
 ## 2026-11-04: LO-11: ws update --commit works with --verify and --notes
 
 Merged as `83067cdc14`. Verified: test pass. [Evidence](evidence/LO-11.md).
