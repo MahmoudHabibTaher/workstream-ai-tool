@@ -382,6 +382,15 @@ def _commit_verify_or_notes(project: Project, ws: dict, path: Path,
     print(f"updated {args.id}: {what}; committed {short}")
 
 
+def _given(args: argparse.Namespace) -> list[str]:
+    """The fields a plain update was given, as its closing line names them."""
+    valued = (("status", args.status), ("commit", args.commit))
+    named = (("verify", args.verify), ("notes", args.notes), ("mode", args.mode),
+             ("requires", args.requires), ("release-impact", args.release_impact))
+    return ([f"{name}={value}" for name, value in valued if value is not None]
+            + [name for name, value in named if value is not None])
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
@@ -396,6 +405,11 @@ def cmd_update(args: argparse.Namespace) -> int:
     if args.commit is True:
         _commit_verify_or_notes(project, ws, path, args)
         return 0
+    given = _given(args)
+    if not given:
+        tasks.find_task(tasks.load(path, project.config), args.id)  # an unknown id still fails
+        print(f"{args.id}: nothing changed")
+        return 0
     requires = _split(args.requires) if args.requires is not None else None
     if args.status == "done":
         landed = args.commit or tasks.find_task(tasks.load(path, project.config), args.id).get("commit")
@@ -405,7 +419,7 @@ def cmd_update(args: argparse.Namespace) -> int:
     task = tasks.update(path, args.id, project.config, status=args.status, commit=args.commit,
                         notes=args.notes, requires=requires, mode=args.mode,
                         release_impact=args.release_impact, verify=args.verify)
-    print(f"updated {task['id']}: status={task['status']}")
+    print(f"updated {task['id']}: {', '.join(given)}")
     return 0
 
 
