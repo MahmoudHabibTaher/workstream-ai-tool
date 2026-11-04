@@ -283,6 +283,99 @@ class CorrectAcceptanceTests(WsTestCase):
         self.assertEqual((args.acceptance, args.because, args.commit), (["x", "x"], "x", True))
 
 
+class CorrectSummaryTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10, summary="old", acceptance=["one"]),
+                      task("X-02", 20, summary="old", status="deferred"),
+                      task("X-03", 30, summary="old", status="done", commit="abc1234")])
+        self.ok("decide", "Change it", "--why", "the target moved", "--by", "user", "-w", "alpha")
+        self.queue_path = self.ws_dir / "alpha" / "tasks_list.json"
+
+    def refused(self, needle: str, *argv: str) -> None:
+        before = self.queue_path.read_bytes()
+        self.assertIn(needle, self.fails("update", "-w", "alpha", *argv))
+        self.assertEqual(self.queue_path.read_bytes(), before)
+
+    def test_it_replaces_the_summary_and_the_brief_shows_it(self) -> None:
+        out = self.ok("update", "-w", "alpha", "X-01", "--summary", " new text ",
+                      "--because", "D001")
+        self.assertIn("updated X-01: summary, D001; commit it", out)
+        self.assertEqual(self.by_id("X-01")["summary"], "new text (changed by D001)")
+        brief = self.ok("brief", "X-01", "-w", "alpha")
+        self.assertIn("new text (changed by D001)", brief)
+        self.assertNotIn("\nold\n", brief)
+
+    def test_a_second_correction_names_only_the_later_decision(self) -> None:
+        self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
+        for decision in ("D001", "D002"):
+            self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", decision)
+        self.assertEqual(self.by_id("X-01")["summary"], "new (changed by D002)")
+
+    def test_a_missing_because_is_refused(self) -> None:
+        self.refused("--summary needs --because", "X-01", "--summary", "new")
+
+    def test_an_unknown_decision_is_refused(self) -> None:
+        self.refused("no decision D999", "X-01", "--summary", "new", "--because", "D999")
+
+    def test_empty_text_is_refused(self) -> None:
+        for text in ("", "  "):
+            with self.subTest(text=text):
+                self.refused("--summary needs the new text", "X-01", "--summary", text,
+                             "--because", "D001")
+
+    def test_a_done_or_deferred_task_is_refused(self) -> None:
+        self.refused("X-03 is done", "X-03", "--summary", "new", "--because", "D001")
+        self.refused("X-02 is deferred", "X-02", "--summary", "new", "--because", "D001")
+        self.assertEqual(self.by_id("X-03")["summary"], "old")
+        self.assertEqual(self.by_id("X-02")["summary"], "old")
+
+    def test_it_goes_alone(self) -> None:
+        for extra in (("--status", "blocked"), ("--notes", "n"), ("--verify", "test")):
+            with self.subTest(extra=extra):
+                self.refused("--summary goes alone", "X-01", "--summary", "new",
+                             "--because", "D001", *extra)
+        self.refused("goes alone", "X-01", "--summary", "new", "--acceptance", "1", "new",
+                     "--because", "D001")
+
+    def test_a_stray_because_or_bare_commit_names_both_flags(self) -> None:
+        self.refused("--because goes with --acceptance or --summary", "X-01",
+                     "--because", "D001", "--notes", "n")
+        self.refused("--commit needs a hash, except with --acceptance or --summary", "X-01",
+                     "--commit")
+
+    def test_commit_commits_only_the_queue_and_prints_the_hash(self) -> None:
+        self.commit_all("tracking")
+        (self.root / "other.txt").write_text("someone's edit\n")
+        head = self.git("rev-parse", "HEAD").strip()
+        out = self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", "D001",
+                      "--commit")
+        self.assertIn(f"committed {self.git('rev-parse', '--short', 'HEAD').strip()}", out)
+        self.assertEqual(self.git("rev-parse", "HEAD~1").strip(), head)
+        self.assertEqual(self.git("log", "-1", "--format=%s").strip(),
+                         "alpha: X-01 summary, D001")
+        self.assertEqual(self.git("show", "--name-only", "--format=", "HEAD").split(),
+                         ["workstreams/alpha/tasks_list.json"])
+        self.assertEqual(self.git("status", "--porcelain").split(), ["??", "other.txt"])
+        self.assertEqual(self.by_id("X-01")["summary"], "new (changed by D001)")
+
+    def test_a_refused_commit_leaves_the_queue_and_history_alone(self) -> None:
+        self.commit_all("tracking")
+        head = self.git("rev-parse", "HEAD").strip()
+        self.refused("X-03 is done", "X-03", "--summary", "new", "--because", "D001", "--commit")
+        self.refused("takes no hash", "X-01", "--summary", "new", "--because", "D001",
+                     "--commit", head)
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
+
+    def test_a_failed_commit_restores_the_queue(self) -> None:
+        self.commit_all("tracking")
+        hook = self.root / ".git" / "hooks" / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o755)
+        self.refused("commit failed", "X-01", "--summary", "new", "--because", "D001", "--commit")
+
+
 class DoneNeedsCommitTests(WsTestCase):
     def setUp(self) -> None:
         super().setUp()
