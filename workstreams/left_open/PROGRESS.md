@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-14: ws update says what it changed
+
+Merged as `bdae70dbf5`. Verified: test pass. [Evidence](evidence/LO-14.md).
+
 ## 2026-11-04: LO-13: The VAR=x warning offers separate verify entries too
 
 Merged as `54d4e10e80`. Verified: test pass. [Evidence](evidence/LO-13.md).

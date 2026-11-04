@@ -57,3 +57,15 @@ The check_checkout, act.commit and act.restore path now lives in one place, as t
 ## D011 (2026-11-04, LO-11): the bare --commit refusal now reads "--commit needs a hash, except with only --acceptance, --summary, --verify or --notes"
 
 "Only" keeps it true when --notes is mixed with --status, which is refused. This extends D009's reasoning that the wording must stay true, and the test pinning the old text was updated to match. Rejected: a second refusal message for the mixed case. **Closed.**
+
+## D012 (2026-11-04, LO-14): an update with no change flags skips the write
+
+It returns after checking the id exists, so the queue's `updated` date doesn't move on a line that says nothing changed. An unknown id still fails.
+
+Rejected: calling `tasks.update` anyway, which would rewrite the file while reporting no change. **Closed.**
+
+## D013 (2026-11-04, LO-14): only status and commit print a value
+
+A hash and a status are short and worth seeing, and acceptance requires `status=<value>`; notes and verify can be long, and the task asks only for the fields to be named. The bare `--commit` path keeps its `verify and notes; committed <hash>` line, whose words are also its commit subject.
+
+Rejected: printing every value, which would echo whole notes into the line. **Closed.**
