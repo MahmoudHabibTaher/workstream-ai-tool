@@ -1,16 +1,15 @@
 # Session handoff
 
-**State:** 10/16 done on `main` at `0d1eb6b`, as of 2026-11-04.
+**State:** 11/16 done on `main` at `89ac7cd`, as of 2026-11-04.
 
-**Just landed:** RF-16 (`0d1eb6bb88`)
+**Just landed:** RF-10 (`89ac7cdfd8`)
 
-**Still in progress:** RF-10 (coordinator)
-
-**Next:** Nothing is ready: see the blocked tasks below, or anything still in progress.
+**Next:** `ws claim --commit RF-11` (phase 3).
 
 **Gotchas:**
-- RF-16: - This raises the limit and doesn't stop the growth: RF-15's "Builds on" section still repeats every earlier task's gotchas, and `project_rows`' docstring still says a brief over the limit is a task that should be split.
-- `tests/test_e2e.py` still asserts a sample brief is under 2500, which is stricter than the new limit. It passes and was left alone.
-- `ws worktree create` refuses a foreground task, and the brief's `git switch` would move the main checkout off the integration branch. This task was instead worked in a plain `git worktree add` checkout at `.workstream/worktrees/rf-16`, so `main` stayed checked out.
-- D013 ends `**Closed.** **Closed.**`, because `ws decide` adds the mark and the `--why` text already had it. Decisions are append-only, so it stays.
-- The verify ran with a private `TMPDIR`, because of the shared-`TMPDIR` test failure earlier tasks reported.
+- RF-10: - This task was first blocked on `make audit` failing on `brief RF-15  2873 of 2500  OVER`, on main as well. D013 and RF-16 fixed that with a separate brief budget. RF-15's brief is still growing, now 3166 of 4500.
+- `make test` took 269.9s under `ws verify`, so the 180s foreground shell limit moved the verify to the background. It still finished and recorded.
+- `decisions.relevant` ignores closures, so a brief can still show a closed entry with its `**Open.**` mark, without the later entry that closed it. RF-12 is about open decisions in briefs and may want `open_entries`.
+- `settle` and plain `ws decide` don't validate a `Closes:` first line written by hand, so a worker's proposal or a `--why` starting `Closes: D014.` closes D014 with no check.
+- `ws decisions --open` reads the current checkout, as RF-07 noted for `ws decisions` generally, so from a worktree it misses closures made since the claim. `--closes` checks ids against that same copy.
+- `docs/rule-map.md` and the skills still show `ws decide` without `--commit`, as RF-09 noted. Not changed here.

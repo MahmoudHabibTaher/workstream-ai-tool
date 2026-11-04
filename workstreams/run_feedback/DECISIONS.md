@@ -63,3 +63,21 @@ The `ws claim --commit` test is in `tests/test_protocol.py`, beside the other ba
 ## D013 (2026-11-04, user): briefs get their own 4500-token budget, separate from worker orientation
 
 RF-15's brief went over the shared 2500 worker budget at RF-08's settle (2873 at RF-10's claim) because its Builds on section repeats every earlier task's gotchas, and that failed make audit for every task verifying with audit. The user chose to raise the budget. 4500 allows for about 310 tokens per landing across the five remaining tasks, the fastest growth seen. Worker orientation stays at 2500. Rejected: capping Builds on in brief.py (the coordinator's recommendation), and exempting RF-15. This adds RF-16. **Closed.** **Closed.**
+
+## D014 (2026-11-04, RF-10): `decide` moves to the protocol test's bare-reference list
+
+`test_every_command_they_mention_parses` skipped every `ws decide ...` command, so acceptance 4 could not hold without editing `tests/test_protocol.py`, which is not in the task's files. Moving `decide` to the list that skips only the bare form makes the full commands parse, and the bare `ws decide` in PROTOCOL.md still passes. The scope gate will warn about this file; that warning is expected.
+
+Rejected: parsing the commands only in `tests/test_decisions.py`, which stays in the file list but leaves the protocol test not parsing them, as acceptance asks. **Closed.**
+
+## D015 (2026-11-04, RF-10): the Closes line goes first in the entry, and only there counts
+
+`render_entry` appends ` **Closed.**` to the end of the body, so a last-line Closes would share a line with the mark. Reading it only as the first body line also means a reason that quotes a Closes line closes nothing.
+
+Rejected: matching a Closes line anywhere in the entry. **Closed.**
+
+## D016 (2026-11-04, RF-10): an entry without the open mark counts as already closed
+
+`--closes` refuses anything not currently in `open_entries`, including an entry that was never marked open, such as D013 in the tests. Rendered entries are closed unless marked open, so this matches what the log already says.
+
+Rejected: allowing a close of any existing entry not yet named in a Closes line. **Closed.**

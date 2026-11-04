@@ -6,6 +6,10 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-10: Decisions can be closed
+
+Merged as `89ac7cdfd8`. Verified: test pass, audit pass. [Evidence](evidence/RF-10.md).
+
 ## 2026-11-04: RF-16: Briefs get their own budget
 
 Merged as `0d1eb6bb88`. Verified: test pass, audit pass. [Evidence](evidence/RF-16.md).
