@@ -31,3 +31,19 @@ D-GOTCHA asks for the same pointer on a cut entry, and `(0 more ...)` would say 
 D-ENV says "later has `&&`, `||`, `;` or `|`". Read literally, `A=1 sh -c 'a && b'` and `A=1 find . -exec rm {} \;` would warn, though the variable reaches everything that runs. So quoted strings and escaped characters are masked before the search. `A=1 && b` has no command word after the assignment, so it sets a shell variable that lasts, and it doesn't warn. A prefix with several assignments names them all.
 
 Rejected: a literal substring search, for the false warnings above; `shlex`, because in POSIX mode it strips the quotes, so `\;` and `"&&"` look like real operators, and in non-POSIX mode it splits `A="x y"`. **Closed.**
+
+## D007 (2026-11-04, RF-06): the handoff falls back to notes, then the title, when a blocked task has no reason
+
+A task blocked before this change has its reason in `notes`, and `ws update --status blocked` records no reason, so those blocks would otherwise lose their explanation in the handoff. The cost is that a hand-blocked task can show a planner's hint in the reason's place.
+
+Rejected: reason or title only, because older queues' reasons would disappear from the handoff. **Closed.**
+
+## D008 (2026-11-04, RF-06): any status change away from blocked clears blockedReason, inside tasks.update
+
+D-REASON names landing and `ws unclaim`. Landing goes through `tasks.update`, so the clear lives there, and `ws update --status todo` or `in-progress` can't leave a stale reason on a task that is no longer blocked. `unclaim` and `reset` write the task directly and clear it themselves.
+
+Rejected: clearing only in settle's landing path, which leaves the `ws update` route stale. **Closed.**
+
+## D009 (2026-11-04, RF-07): `_at_task` returns the opened checkout's registry row, not the integration checkout's
+
+The folder paths in the returned row must fit the checkout that will write evidence, and a row changed on the integration branch since the claim might not. Only the task itself comes from the integration checkout, as D-SOURCE says. Rejected: returning the integration checkout's row, which is simpler but could point a worktree's evidence at a path its branch doesn't have. **Closed.**

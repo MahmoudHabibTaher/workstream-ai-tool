@@ -6,6 +6,14 @@ Created 2026-11-04 from `main` at `e18f900`.
 
 ---
 
+## 2026-11-04: RF-06: Blocking a task keeps its notes
+
+Merged as `1a49870834`. Verified: test pass. [Evidence](evidence/RF-06.md).
+
+## 2026-11-04: RF-07: Briefs and task definitions read from the integration checkout
+
+Merged as `a48a8effa0`. Verified: test pass. [Evidence](evidence/RF-07.md).
+
 ## 2026-11-04: RF-04: Plan citations resolve, and validate warns early
 
 Merged as `e5591553f0`. Verified: test pass. [Evidence](evidence/RF-04.md).

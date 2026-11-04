@@ -319,13 +319,24 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T10:23:21Z",
       "baseCommit": "d0e82ce328bdd4453b2c738c45e821d019039235",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-04T10:35:29Z",
+      "commit": "1a498708347695d7b5b34fd8c46eadd975256b35",
+      "verification": {
+        "tree": "5b9c44a34d5e085c67230c2378a2370ea54558d4",
+        "at": "2026-11-04T10:30:23Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "RF-07",
@@ -363,13 +374,24 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-04T10:23:21Z",
       "baseCommit": "d0e82ce328bdd4453b2c738c45e821d019039235",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null
+      "completedAt": "2026-11-04T10:35:29Z",
+      "commit": "a48a8effa08a2d46ca1d19afbbfb430da6556ffc",
+      "verification": {
+        "tree": "962802c6659244b1a3f26d995ab96358f1d86c6d",
+        "at": "2026-11-04T10:35:29Z",
+        "postMerge": "ran",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      }
     },
     {
       "id": "RF-08",
