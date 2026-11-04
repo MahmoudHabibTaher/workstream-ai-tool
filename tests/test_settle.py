@@ -14,7 +14,7 @@ from unittest import mock
 from tests.helpers import WsTestCase, evidence_text, task
 from tests.test_schema import load_schema, problems
 import workstream
-from workstream import act, settle
+from workstream import act, audit, protocol, registry, settle
 
 
 class SettleTestCase(WsTestCase):
@@ -949,6 +949,56 @@ class BriefTests(SettleTestCase):
         filtered = self.ok("decisions", "--for", "T1")
         self.assertIn("D001", filtered)
         self.assertNotIn("D002", filtered)
+
+
+class BriefBudgetTests(SettleTestCase):
+    """A landing grows a waiting brief through tracking files, which `same-tree` doesn't compare."""
+
+    WARNING = "make audit fails"
+
+    def brief_row(self, task_id: str = "T2") -> dict:
+        project = self.project()
+        ws = registry.find(registry.load(project), "alpha")
+        return next(r for r in audit.project_rows(project, ws) if r["role"] == f"brief {task_id}")
+
+    def arrange_waiting_brief(self, headroom: int) -> None:
+        """T2 waits on T1, its brief this many tokens under the real budget."""
+        self.arrange(self.t("T1"), self.t("T2", 20, blockedBy=["T1"], summary="pad"))
+        queue = self.queue()
+        spare = audit.BRIEF_BUDGET - headroom - self.brief_row()["tokens"]
+        queue["tasks"][1]["summary"] = "pad" + "x" * (spare * 4)
+        self.write_queue(queue["tasks"])
+        self.commit_all("padded")
+        self.assertEqual(self.brief_row()["tokens"], audit.BRIEF_BUDGET - headroom)
+
+    def test_a_landing_that_puts_a_waiting_brief_over_budget_lands_and_warns(self) -> None:
+        self.arrange_waiting_brief(headroom=100)
+        self.work(evidence=evidence_text("T1", gotchas="- " + "word " * 200))
+        out = self.ok("settle", "T1")
+        self.assertEqual(self.by_id("T1")["status"], "done")
+        used = self.brief_row()["tokens"]
+        self.assertGreater(used, audit.BRIEF_BUDGET)
+        self.assertIn(f"warning: brief T2 is {used} of {audit.BRIEF_BUDGET}: {self.WARNING}", out)
+
+    def test_a_landing_with_every_brief_under_budget_says_nothing(self) -> None:
+        self.arrange_waiting_brief(headroom=400)
+        self.work(evidence=evidence_text("T1", gotchas="- " + "word " * 200))
+        out = self.ok("settle", "T1")
+        self.assertEqual(self.by_id("T1")["status"], "done")
+        self.assertLess(self.brief_row()["tokens"], audit.BRIEF_BUDGET)
+        self.assertNotIn(self.WARNING, out)
+
+    def test_a_dry_run_measures_nothing(self) -> None:
+        self.arrange_waiting_brief(headroom=-100)  # over already, so a measurement would warn
+        self.work()
+        with mock.patch.object(audit, "project_rows") as measure:
+            out = self.ok("settle", "T1", "--dry-run")
+        measure.assert_not_called()
+        self.assertNotIn(self.WARNING, self.ok("settle", "T1", "--dry-run"))
+        self.assertIn("ready to settle", out)
+
+    def test_the_stop_rules_list_it(self) -> None:
+        self.assertIn("10. `ws settle` says a brief is over budget", protocol.section("stop"))
 
 
 class ReviewAfterClaimTests(SettleTestCase):
