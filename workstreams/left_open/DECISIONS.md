@@ -35,3 +35,9 @@ Rejected: a JSON shape for the held case, which would make the two empty cases d
 
 `cmd_next` shares the held-back wording through a small helper rather than calling `_print_held_and_blocked`, since D-NEXT asks for the held tasks only.
 Rejected: calling `_print_held_and_blocked` directly, which would also list blocked tasks under `ws next`. **Closed.**
+
+## D007 (2026-11-04, LO-12): the schema says "`ws update` with `--acceptance`" rather than "`ws update --acceptance`"
+
+`test_every_command_they_mention_parses` parses every backticked `ws` command, and `ws update --acceptance` alone fails to parse because the flag takes two arguments. The rewording says the same thing and leaves that test as it is.
+
+Rejected: adding an exception to that test, which would weaken a check to suit one phrase; and dropping the backticks, which would make the command the only unmarked one in the row. **Closed.**

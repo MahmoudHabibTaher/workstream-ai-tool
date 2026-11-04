@@ -6,6 +6,14 @@ Created 2026-11-04 from `main` at `c0d955e`.
 
 ---
 
+## 2026-11-04: LO-07: ws decisions reads the integration checkout
+
+Merged as `fab69c3982`. Verified: test pass. [Evidence](evidence/LO-07.md).
+
+## 2026-11-04: LO-12: The task schema says how to catch a test filter that matches nothing
+
+Merged as `062fdbdce0`. Verified: test pass, audit pass. [Evidence](evidence/LO-12.md).
+
 ## 2026-11-04: LO-05: Foreground tasks get a worktree
 
 Merged as `988d062018`. Verified: test pass, audit pass. [Evidence](evidence/LO-05.md).
