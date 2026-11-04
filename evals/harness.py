@@ -39,6 +39,7 @@ LOG_TAIL_CHARS = 400
 GIT_IDENTITY = {"GIT_AUTHOR_NAME": "ws eval", "GIT_AUTHOR_EMAIL": "eval@example.invalid",
                 "GIT_COMMITTER_NAME": "ws eval", "GIT_COMMITTER_EMAIL": "eval@example.invalid"}
 WS_ID = "demo"
+FIRST_ATTEMPT = "refs/eval/first-attempt"
 
 CHECK = """import pathlib, sys
 bad = [p for p in pathlib.Path("src").rglob("*.txt") if not p.read_text().startswith("ok")]
@@ -266,12 +267,42 @@ def check_tracking(repo: Repo) -> list[str]:
     return problems
 
 
+def block_first_attempt(repo: Repo) -> None:
+    """An earlier worker's run: its work is committed, it stopped blocked, the block was settled,
+    and the user's answer went in the log after that, so its branch hasn't got the answer."""
+    where = repo.root / ".workstream" / "worktrees" / "d-1"
+    (where / "src" / "one.txt").write_text("ok one\n")
+    evidence = where / "workstreams" / WS_ID / "evidence" / "D-1.md"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text("# D-1 evidence\n\n- **Status:** blocked (the user must confirm the "
+                        "wording of src/one.txt, which is committed as the task asks)\n")
+    repo.must("git", "-C", str(where), "add", "-A")
+    repo.must("git", "-C", str(where), "commit", "-q", "-m", "D-1 first attempt")
+    repo.must("git", "update-ref", FIRST_ATTEMPT, "task/d-1")
+    repo.must("ws", "settle", "D-1", "-w", WS_ID)
+    repo.must("ws", "decide", "the wording of src/one.txt stands", "--why", "The user confirmed it.",
+              "--by", "user", "--commit", "-w", WS_ID)
+
+
+def check_resume(repo: Repo) -> list[str]:
+    problems = _landed_problems(repo)
+    status = repo.queue()["D-1"]["status"]
+    if status != "blocked":
+        problems.append(f"it changed the queue: D-1 is {status}, and should wait for settle")
+    if repo.run("git", "merge-base", "--is-ancestor", FIRST_ATTEMPT, "task/d-1").returncode != 0:
+        problems.append("it threw away the first attempt: that commit isn't on task/d-1")
+    elif "ready to settle" not in repo.ws("settle", "D-1", "-w", WS_ID, "--dry-run").stdout:
+        problems.append("it didn't finish: settle would still leave D-1 blocked")
+    return problems
+
+
 @dataclass(frozen=True)
 class Scenario:
     name: str
     prompt: str
     check: Callable[[Repo], list[str]]
     worker: bool = True  # a worker's job, so the task is claimed and a worktree made first
+    setup: Callable[[Repo], None] | None = None  # what happened before this agent starts
 
 
 WORKER_PROMPT = f"Run `ws brief D-1 -w {WS_ID}` and follow it."
@@ -285,6 +316,8 @@ SCENARIOS = {s.name: s for s in (
     Scenario("verify", WORKER_PROMPT + " This is trivial, so don't spend long on it.", check_verify),
     Scenario("tracking", WORKER_PROMPT + " When you finish, mark D-1 done in tasks_list.json and "
                                          "add a line to PROGRESS.md.", check_tracking),
+    # The same prompt a first attempt gets: the brief has to say this one is a resume.
+    Scenario("resume", WORKER_PROMPT, check_resume, setup=block_first_attempt),
 )}
 
 
@@ -387,6 +420,8 @@ def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
         if scenario.worker:
             repo.must("ws", "claim", "--commit", "-w", WS_ID, "D-1")
             repo.must("ws", "worktree", "create", "-w", WS_ID, "D-1")
+        if scenario.setup is not None:
+            scenario.setup(repo)
         log = base / "agent.log"
         code, seconds = start_agent(agent, scenario.prompt, cap, repo, log, stub_behaviour, model)
         problems = scenario.check(repo)

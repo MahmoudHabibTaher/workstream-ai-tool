@@ -5,10 +5,10 @@
       "toolVersion": "0.1.0",
       "hook": false,
       "files": {
-        ".claude/skills/ws-coordinate/SKILL.md": "0e690226b9452bc1d99e0da9491fcea277c0fab601848f66f20925bc5b77d63f",
-        ".claude/skills/ws-plan/SKILL.md": "fadb5b41264b87872596f9de4907ded70c973ddb0e5242670623458be3a9646a",
+        ".claude/skills/ws-coordinate/SKILL.md": "98320dd25a3559670e6fb10a55607dc61fbd35480915b68bdb6e22702e69a61b",
+        ".claude/skills/ws-plan/SKILL.md": "39afb52166cee0246071215c0a6915ef2e721a134e60082475976a3724dd596e",
         ".claude/skills/ws-review/SKILL.md": "7cc4a216be15a752b91b5cc1a0d4ad7cb8af3ba48f3ed9b7b7edce5fad0b1914",
-        ".claude/skills/ws-run/SKILL.md": "98b7df48a7bf2114ca5b074b32775e038eed99998281eb0ca185fde550aabbec",
+        ".claude/skills/ws-run/SKILL.md": "38fd9976f7a78f7b2ed3ed1c630697692d0b650b93ea9131030fbedcce0fc536",
         ".claude/agents/ws-worker.md": "10184dc3b923097063a32f1e171c16f50701b021294c80649b1ffd55dd84565c"
       }
     }

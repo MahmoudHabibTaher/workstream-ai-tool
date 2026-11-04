@@ -12,7 +12,7 @@ The deliverable is a committed, registered workstream, not code. Approving a pla
 3. **Find the traps.** This is the plan's main value. For each change, read the real code and record what makes the obvious change wrong, with `file:line`. Note the existing tests new ones should resemble.
 4. **Design and cut tasks.** Follow `ws protocol plan-shape` and `ws protocol task-schema`.
    - One task is one branch and one merge, sized for one clean session. Prefer 3 to 10; a plan needing 20 or more is probably two workstreams.
-   - A task whose acceptance can't be checked is too vague: split it. One touching more than a handful of files is too big.
+   - A task whose acceptance can't be checked is too vague: split it. An item whose result must be an exact value names it with `expect`. One touching more than a handful of files is too big.
    - `verify` must run what the task produces. Lint alone proves nothing. Never invent a command: use `[commands]` keys you have seen work.
    - Say what a worktree can't do in `mode` and `requires`, never in `notes`.
    - The last task is the end-to-end proof. Docs go with the task that changes them.
