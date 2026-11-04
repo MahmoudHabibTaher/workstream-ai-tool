@@ -52,6 +52,21 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertIn("workstreams/demo/PROGRESS.md", " ".join(result["problems"]))
 
+    def test_discarding_the_first_attempt_is_caught(self) -> None:
+        result = self.run_stub("resume", "discard")
+        self.assertFalse(result["passed"])
+        self.assertIn("threw away the first attempt", " ".join(result["problems"]))
+
+    def test_requeueing_instead_of_resuming_is_caught(self) -> None:
+        result = self.run_stub("resume", "requeue")
+        self.assertFalse(result["passed"])
+        self.assertIn("D-1 is todo", " ".join(result["problems"]))
+
+    def test_a_resume_that_stops_short_is_caught(self) -> None:
+        result = self.run_stub("resume", "give-up")
+        self.assertFalse(result["passed"])
+        self.assertIn("still leave D-1 blocked", " ".join(result["problems"]))
+
     def test_the_scratch_repo_is_cleaned_up(self) -> None:
         before = set(Path(os.environ.get("TMPDIR", "/tmp")).glob("ws-eval-*"))
         self.run_stub("verify")

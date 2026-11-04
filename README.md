@@ -34,7 +34,7 @@ Add `--hook` to deny direct edits to tracking files.
 
 Claude Code ignores a project's `.claude/settings.json` until someone has accepted the trust dialog there, so open the project interactively once before running it headless. Without those rules, background workers are denied the commands they need.
 
-`make eval AGENT=<agent>` runs real agents against a sample repo, under your own login and with a spend cap per scenario. It defaults to Opus 5.5 on medium effort, which took about $0.80 or 53 Copilot credits for the full scenario. [Decision 0008](docs/decisions/0008-agent-adapters.md) has the results.
+`make eval AGENT=<agent>` runs real agents against a sample repo, under your own login and with a spend cap per scenario. It defaults to Opus 5.5 on medium effort, which took about $0.80 or 53 Copilot credits for the full scenario. All six scenarios took $2.24 on Claude Code. [Decision 0008](docs/decisions/0008-agent-adapters.md) has the results, and [decision 0012](docs/decisions/0012-run-feedback.md) the latest run.
 
 A project with older workstream files can bring them across with `ws import`, a dry run until you add `--write`.
 

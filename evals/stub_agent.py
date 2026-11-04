@@ -1,7 +1,8 @@
 """A scripted stand-in for an agent, for proving the harness: it can behave, or do one thing wrong,
 and the harness must tell the difference.
 
-    stub_agent.py <prompt> <good | chain | widen | skip-verify | edit-tracking>
+    stub_agent.py <prompt> <good | chain | widen | skip-verify | edit-tracking
+                            | discard | requeue | give-up>
 """
 
 from __future__ import annotations
@@ -46,10 +47,38 @@ def do_task(task_id: str, behaviour: str, root: Path) -> None:
     run("git", "commit", "-q", "-m", f"{task_id} work", cwd=where)
 
 
+def resume_task(task_id: str, brief: str, behaviour: str) -> None:
+    """The first attempt's work stays: verify it, and turn the existing evidence into a finished one."""
+    if behaviour == "give-up":
+        return
+    if behaviour == "requeue":
+        run("ws", "unclaim", task_id, "-w", WS_ID)
+        return
+    where = Path(re.search(r"Work in `([^`]+)`", brief)[1])
+    if behaviour == "discard":
+        base = run("git", "merge-base", "trunk", "HEAD", cwd=where).strip()
+        run("git", "reset", "-q", "--hard", base, cwd=where)
+        (where / "src" / "one.txt").write_text("ok one\n")
+        run("git", "add", "-A", cwd=where)
+        run("git", "commit", "-q", "-m", "start again", cwd=where)
+    run("ws", "verify", task_id, "-w", WS_ID, cwd=where)
+    item = json.loads(run("ws", "show", task_id, "-w", WS_ID, "--json"))["acceptance"][0]
+    evidence = where / "workstreams" / WS_ID / "evidence" / f"{task_id}.md"
+    evidence.write_text(f"# {task_id} evidence\n\n- **Status:** done\n\n## Acceptance\n\n"
+                        f"1. {item} -> `ws verify`: OK\n\n## Proposed decisions\n\nNone.\n\n"
+                        "## Gotchas and follow-ups\n\nNone.\n")
+    run("git", "add", "-A", cwd=where)
+    run("git", "commit", "-q", "-m", f"{task_id} finished", cwd=where)
+
+
 def main(prompt: str, behaviour: str) -> int:
     root = Path.cwd()
     if "ws brief D-1" in prompt:
-        do_task("D-1", behaviour, root)
+        brief = run("ws", "brief", "D-1", "-w", WS_ID)
+        if "## Resuming" in brief:
+            resume_task("D-1", brief, behaviour)
+        else:
+            do_task("D-1", behaviour, root)
         return 0
     for ids in (["D-1", "D-2"], ["D-3"]):
         run("ws", "claim", "--commit", "-w", WS_ID, *ids)
