@@ -557,6 +557,50 @@ class ValidateTests(WsTestCase):
             [self.open_task("X-01", 10, kind="behaviour", verify=["test"])], self.root, config)
         self.assertEqual(errors, [])
 
+    # --- a verify prefix that stops short --------------------------------------------------
+
+    def env_warnings(self, *verify: str, **fields) -> list[str]:
+        config = Config(commands={"test": "A=1 cargo test && make lint"})
+        _, warnings = tasks.validate_tasks(
+            [self.open_task("X-01", 10, verify=list(verify), **fields)], self.root, config)
+        return warnings
+
+    def test_warns_on_a_raw_verify_whose_prefix_stops_at_the_first_command(self) -> None:
+        self.assert_ok_with_warnings(
+            [self.open_task("X-01", 10, verify=["A=1 cargo test && make lint"])],
+            "X-01: verify 'A=1 cargo test && make lint' sets A for its first command only",
+        )
+
+    def test_warns_on_a_commands_key_whose_prefix_stops_at_the_first_command(self) -> None:
+        self.set_commands(test="A=1 cargo test && make lint")
+        self.assert_ok_with_warnings(
+            [self.open_task("X-01", 10, verify=["test"])],
+            "X-01: verify 'test' sets A for its first command only",
+        )
+
+    def test_the_prefix_warning_covers_each_separator_and_every_name(self) -> None:
+        for command in ("A=1 a && b", "A=1 a || b", "A=1 a ; b", "A=1 a; b", "A=1 a | b",
+                        'A="x y" a && b', "A= a && b"):
+            with self.subTest(command=command):
+                self.assertEqual(len(self.env_warnings(command)), 1)
+                self.assertIn(" sets A for ", self.env_warnings(command)[0])
+        self.assertIn(" sets A, B for ", self.env_warnings("A=1 B=2 a && b")[0])
+
+    def test_no_prefix_warning_where_the_variable_reaches_everything(self) -> None:
+        for command in ("A=1 cargo test", "export A=1 && b", "A=1 && b c", "A=1; b c",
+                        "A=1 B=2 && c d", "a b && c d", "make A=1 && b",
+                        "A=1 sh -c 'a && b'", 'A=1 a "b; c"', r"A=1 find . -exec rm {} \;",
+                        "A=1 a 2>&1"):
+            with self.subTest(command=command):
+                self.assertEqual(self.env_warnings(command), [])
+
+    def test_no_prefix_warning_on_a_finished_task(self) -> None:
+        for status in ("done", "deferred"):
+            with self.subTest(status=status):
+                self.assertEqual(
+                    self.env_warnings("A=1 cargo test && make lint", status=status, commit="abc1234"),
+                    [])
+
     def test_acceptance_takes_strings_and_typed_items(self) -> None:
         self.assert_ok_with_warnings([self.open_task(
             "X-01", 10, acceptance=["plain", {"text": "looks right", "kind": "manual"}])])

@@ -91,6 +91,12 @@ TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 # Ends the warning for an open task's `files` path that doesn't exist: expected on any task
 # that creates the file, so the health findings leave it out.
 MISSING_FILES_SUFFIX = "does not exist (yet)"
+# What a shell doesn't read as an operator: a quoted string or an escaped character.
+SHELL_QUOTED_RE = re.compile(r"""\\.|'[^']*'|"(?:\\.|[^"\\])*\"""", re.DOTALL)
+# Leading assignments on a command. An assignment followed by no command (`A=1 && b`) sets
+# a shell variable that does last, so a word has to come next.
+ENV_PREFIX_RE = re.compile(r"\s*((?:[A-Za-z_]\w*=[^\s;&|]*\s+)+)(?![A-Za-z_]\w*=)[^\s;&|]")
+COMMAND_SEPARATOR_RE = re.compile(r"&&|\||;")
 
 
 # --- reading and writing the file ---------------------------------------------------------
@@ -311,6 +317,28 @@ def _verify_errors(task: dict, label: str, config: Config) -> list[str]:
     return errors
 
 
+def _short_env_prefix(command: str) -> list[str]:
+    """The variables a command sets for its first step only: `A=1 a && b` leaves b without A."""
+    unquoted = SHELL_QUOTED_RE.sub("Q", command)
+    prefix = ENV_PREFIX_RE.match(unquoted)
+    if not prefix or not COMMAND_SEPARATOR_RE.search(unquoted, prefix.end()):
+        return []
+    return [word.split("=", 1)[0] for word in prefix.group(1).split()]
+
+
+def _verify_warnings(task: dict, label: str, config: Config) -> list[str]:
+    """A warning for each verify command whose leading assignment stops at its first step."""
+    if not is_type(task.get("verify", []), STR_LIST):
+        return []
+    warnings = []
+    for entry, command in verify_commands(task, config):
+        names = _short_env_prefix(command)
+        if names:
+            warnings.append(f"{label}: verify {entry!r} sets {', '.join(names)} for its first "
+                            f"command only; the rest runs without it (export it instead)")
+    return warnings
+
+
 def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
                    tier: str = "standard") -> tuple[list[str], list[str]]:
     """Every integrity problem in a queue, as (errors, warnings).
@@ -320,8 +348,9 @@ def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
     only, a missing releaseImpact (on a full workstream), a docs path that doesn't
     exist, a mode that requires contradicts, an unknown verify key, or a verify that falls
     short of the task's kind. Warnings: a files path missing on an open task (it may be one
-    the task creates), and two open tasks in the same phase, neither waiting on the other,
-    that name the same files path. Open-only rules keep a finished queue valid untouched.
+    the task creates), an open task's verify command whose leading VAR=x stops at its first
+    step, and two open tasks in the same phase, neither waiting on the other, that name the
+    same files path. Open-only rules keep a finished queue valid untouched.
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -349,6 +378,7 @@ def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
             errors.append(f"{label}: requires {forcing} but mode is "
                           f"{t.get('mode', 'background')!r}; it must be 'foreground'")
         errors += _verify_errors(t, label, config)
+        warnings += _verify_warnings(t, label, config)
         for path in t.get("files", []) if is_type(t.get("files", []), STR_LIST) else []:
             if not (repo_root / path).exists():
                 warnings.append(f"{label}: files path {path!r} {MISSING_FILES_SUFFIX}")
