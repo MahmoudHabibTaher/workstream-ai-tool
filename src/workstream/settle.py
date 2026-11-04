@@ -20,7 +20,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from workstream import act, decisions, evidence, gates, gitutil, handoff, registry, snapshot
+from workstream import act, audit, decisions, evidence, gates, gitutil, handoff, registry
+from workstream import snapshot
 from workstream import tasks, verify, worktree
 from workstream.errors import Refused
 from workstream.fsutil import today
@@ -308,6 +309,13 @@ def _clean_up(project: Project, ws: dict, out: dict) -> list[str]:
     return warnings
 
 
+def _over_budget(project: Project, ws: dict) -> list[str]:
+    """A brief includes what landed tasks left behind, which `same-tree` can't see: it compares
+    code. A warning, because the merge is committed and sound, and the fix is the user's call."""
+    return [f"{row['role']} is {row['tokens']} of {row['budget']}: make audit fails until this "
+            "is dealt with" for row in audit.project_rows(project, ws) if not row["ok"]]
+
+
 def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None = None,
            skip_post_verify: bool = False, keep: bool = False, dry_run: bool = False,
            note: str | None = None) -> dict:
@@ -338,6 +346,7 @@ def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None =
     rows_now = tasks.load(project.tasks_path(ws), project.config)["tasks"]
     result["open"] = [d["line"] for d in handoff.open_decisions(project, ws, rows_now)
                       if d["id"] in result["decisions"]]
+    result["warnings"] += _over_budget(project, ws)
     if not keep:
         for out in settled:
             if out["state"] == MERGED:

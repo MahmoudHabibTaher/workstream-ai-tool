@@ -85,3 +85,4 @@ Stop, say exactly what fired and what is left, and ask. Never guess past one. Fi
 7. A workstream it depends on isn't done, or the queue closes with deferred tasks.
 8. A release would be `major`, or its checks go red.
 9. An open decision has tasks waiting on it: it goes to the user before those tasks are claimed.
+10. `ws settle` says a brief is over budget. The merge stands; what to do about the brief is the user's call.
