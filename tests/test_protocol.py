@@ -30,6 +30,15 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(set(protocol.sections()),
                          {"worker", "files", "plan-shape", "task-schema", "stop"})
 
+    def test_the_schema_says_how_to_catch_a_filter_that_matches_nothing(self) -> None:
+        row = next(line for line in protocol.section("task-schema").splitlines()
+                   if line.startswith("| `acceptance` |"))
+        self.assertIn("A name filter that matches nothing can still exit 0", row)
+        self.assertIn("`expect` should name the line the runner prints for that test passing", row)
+        self.assertIn("a bare test name can match an echoed command", row)
+        self.assertIn("`ws add` and `ws update` with `--acceptance` can't set `expect`", row)
+        self.assertIn("`ws seed` can add such a task to an existing queue", row)
+
     def test_an_unknown_section_names_the_real_ones(self) -> None:
         with self.assertRaisesRegex(WsError, "there is: worker"):
             protocol.section("nope")
