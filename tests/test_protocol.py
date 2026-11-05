@@ -248,6 +248,17 @@ class NewGateTests(WsTestCase):
         self.assertIn("a session to itself", row)
         self.assertNotIn("a worktree can't", row)
 
+    def test_ws_run_does_not_send_a_foreground_task_back_to_the_integration_branch(self) -> None:
+        skill = protocol.skill_text("ws-run")
+        self.assertIn("**Foreground tasks**", skill)
+        self.assertNotIn("return to the integration branch", skill)
+
+    def test_the_only_exception_to_dont_merge_is_a_foreground_briefs_landing_step(self) -> None:
+        rule = next(line for line in protocol.section("worker").splitlines()
+                    if "Don't merge" in line)
+        self.assertIn("don't switch to the integration branch", rule)
+        self.assertIn("one exception is the landing step a foreground brief gives", rule)
+
     def test_a_paused_workstream_can_not_be_claimed(self) -> None:
         self.arrange(task("T1", 10))
         self.ok("set-status", "paused")

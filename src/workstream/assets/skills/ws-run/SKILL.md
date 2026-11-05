@@ -22,7 +22,7 @@ You coordinate; workers do the tasks, each in a clean context. Never do a backgr
 5. **Land them:** `ws settle -w <id> <task> <task>`. A worker's report is a claim; the gates in this command are the check. Don't redo their work to verify it.
 6. Give the user one line: what landed and what is open. Back to 1. Between rounds, do nothing else: work outside a claimed task can't be attributed.
 
-**Foreground tasks** run in this session, one at a time, after the batch: claim it alone, follow its brief yourself, return to the integration branch, then settle it.
+**Foreground tasks** run in this session, one at a time, after the batch: claim it alone and follow its brief yourself, landing step included. No checkout changes branch.
 
 **Resuming a blocked task:** once the user answers, start a fresh worker with the same prompt on the same worktree. Don't claim it again: the brief sees it is blocked and tells the worker to keep what's finished. Land it with `ws settle` as usual. Never `ws unclaim <task> -w <id>` for this: that requeues the task instead of resuming it.
 

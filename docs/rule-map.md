@@ -115,7 +115,7 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | kotlin | A wrong premise is a stop | protocol | worker: "the task's premise is wrong" |
 | subsonic | A `verify` that can't prove acceptance is a stop | protocol | worker: "a `verify` command can't prove what acceptance claims" |
 | subsonic | Blocked is committed on the branch and reported | protocol | worker: "commit that, and report" |
-| subsonic | Workers don't merge or leave their branch | protocol | worker: "Don't merge" |
+| subsonic | Workers don't merge or leave their branch, except a foreground brief's landing step | protocol | worker: "Don't merge" |
 | kotlin | Blocking is a correct outcome, surfaced to the user | protocol | stop: "as a decision the user owes" |
 | both | Run named commands, not guesses | code | tasks.verify_commands |
 | both | Build output stays out of context | code | verify.format_run |
