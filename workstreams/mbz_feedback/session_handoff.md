@@ -1,12 +1,13 @@
 # Session handoff
 
-**State:** 7/10 done on `main` at `b0df12b`, as of 2026-11-05.
+**State:** 9/10 done on `main` at `b26da0a`, as of 2026-11-05.
 
-**Just landed:** MF-06 (`cbdc9f7787`), MF-07 (`b0df12bd4d`)
+**Just landed:** MF-08 (`431851e770`), MF-09 (`b26da0af75`)
 
-**Next:** `ws claim --commit MF-08 MF-09` (phase 4).
+**Next:** `ws claim --commit MF-10` (phase 5).
 
 **Gotchas:**
-- MF-07: - The warning says `ws settle` writes the file, as D-TRACKING words it, but `hook.WRITERS` says `ws baseline record` writes `baseline.json`, so the wording is loose for that one name.
-- `ws validate` on a queue with a test-only `abc1234` commit also prints "isn't in this repository", so tests of its output should assert on the specific warning rather than the word "warning".
-- The `ws-plan` skill's generated `.claude/` copy isn't refreshed here: MF-10 does that (T2).
+- MF-08: - Each worker rule added moves `test_long_decision_logs_get_trimmed_with_a_pointer`'s fixed `--max-chars` again: MF-02 and this task both raised it. Deriving the limit from the brief's length would end that.
+- `ws-coordinate` still shows the `--acceptance` correction without `--expect`. It stays valid, and the skill wasn't on this task's file list.
+- MF-09: - For MF-10: the harness runs the worker as the top-level `claude -p` in `acceptEdits`, not as a background subagent, and `cannot_edit` describes the background. A real run shows whether `.claude/notes.md` is refused there. If it isn't, the agent still has the brief's "Don't try", and the check fails a worker that edits anyway.
+- `text` is in the default scenario list, so `make eval AGENT=copilot-cli` runs it too. Copilot's adapter has no `cannot_edit`, so its brief gives no warning and a Copilot worker may fairly edit the file and fail. Copilot evals are out of scope here.

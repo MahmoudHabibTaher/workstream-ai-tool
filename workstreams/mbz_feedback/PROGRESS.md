@@ -6,6 +6,14 @@ Created 2026-11-05 from `main` at `838de89`.
 
 ---
 
+## 2026-11-05: MF-08: Propose differences, and `--expect` on `ws update`
+
+Merged as `431851e770`. Verified: test pass, audit pass. [Evidence](evidence/MF-08.md).
+
+## 2026-11-05: MF-09: An eval for text left for a file a worker can't edit
+
+Merged as `b26da0af75`. Verified: test pass. [Evidence](evidence/MF-09.md).
+
 ## 2026-11-05: MF-06: Show what changed since the plan in the brief
 
 Merged as `cbdc9f7787`. Verified: test pass, audit pass. [Evidence](evidence/MF-06.md).

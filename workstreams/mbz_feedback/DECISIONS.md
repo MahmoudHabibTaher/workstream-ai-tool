@@ -59,3 +59,19 @@ The warning has one source and each line gives its item number, so a line about 
 ## D013 (2026-11-05, MF-07): A name counts only whole, and an optional `n` labels a task with no id
 
 `MY_DECISIONS.md`, `old-PROGRESS.md` and `DECISIONS.md.bak` don't warn, and a test pins that. An item's `expect` counts as well as its text, since `acceptance_text` includes it. `tracking_file_warnings(task, n=0)` adds `n` to D-TRACKING's signature so `validate_tasks` labels an id-less task as its other rules do. Rejected: a plain substring check, which warns on other files. **Closed.**
+
+## D014 (2026-11-05, MF-08): `tests/test_settle.py` changes though it is not on the task's file list
+
+The new worker rule lengthens every brief, which pushed the last decision out of `test_long_decision_logs_get_trimmed_with_a_pointer`, so its `--max-chars` rose from 3250 to 3400 and its length bound from 3350 to 3500. This is the change MF-02 made for the same reason, and the test's meaning is unchanged. Rejected: rewording the rule shorter, which only delays the same failure. **Closed.**
+
+## D015 (2026-11-05, MF-08): `--expect` is refused before anything else when `--acceptance` is absent
+
+That makes `--expect` with `--summary`, or with only `--because`, refused with the one message "--expect goes with --acceptance", rather than an error about another flag. Rejected: letting `--summary` ignore it, which would drop the pin the caller asked for without saying so. **Closed.**
+
+## D016 (2026-11-05, MF-09): The scenario's file is `.claude/notes.md`, named in the task's files and not yet existing
+
+Naming it makes the brief's "You can't edit these from the background" line fire, which `test_the_text_scenarios_file_is_one_a_claude_worker_is_warned_off` pins against the real claude-code adapter. It sits outside `.claude/skills` and `.claude/agents`, which `ws adapt` generates, so the task can't be confused with a refresh of them. Rejected: naming the file only in the summary, which would test the one worker rule alone, and an existing file, which needs a sample repo that differs per scenario. **Closed.**
+
+## D017 (2026-11-05, MF-09): `check_text` reads the section with `evidence.parse`, so the harness imports `workstream`
+
+The check then agrees with what settle and close read. `make eval` and `make test` both run under `PYTHONPATH=src`. Rejected: a text search of the evidence file, which would accept the line anywhere and is the convention-parsing D-TEXT rejected. **Closed.**
