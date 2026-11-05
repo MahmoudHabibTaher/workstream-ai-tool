@@ -54,7 +54,8 @@ def relevant(entries: list[dict], task: dict) -> list[dict]:
 
 
 def is_open(text: str) -> bool:
-    return OPEN_MARK in text
+    """Only the ending marks an entry open: a reason quoting the mark mid-text doesn't."""
+    return text.rstrip().endswith(OPEN_MARK)
 
 
 def open_entries(entries: list[dict]) -> list[dict]:

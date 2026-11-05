@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import unittest
 
-from tests.helpers import WsTestCase
-from workstream import decisions, protocol
+from tests.helpers import WsTestCase, evidence_text
+from workstream import decisions, evidence, protocol
 from workstream.cli import build_parser
 
 LOG = """# Decisions
@@ -76,6 +76,33 @@ class RenderEntryTests(unittest.TestCase):
     def test_a_plain_body_still_gets_the_marker(self) -> None:
         self.assertEqual(self.render("B won."),
                          "## D016 (d, user): pick\n\nB won. **Closed.**\n")
+
+    def test_a_body_quoting_the_open_mark_mid_text_is_closed(self) -> None:
+        rendered = self.render("The **Open.** mark is quoted.")
+        self.assertEqual(rendered,
+                         "## D016 (d, user): pick\n\nThe **Open.** mark is quoted. **Closed.**\n")
+        self.assertEqual(decisions.open_entries(decisions.parse(rendered)), [])
+
+    def test_a_body_ending_in_the_open_mark_stays_open(self) -> None:
+        for body in ("Which one? **Open.**", "Which one? **Open.**  \n\n"):
+            with self.subTest(body=body):
+                self.assertTrue(decisions.is_open(body))
+                rendered = self.render(body)
+                self.assertEqual(rendered, "## D016 (d, user): pick\n\nWhich one? **Open.**\n")
+                self.assertEqual(ids(decisions.open_entries(decisions.parse(rendered))), ["D016"])
+
+
+class OpenMarkInEvidenceTests(unittest.TestCase):
+    TASK = {"id": "T", "acceptance": []}
+
+    def test_a_proposal_quoting_the_open_mark_mid_text_must_name_what_it_rejected(self) -> None:
+        text = evidence_text("T", 0, proposals="### P1: a call\nThe **Open.** mark is quoted.")
+        self.assertEqual(evidence.problems(text, self.TASK),
+                         ["P1 doesn't say what was rejected (`Rejected: ...`)"])
+
+    def test_a_proposal_ending_in_the_open_mark_needs_no_rejected_line(self) -> None:
+        text = evidence_text("T", 0, proposals="### P1: a call\nWho decides? **Open.**")
+        self.assertEqual(evidence.problems(text, self.TASK), [])
 
 
 class ClosingTests(WsTestCase):

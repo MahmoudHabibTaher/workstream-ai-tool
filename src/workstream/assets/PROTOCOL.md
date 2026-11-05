@@ -11,7 +11,7 @@ Version 1. `ws protocol <section>` prints one section, so nobody loads the rest.
 - Write code, docs and your own evidence file. Every other file in a workstream folder, and the registry, belongs to the coordinator.
 - Check each acceptance item for real and quote what you saw. "Done" isn't proof.
 - Findings in the baseline aren't yours: don't fix them, and don't add to them.
-- A reversible call goes in your evidence as `### P1: the call`, with the reason and what you rejected. Never invent a `D` number. Mark one that someone must still settle `**Open.**`.
+- A reversible call goes in your evidence as `### P1: the call`, with the reason and what you rejected. Never invent a `D` number. End one that someone must still settle with `**Open.**`.
 - Don't reopen a recorded decision without new evidence.
 - Stop rather than guess when `ws verify` can't pass, the work needs something out of scope, it would contradict a decision, the plan missed something that changes the design, the task's premise is wrong, or a `verify` command can't prove what acceptance claims. Write `- **Status:** blocked (the reason)`, commit that, and report.
 - Don't merge, and don't switch to the integration branch. The one exception is the landing step a foreground brief gives, which names the integration checkout and switches nothing.
