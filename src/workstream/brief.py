@@ -326,16 +326,20 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
 
 
 def _with_decisions(project: Project, ws: dict, task: dict, text: str, max_chars: int) -> str:
-    """Add the decisions that apply, newest first, for as long as they fit."""
+    """Add the decisions that apply, those naming the task first and each group newest first,
+    skipping any that doesn't fit so it can't hide a shorter one after it."""
     path = project.folder(ws) / "DECISIONS.md"
     entries = decisions.relevant(decisions.parse(path.read_text()), task) if path.exists() else []
     if not entries:
         return text
+    newest_first = entries[::-1]
+    naming = [e for e in newest_first if decisions._mentions(e["text"], task["id"])]
+    others = [e for e in newest_first if not decisions._mentions(e["text"], task["id"])]
     kept: list[str] = []
     used = len(text)
-    for entry in reversed(entries):
+    for entry in naming + others:
         if used + len(entry["text"]) + 2 > max_chars:
-            break
+            continue
         kept.append(entry["text"])
         used += len(entry["text"]) + 2
     lines = ["", "## Decisions that apply", ""]

@@ -394,3 +394,53 @@ class FinishTests(WsTestCase):
         self.assertIn("If your shell moves it to the background, wait for it to exit: it enforces "
                       "its own time limit, and elapsed time can include the machine sleeping, so "
                       "don't kill it.", step_1)
+
+
+class DecisionTrimTests(WsTestCase):
+    """Which decisions a brief keeps once they no longer all fit."""
+
+    def brief_with(self, *entries: str, room: int) -> str:
+        """T1's brief with these entries in the log and room for this many characters of them."""
+        self.new_ws()
+        self.seed_ok([task("T1", 1)])
+        bare = self.ok("brief", "T1", "-w", "alpha", "--max-chars", "0")
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text("\n\n".join(entries) + "\n")
+        # The bare brief ends in a newline that the budget doesn't count.
+        limit = len(bare) - 1 + room
+        return self.ok("brief", "T1", "-w", "alpha", "--max-chars", str(limit))
+
+    @staticmethod
+    def entry(number: int, body: str = "Generic.", who: str = "user") -> str:
+        return f"## D{number:03d} (2026-01-01, {who}): call {number}\n\n{body}"
+
+    def test_an_old_user_decision_naming_the_task_outlives_newer_generic_ones(self) -> None:
+        old = self.entry(1, "Applies to T1 alone.")
+        generic = [self.entry(n) for n in range(2, 7)]
+        brief = self.brief_with(old, *generic, room=len(old) + len(generic[-1]) + 4)
+        self.assertIn("D001", brief)
+        self.assertIn("D006", brief)
+        for dropped in ("D002", "D003", "D004", "D005"):
+            self.assertNotIn(dropped, brief)
+        self.assertIn("4 more: `ws decisions --for T1 -w alpha`", brief)
+
+    def test_those_naming_the_task_come_first_and_each_group_runs_newest_first(self) -> None:
+        brief = self.brief_with(self.entry(1, "T1."), self.entry(2), self.entry(3, "T1."),
+                                self.entry(4), room=10_000)
+        kept = [line.split()[1] for line in brief.splitlines() if line.startswith("## D0")]
+        self.assertEqual(kept, ["D003", "D001", "D004", "D002"])
+        self.assertNotIn("more:", brief)
+
+    def test_a_longer_id_is_not_naming_the_task(self) -> None:
+        other = self.entry(1, "About T10.")
+        newer = self.entry(2)
+        brief = self.brief_with(other, newer, room=len(newer) + 2)
+        self.assertIn("D002", brief)
+        self.assertNotIn("D001", brief)
+        self.assertIn("1 more:", brief)
+
+    def test_an_entry_too_long_to_fit_does_not_hide_a_shorter_one_after_it(self) -> None:
+        short, too_long, newest = self.entry(1), self.entry(2, "why " * 100), self.entry(3)
+        brief = self.brief_with(short, too_long, newest, room=len(short) + len(newest) + 4)
+        kept = [line.split()[1] for line in brief.splitlines() if line.startswith("## D0")]
+        self.assertEqual(kept, ["D003", "D001"])
+        self.assertIn("1 more: `ws decisions --for T1 -w alpha`", brief)
