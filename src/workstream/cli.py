@@ -894,7 +894,7 @@ def cmd_settle(args: argparse.Namespace) -> int:
         warned = [g for g in out["gates"] if not g["ok"] and not g["blocking"]]
         if out["state"] == settle.MERGED:
             for g in warned:
-                print(f"{out['id']}: warning: {g['name']}: {g['detail']}")
+                print(f"{out['id']}: warning: {g['detail'] or g['name']}")
             print(f"{out['id']}: done, merged as {out['commit'][:10]} "
                   f"(after merge: {out['postMerge']})")
         elif out["state"] == settle.BLOCKED:

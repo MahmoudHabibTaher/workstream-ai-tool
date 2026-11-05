@@ -54,7 +54,7 @@ class ScopeGateTests(SettleTestCase):
             with self.subTest(name):
                 self.assertFalse(found["ok"])
                 self.assertFalse(found["blocking"])
-                self.assertEqual(found["detail"], "b.txt")
+                self.assertEqual(found["detail"], "files outside the task's list: b.txt")
 
     def test_empty_files_with_docs_still_gets_no_check(self) -> None:
         where = self.worked({"b.txt": "y\n"}, docs=["guide.md"])
@@ -65,6 +65,16 @@ class ScopeGateTests(SettleTestCase):
     def test_the_settle_output_stays_quiet_about_a_named_doc(self) -> None:
         self.worked({"a.txt": "x\n", "guide.md": EDITED}, files=["a.txt"], docs=["guide.md"])
         self.assertNotIn("the diff stays within", self.ok("settle", "T1"))
+
+    def test_the_shared_printer_keeps_the_name_before_the_detail(self) -> None:
+        self.worked({"a.txt": "x\n", "b.txt": "y\n"}, files=["a.txt"])
+        self.assertIn("  warn the diff stays within the task's files: "
+                      "files outside the task's list: b.txt",
+                      self.ok("settle", "T1", "--dry-run"))
+
+    def test_the_doctor_still_prints_warn_name_detail(self) -> None:
+        self.edit_config('test = "true"', 'test = "no-such-tool-here"')
+        self.assertIn("  warn each command's tool is here: test: ", self.ok("doctor"))
 
 
 class TaskSchemaTests(SettleTestCase):
