@@ -454,6 +454,74 @@ class UpdateCommitsVerifyAndNotesTests(WsTestCase):
         self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
 
 
+class CommitWithNothingChangedTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10, summary="old", acceptance=["one"], verify=["make one"],
+                           notes="first")])
+        self.ok("decide", "Change it", "--why", "the target moved", "--by", "user", "-w", "alpha")
+        self.queue_path = self.ws_dir / "alpha" / "tasks_list.json"
+        self.commit_all("tracking")
+
+    def date_the_queue_earlier(self) -> None:
+        data = json.loads(self.queue_path.read_text())
+        data["updated"] = "2000-01-01"
+        self.queue_path.write_text(json.dumps(data, indent=2) + "\n")
+        self.commit_all("an earlier day")
+
+    def says_nothing_changed(self, *flags: str) -> None:
+        before = self.queue_path.read_bytes()
+        head = self.git("rev-parse", "HEAD").strip()
+        out = self.ok("update", "-w", "alpha", "X-01", *flags, "--commit")
+        self.assertIn("X-01: nothing changed\n", out)
+        self.assertNotIn("updated", out)
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
+        self.assertEqual(self.queue_path.read_bytes(), before)
+        self.assertEqual(self.git("status", "--porcelain").split(), [])
+
+    def test_the_same_verify_or_notes_commits_nothing(self) -> None:
+        for flags in (("--verify", "make one"), ("--notes", "first"),
+                      ("--verify", "make one", "--notes", "first")):
+            with self.subTest(flags=flags):
+                self.says_nothing_changed(*flags)
+
+    def test_the_same_value_on_a_queue_dated_earlier_commits_nothing(self) -> None:
+        self.date_the_queue_earlier()
+        for flags in (("--verify", "make one"), ("--notes", "first")):
+            with self.subTest(flags=flags):
+                self.says_nothing_changed(*flags)
+
+    def test_the_same_correction_commits_nothing(self) -> None:
+        cases = (("--summary", "new"), ("--acceptance", "1", "new"))
+        for flags in cases:
+            with self.subTest(flags=flags):
+                flags = (*flags, "--because", "D001")
+                committed = self.ok("update", "-w", "alpha", "X-01", *flags, "--commit")
+                self.assertIn("committed", committed)
+                self.says_nothing_changed(*flags)
+                self.date_the_queue_earlier()
+                self.says_nothing_changed(*flags)
+
+    def test_a_real_change_still_commits(self) -> None:
+        self.date_the_queue_earlier()
+        cases = (("verify", ("--verify", "make two")), ("notes", ("--notes", "second")),
+                 ("summary, D001", ("--summary", "new", "--because", "D001")))
+        for what, flags in cases:
+            with self.subTest(what=what):
+                head = self.git("rev-parse", "HEAD").strip()
+                out = self.ok("update", "-w", "alpha", "X-01", *flags, "--commit")
+                short = self.git("rev-parse", "--short", "HEAD").strip()
+                self.assertIn(f"updated X-01: {what}; committed {short}", out)
+                self.assertEqual(self.git("rev-parse", "HEAD~1").strip(), head)
+                self.assertEqual(self.git("log", "-1", "--format=%s").strip(),
+                                 f"alpha: X-01 {what}")
+
+    def test_without_commit_the_same_value_keeps_its_line(self) -> None:
+        out = self.ok("update", "-w", "alpha", "X-01", "--notes", "first")
+        self.assertIn("updated X-01: notes\n", out)
+
+
 class UpdateSaysWhatChangedTests(WsTestCase):
     def setUp(self) -> None:
         super().setUp()
