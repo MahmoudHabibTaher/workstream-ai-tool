@@ -290,7 +290,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/mf-05",
       "blockedBy": [
         "MF-03"
       ],
@@ -299,10 +299,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T14:49:38Z",
+      "baseCommit": "091c5a1ca1a45460ae5bf7827daf65613c53d561",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
