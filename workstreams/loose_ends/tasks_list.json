@@ -437,7 +437,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/le-08",
       "blockedBy": [
         "LE-02"
       ],
@@ -446,10 +446,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T10:39:10Z",
+      "baseCommit": "7ce0198a3803ef640a22087253a7c398597dd8ef",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
@@ -481,7 +481,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/le-09",
       "blockedBy": [
         "LE-02"
       ],
@@ -490,10 +490,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T10:39:10Z",
+      "baseCommit": "7ce0198a3803ef640a22087253a7c398597dd8ef",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
