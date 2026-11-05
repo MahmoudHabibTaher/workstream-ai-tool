@@ -19,8 +19,8 @@ You coordinate; workers do the tasks, each in a clean context. Never do a backgr
    ws worktree create -w <id> <task> <task>
    ```
 4. **Start one fresh worker per task,** in parallel, on your own model unless the user named another. The whole prompt is: run `ws brief <task> -w <id>` and follow it. Wait to be notified; never poll. A finished worker's context is spent, so never give it a second task. One that ends without saying done or blocked has stopped, and won't resume: handle it as a leftover, as in step 2.
-5. **Land them:** `ws settle -w <id> <task> <task>`. A worker's report is a claim; the gates in this command are the check. Don't redo their work to verify it.
-6. Give the user one line: what landed and what is open. Back to 1. Between rounds, do nothing else: work outside a claimed task can't be attributed.
+5. **Land them:** `ws settle -w <id> <task> <task>`. A worker's report is a claim; the gates in this command are the check. Don't redo their work to verify it. A `to apply:` line is text a worker couldn't write, kept in the evidence file it names: apply it and commit before the next round, because you can edit what a background worker can't.
+6. Give the user one line: what landed and what is open. Back to 1. Between rounds, do nothing else but apply that text: work outside a claimed task can't be attributed.
 
 **Foreground tasks** run in this session, one at a time, after the batch: claim it alone and follow its brief yourself, landing step included. No checkout changes branch.
 

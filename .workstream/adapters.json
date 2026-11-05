@@ -5,10 +5,10 @@
       "toolVersion": "0.1.0",
       "hook": false,
       "files": {
-        ".claude/skills/ws-coordinate/SKILL.md": "ea93b68a9d7c9104d33b57df06d8f0ffc6c72ca55dea817dfa54891a5083c0bc",
-        ".claude/skills/ws-plan/SKILL.md": "39afb52166cee0246071215c0a6915ef2e721a134e60082475976a3724dd596e",
+        ".claude/skills/ws-coordinate/SKILL.md": "c94e80f2c875749b5177623e1ca5bf51dc23861150a9c685e6cf489cd6f892c0",
+        ".claude/skills/ws-plan/SKILL.md": "ee5e3ac56cbcedb7ce40a28c6e0b43f99cdbadad9c56ba792f266945681e1013",
         ".claude/skills/ws-review/SKILL.md": "7cc4a216be15a752b91b5cc1a0d4ad7cb8af3ba48f3ed9b7b7edce5fad0b1914",
-        ".claude/skills/ws-run/SKILL.md": "672df6660da2dcc6a80409737d68f5af95509070290cd57efde4d891d5e11b39",
+        ".claude/skills/ws-run/SKILL.md": "6c5a13d7224539b5111fb9f7123b41526894a09d17a1bcbec3ebba7e7f6403e7",
         ".claude/agents/ws-worker.md": "10184dc3b923097063a32f1e171c16f50701b021294c80649b1ffd55dd84565c"
       }
     }
