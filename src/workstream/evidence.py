@@ -9,8 +9,12 @@
     <why>. Rejected: <the alternative>.
     ## Gotchas and follow-ups
     <what the next task should know>
+    ## Text to apply
+    ### `<path from the repo root>`
+    <the exact text, for a file this worker can't edit>
 
-A blocked task writes `- **Status:** blocked (<reason>)` and may stop there. Nothing here reads
+Text to apply comes last and runs to the end of the file, so it may hold any heading at all and
+nothing else here reads it as structure. A blocked task writes `- **Status:** blocked (<reason>)` and may stop there. Nothing here reads
 the worker's prose for meaning: it checks the shape, so an item with nothing quoted is caught
 without anyone reading it.
 """
@@ -31,6 +35,10 @@ PROPOSAL_RE = re.compile(r"^### +(P\d+)\s*:\s*(.*?)\s*$", re.MULTILINE)
 ARROW_RE = re.compile(r"(?:->|→)\s*(\S.*)$")
 REJECTED_RE = re.compile(r"\brejected\b", re.IGNORECASE)
 PLACEHOLDER = "{{"
+TEXTS_RE = re.compile(r"^## +text to apply[ \t]*$", re.MULTILINE | re.IGNORECASE)
+TEXT_FILE_RE = re.compile(r"^### +`([^`\n]+)`[ \t]*$", re.MULTILINE)
+TEXTS_NONE = ("None. (Text for a file you can't edit goes here, whole: a line of ### `path`, "
+              "relative to the repo root, then the text. Keep this section last.)")
 
 
 def path_for(project: Project, ws: dict, task_id: str) -> Path:
@@ -83,8 +91,30 @@ def _proposals(body: str) -> list[dict]:
     return found
 
 
+def _split_texts(text: str) -> tuple[str, str, str]:
+    """(everything before Text to apply, its heading, its body), the last two "" if absent.
+    The first such heading counts, because the text under it may quote the heading itself."""
+    match = TEXTS_RE.search(text)
+    return (text[:match.start()], match[0], text[match.end():]) if match else (text, "", "")
+
+
+def _texts(body: str) -> list[dict]:
+    """[{path, text}] in file order. Text above the first file has the path "", for problems
+    to report; only a `### ` line holding nothing but a backticked path starts a file."""
+    matches = list(TEXT_FILE_RE.finditer(body))
+    above = body[:matches[0].start() if matches else len(body)].strip()
+    found = []
+    if above and above.lower() not in ("none", "none.", TEXTS_NONE.lower()):
+        found.append({"path": "", "text": above})
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        found.append({"path": match[1].strip(), "text": body[match.end():end].strip("\n")})
+    return found
+
+
 def parse(text: str) -> dict:
-    """{status, reason, items, proposals, gotchas}. Status is "" when it can't be read."""
+    """{status, reason, items, proposals, gotchas, texts}. Status is "" when it can't be read."""
+    text, _, texts = _split_texts(text)
     match = STATUS_RE.search(text)
     raw = match[1] if match else ""
     status, reason = "", ""
@@ -97,7 +127,8 @@ def parse(text: str) -> dict:
     return {"status": status, "reason": reason,
             "items": _acceptance_items(_named(found, "acceptance")),
             "proposals": _proposals(_named(found, "decision")),
-            "gotchas": _named(found, "gotcha")}
+            "gotchas": _named(found, "gotcha"),
+            "texts": _texts(texts)}
 
 
 def _has_proof(item: str) -> bool:
@@ -122,11 +153,25 @@ def paired_items(parsed: dict | None, task: dict) -> list[dict]:
             for n, item in enumerate(task.get("acceptance", []), 1)]
 
 
+def _text_problem(entry: dict) -> str | None:
+    path = entry["path"]
+    if not path:
+        return "Text to apply has text with no file (start each with a line of ### `path`)"
+    parts = re.split(r"[/\\]", path)
+    if path[0] in "/\\" or re.match(r"[A-Za-z]:", path):
+        return f"Text to apply names an absolute path: {path}"
+    if ".." in parts:
+        return f"Text to apply names a path with `..`: {path}"
+    if not entry["text"].strip():
+        return f"Text to apply has no text for {path}"
+    return None
+
+
 def problems(text: str | None, task: dict) -> list[str]:
     """Why this evidence can't settle the task. Empty means it can."""
     if text is None:
         return [f"no evidence/{task['id']}.md (`ws evidence new {task['id']}` starts one)"]
-    if PLACEHOLDER in text:
+    if PLACEHOLDER in _split_texts(text)[0]:  # text to apply may be a template itself
         return ["still has a {{...}} placeholder to fill in"]
     parsed = parse(text)
     if not parsed["status"]:
@@ -149,6 +194,7 @@ def problems(text: str | None, task: dict) -> list[str]:
         elif not REJECTED_RE.search(body) and not decisions.is_open(body):
             # The one thing a later session can't work out from the code.
             found.append(f"{proposal['id']} doesn't say what was rejected (`Rejected: ...`)")
+    found += [problem for problem in map(_text_problem, parsed["texts"]) if problem]
     return found
 
 
@@ -163,12 +209,15 @@ def skeleton(task: dict) -> str:
     lines += ["", "## Proposed decisions", "",
               "None. (A reversible call goes here as `### P1: the call`, with the reason, then "
               "`Rejected: the alternative`. `ws settle` numbers it.)", "",
-              "## Gotchas and follow-ups", "", "None.", ""]
+              "## Gotchas and follow-ups", "", "None.", "",
+              "## Text to apply", "", TEXTS_NONE, ""]
     return "\n".join(lines)
 
 
 def rewrite_ids(text: str, mapping: dict[str, str]) -> str:
-    """Each proposal id replaced by its decision id, wherever the file mentions it."""
+    """Each proposal id replaced by its decision id, wherever the file mentions it, except in
+    text to apply, which has to stay exactly what its author wrote."""
+    head, heading, body = _split_texts(text)
     for old, new in mapping.items():
-        text = re.sub(rf"\b{re.escape(old)}\b", new, text)
-    return text
+        head = re.sub(rf"\b{re.escape(old)}\b", new, head)
+    return head + heading + body

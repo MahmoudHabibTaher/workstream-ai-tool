@@ -9,6 +9,7 @@ Version 1. `ws protocol <section>` prints one section, so nobody loads the rest.
 - Search before you read, then read only the lines you need. Whatever you read stays in your context for every later call.
 - Create and change files with your edit tools, and give the shell one command per call: a background worker can't ask permission for anything else. A denied call isn't a block until you've tried it that way.
 - Write code, docs and your own evidence file. Every other file in a workstream folder, and the registry, belongs to the coordinator.
+- A change to a file you can't edit goes last in your evidence, under `## Text to apply`: a line of ### `path`, then the exact text.
 - Check each acceptance item for real and quote what you saw. "Done" isn't proof.
 - Findings in the baseline aren't yours: don't fix them, and don't add to them.
 - A reversible call goes in your evidence as `### P1: the call`, with the reason and what you rejected. Never invent a `D` number. End one that someone must still settle with `**Open.**`.

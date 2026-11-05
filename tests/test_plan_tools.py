@@ -313,6 +313,54 @@ class EvidenceTests(unittest.TestCase):
     def test_the_skeletons_help_text_proposes_nothing(self) -> None:
         self.assertEqual(evidence.parse(evidence.skeleton(self.TASK))["proposals"], [])
 
+    def with_texts(self, body: str) -> str:
+        return evidence_text("T-01", 2) + f"\n## Text to apply\n\n{body}\n"
+
+    def test_text_to_apply_comes_back_whole_for_each_file(self) -> None:
+        first = "# A rule\n\n## Acceptance\n\n1. not an item\n\n### Not a file\n\n  indented {{x}} P1\n"
+        second = "## Gotchas\n\nnot a gotcha"
+        text = self.with_texts(f"### `.claude/rules/a.md`\n{first}\n### `b.md`\n{second}")
+        parsed = evidence.parse(text)
+        self.assertEqual(parsed["texts"], [{"path": ".claude/rules/a.md", "text": first.rstrip("\n")},
+                                           {"path": "b.md", "text": second}])
+        self.assertEqual(sorted(parsed["items"]), [1, 2])
+        self.assertEqual(parsed["gotchas"], "None.")
+        self.assertEqual(evidence.problems(text, self.TASK), [])
+
+    def test_the_skeletons_text_to_apply_is_empty_and_comes_last(self) -> None:
+        text = evidence.skeleton(self.TASK)
+        self.assertEqual(evidence.parse(text)["texts"], [])
+        self.assertEqual(text.rsplit("\n## ", 1)[1].splitlines()[0], "Text to apply")
+        filled = text.replace("{{done, or blocked (the reason)}}", "done").replace(
+            "{{command and quoted output}}", "ran it")
+        self.assertEqual(evidence.problems(filled, self.TASK), [])
+
+    def test_evidence_with_no_text_to_apply_still_parses(self) -> None:
+        text = evidence_text("T-01", 2)
+        self.assertEqual(evidence.parse(text)["texts"], [])
+        self.assertEqual(evidence.problems(text, self.TASK), [])
+
+    def test_text_to_apply_shape_problems(self) -> None:
+        cases = {"loose text": "no file", "### not a path\ntext": "no file",
+                 "### `a.md`\n\n### `b.md`\nx": "no text for a.md",
+                 "### `/etc/a.md`\nx": "absolute path: /etc/a.md",
+                 "### `C:\\a.md`\nx": "absolute path",
+                 "### `../a.md`\nx": "path with `..`: ../a.md",
+                 "### `src/../../a.md`\nx": "path with `..`"}
+        for body, expected in cases.items():
+            with self.subTest(body):
+                found = evidence.problems(self.with_texts(body), self.TASK)
+                self.assertEqual(len(found), 1, found)
+                self.assertIn(expected, found[0])
+
+    def test_a_name_merely_starting_with_two_dots_is_fine(self) -> None:
+        self.assertEqual(evidence.problems(self.with_texts("### `a/..b.md`\nx"), self.TASK), [])
+
+    def test_settling_ids_leaves_text_to_apply_alone(self) -> None:
+        text = "See P1.\n\n## Text to apply\n\n### `a.md`\nP1 stays.\n"
+        self.assertEqual(evidence.rewrite_ids(text, {"P1": "D007"}),
+                         "See D007.\n\n## Text to apply\n\n### `a.md`\nP1 stays.\n")
+
 
 if __name__ == "__main__":
     unittest.main()
