@@ -396,6 +396,50 @@ class FinishTests(WsTestCase):
                       "don't kill it.", step_1)
 
 
+class ChangedSinceThePlanTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("T1", 1, acceptance=["works"]), task("T10", 2)])
+
+    def brief(self, log: str, *flags: str) -> str:
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text("# Decisions\n\n---\n\n" + log)
+        return self.ok("brief", "T1", "-w", "alpha", *flags)
+
+    @staticmethod
+    def section(brief: str) -> str:
+        return brief.split("## Changed since the plan\n", 1)[1].split("\n\n## ", 1)[0]
+
+    def test_it_lists_the_decision_right_after_acceptance_and_outranks_the_plan(self) -> None:
+        brief = self.brief("## D001 (2026-01-01, user): use the new name\n\nChanges: T1, T10.\n\nWhy.\n")
+        after = brief.split("## Acceptance\n\n1. works\n\n", 1)[1]
+        self.assertTrue(after.startswith("## Changed since the plan\n"), after[:80])
+        section = self.section(brief)
+        self.assertIn("outrank the plan and the summary", section)
+        self.assertEqual([line for line in section.splitlines() if line.startswith("- ")],
+                         ["- D001: use the new name"])
+
+    def test_it_stays_when_the_decisions_body_was_trimmed(self) -> None:
+        brief = self.brief("## D001 (2026-01-01, user): use the new name\n\nChanges: T1.\n\nThe long why.\n",
+                           "--max-chars", "0")
+        self.assertNotIn("The long why.", brief)
+        self.assertIn("1 more: `ws decisions --for T1 -w alpha`", brief)
+        self.assertIn("- D001: use the new name", self.section(brief))
+
+    def test_it_counts_a_decision_only_once_settled(self) -> None:
+        opened = "## D001 (2026-01-01, user): still open\n\nChanges: T1.\n\nPick. **Open.**\n\n"
+        self.assertNotIn("## Changed since the plan", self.brief(opened))
+        closer = "## D002 (2026-01-01, user): settles it\n\nCloses: D001.\nChanges: T1.\n\nPicked. **Closed.**\n"
+        section = self.section(self.brief(opened + closer))
+        self.assertEqual([line for line in section.splitlines() if line.startswith("- ")],
+                         ["- D001: still open", "- D002: settles it"])
+
+    def test_no_decision_changing_the_task_means_no_section(self) -> None:
+        for log in ("## D001 (2026-01-01, user): elsewhere\n\nChanges: T10.\n\nWhy.\n",
+                    "## D001 (2026-01-01, user): only mentions it\n\nAbout T1.\n"):
+            self.assertNotIn("## Changed since the plan", self.brief(log))
+
+
 class DecisionTrimTests(WsTestCase):
     """Which decisions a brief keeps once they no longer all fit."""
 

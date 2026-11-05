@@ -263,6 +263,25 @@ def _open_decision_lines(project: Project, ws: dict, task: dict, rows: list[dict
             *[f"- {e['id']}: {e['title']}" for e in found]]
 
 
+def _changed_lines(project: Project, ws: dict, task: dict) -> list[str]:
+    """Settled decisions saying they change this task. A plan can't be rewritten, so what it cites
+    can be out of date. Titles only keep this small enough never to trim: the bodies are in the
+    decisions that apply, which do get trimmed."""
+    path = project.folder(ws) / "DECISIONS.md"
+    if not path.exists():
+        return []
+    entries = decisions.parse(path.read_text())
+    still_open = {e["id"] for e in decisions.open_entries(entries)}
+    found = [e for e in entries
+             if task["id"] in decisions.changed_tasks(e) and e["id"] not in still_open]
+    if not found:
+        return []
+    return ["", "## Changed since the plan", "",
+            "These outrank the plan and the summary where they differ. "
+            f"Read them with `ws decisions --for {task['id']} -w {ws['id']}`.", "",
+            *[f"- {e['id']}: {e['title']}" for e in found]]
+
+
 def _scope_lines(scope: dict | None) -> list[str]:
     """The workstream's boundary. A worker that can't see it can't stay inside it."""
     if not scope:
@@ -306,6 +325,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
         parts += [f"{n}. {tasks.acceptance_text(a)}"
                   for n, a in enumerate(task["acceptance"], 1)]
     parts += _open_decision_lines(project, ws, task, rows)
+    parts += _changed_lines(project, ws, task)
     commands = _verify_lines(project, ws, task)
     if commands:
         parts += ["", "## Verify", "", *commands]
