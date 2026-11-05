@@ -223,7 +223,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/mf-04",
       "blockedBy": [
         "MF-02",
         "MF-03"
@@ -233,10 +233,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T14:41:06Z",
+      "baseCommit": "536693da209db0d1874e744bf501f8001ae2d269",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
