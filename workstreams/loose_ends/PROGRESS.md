@@ -6,6 +6,10 @@ Created 2026-11-05 from `main` at `9005d5d`.
 
 ---
 
+## 2026-11-05: LE-06: ws-coordinate names --summary
+
+Merged as `e2ff5f53e8`. Verified: test pass, audit pass. [Evidence](evidence/LE-06.md).
+
 ## 2026-11-05: LE-02: A fresh worker can pick up a dead worker's worktree
 
 Merged as `1e897671c0`. Verified: test pass, audit pass. [Evidence](evidence/LE-02.md).
