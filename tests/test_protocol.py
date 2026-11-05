@@ -89,6 +89,12 @@ class ProtocolTests(unittest.TestCase):
                 r"AskUserQuestion|EnterPlanMode|ExitPlanMode|ToolSearch|ask_user|write_agent",
                 protocol.skill_text(name)), name)
 
+    def test_coordinate_names_both_corrections_a_decision_can_make(self) -> None:
+        text = protocol.skill_text("ws-coordinate")
+        for command in ('`ws update <task> --acceptance <n> "<text>" --because <Dnnn> --commit -w <id>`',
+                        '`ws update <task> --summary "<text>" --because <Dnnn> --commit -w <id>`'):
+            self.assertIn(command, text)
+
 
 class ArgumentOrderTests(unittest.TestCase):
     def test_options_may_sit_between_a_subcommand_and_its_ids(self) -> None:
