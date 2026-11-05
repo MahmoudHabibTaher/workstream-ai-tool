@@ -421,14 +421,17 @@ def cmd_update(args: argparse.Namespace) -> int:
         print(f"{args.id}: nothing changed")
         return 0
     requires = _split(args.requires) if args.requires is not None else None
+    before = tasks.find_task(tasks.load(path, project.config), args.id)
     if args.status == "done":
-        landed = args.commit or tasks.find_task(tasks.load(path, project.config), args.id).get("commit")
+        landed = args.commit or before.get("commit")
         if landed and not gitutil.is_ancestor(project.root, landed, project.config.integration):
             raise Refused(f"{args.id} isn't on {project.config.integration} yet: `ws settle {args.id}` "
                           "lands a task and marks it done")
     task = tasks.update(path, args.id, project.config, status=args.status, commit=args.commit,
                         notes=args.notes, requires=requires, mode=args.mode,
                         release_impact=args.release_impact, verify=args.verify)
+    if args.mode is None and task["mode"] != before["mode"]:  # nobody gave it, so nothing named it
+        given[given.index("requires")] = f"requires, which raised mode to {task['mode']}"
     print(f"updated {task['id']}: {', '.join(given)}")
     return 0
 

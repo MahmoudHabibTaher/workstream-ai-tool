@@ -560,6 +560,28 @@ class UpdateSaysWhatChangedTests(WsTestCase):
     def test_an_emptied_field_is_still_named(self) -> None:
         self.assertIn("updated X-01: requires\n", self.says("--requires", ""))
 
+    def test_a_forcing_requires_says_it_raised_the_mode(self) -> None:
+        out = self.says("--requires", "browser")
+        self.assertIn("updated X-01: requires, which raised mode to foreground\n", out)
+        self.assertEqual(self.by_id("X-01")["mode"], "foreground")
+
+    def test_the_raise_stays_next_to_the_requires_that_caused_it(self) -> None:
+        out = self.says("--requires", "browser", "--release-impact", "minor")
+        self.assertIn("updated X-01: requires, which raised mode to foreground, release-impact\n",
+                      out)
+
+    def test_a_task_already_foreground_says_nothing_of_a_raise(self) -> None:
+        self.says("--mode", "foreground")
+        self.assertIn("updated X-01: requires\n", self.says("--requires", "browser"))
+
+    def test_a_value_that_forces_nothing_says_nothing_of_a_raise(self) -> None:
+        self.assertIn("updated X-01: requires\n", self.says("--requires", "external-network"))
+        self.assertEqual(self.by_id("X-01")["mode"], "background")
+
+    def test_an_explicit_mode_says_nothing_of_a_raise(self) -> None:
+        out = self.says("--requires", "browser", "--mode", "foreground")
+        self.assertIn("updated X-01: mode, requires\n", out)
+
     def test_status_still_prints_its_value(self) -> None:
         self.assertIn("updated X-01: status=blocked\n", self.says("--status", "blocked"))
 
