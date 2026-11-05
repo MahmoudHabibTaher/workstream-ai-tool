@@ -1,13 +1,12 @@
 # Session handoff
 
-**State:** 9/10 done on `main` at `4fcb20d`, as of 2026-11-05.
+**State:** 10/10 done on `main` at `e09aa4e`, as of 2026-11-05.
 
-**Just landed:** LE-08 (`1daa54669b`), LE-09 (`4fcb20d159`)
+**Just landed:** LE-10 (`e09aa4eba8`)
 
-**Next:** `ws claim --commit LE-10` (phase 4).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- LE-08: - `test_long_decision_logs_get_trimmed_with_a_pointer` pins a character limit close to the size of the brief's fixed text, so a further addition to the brief can break it the same way. The fit fails at 3000 and passes at 3100, so at most 100 characters are spare; I didn't measure it more closely.
-- Both `ws verify` runs here were moved to the background at 180s, as T10 predicts, and both ran to their own exit: 331.7s and 356.7s for the test step.
-- LE-09: - `_landed_problems` prints a blank reason, `` `ws settle --dry-run` refused: ``, for a task that isn't in a settleable status, as settle says why on stderr and only stdout is read. It still fails correctly. I left it, as it's outside this task.
-- `leftover` is now in the default scenario list, so a run of `make eval` with no SCENARIOS includes it. LE-10 should count that towards its budget.
+- LE-10: - The replay's first run had two mistakes of mine, not the tool's: `ws update --mode foreground --commit` is refused, as bare `--commit` works only with `--acceptance`, `--summary`, `--verify` or `--notes`, and `ws decide` takes its title as an argument, not `--title`. Steps 1 and 3 were rerun in fresh repos, and the output above is from that run.
+- The README's "about $0.80" for the full scenario also became "about $0.90", from this run's $0.92. The 53 Copilot credits are from when that last ran.
+- The gotchas LE-03, LE-04, LE-05, LE-08 and LE-09 reported are under Left open in `0014`, unfixed.

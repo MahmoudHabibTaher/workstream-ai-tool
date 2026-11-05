@@ -6,6 +6,10 @@ Created 2026-11-05 from `main` at `9005d5d`.
 
 ---
 
+## 2026-11-05: LE-10: Prove it end to end
+
+Merged as `e09aa4eba8`. Verified: test pass, audit pass. [Evidence](evidence/LE-10.md).
+
 ## 2026-11-05: LE-08: The brief says a long verify isn't a hang
 
 Merged as `1daa54669b`. Verified: test pass, audit pass. [Evidence](evidence/LE-08.md).
