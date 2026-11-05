@@ -17,6 +17,7 @@ from workstream import (adapt, baseline, decisions, evidence, gitutil, graph, pl
 from workstream.project import Project
 
 DEFAULT_MAX_CHARS = 10_000
+MAX_PICKUP_FILES = 10  # audit.project_rows renders these briefs, so a big leftover can't swell one
 MAX_SECTION_LINES = 80
 MAX_GOTCHA_CHARS = 1_200
 BULLET_RE = re.compile(r"(?:[-*+]|\d+[.)])\s")
@@ -124,7 +125,7 @@ def _verify_lines(project: Project, ws: dict, task: dict) -> list[str]:
 
 
 def _resume_evidence(project: Project, ws: dict, task: dict) -> str | None:
-    """Where a blocked task's evidence already is, or None if it has none, as when it was blocked
+    """Where a picked-up task's evidence already is, or None if it has none, as when it was blocked
     by hand. `ws evidence new` refuses a file that exists, so the finish steps depend on this."""
     branch = task.get("branch") or project.config.branch_for(task["id"])
     rel = project.rel(evidence.path_for(project, ws, task["id"]))
@@ -159,6 +160,34 @@ def _resume_lines(project: Project, ws: dict, task: dict, evidence_path: str | N
     else:
         lines.append("- **Decisions your branch's `DECISIONS.md` lacks:** none")
     return [*lines, "", "## The task"]
+
+
+def _pickup_lines(project: Project, task: dict) -> list[str]:
+    """What an in-progress task's worktree already holds, for a fresh worker sent to a dead one's
+    work. Empty for a fresh claim. Commits count from the integration branch, not baseCommit: a
+    new branch starts on `claim --commit`'s commit, which baseCommit is the parent of."""
+    branch = task.get("branch") or project.config.branch_for(task["id"])
+    tree = worktree.for_branch(project, branch)
+    if not tree:
+        return []
+    files = worktree.uncommitted(Path(tree))
+    integration = project.config.integration
+    count = gitutil.run(project.root, "rev-list", "--count", f"{integration}..{branch}")
+    commits = int(count.stdout.strip()) if count.returncode == 0 else 0
+    if not files and not commits:
+        return []
+    lines = ["", "## Picking up", "",
+             "This worktree already holds work. Unless these are your own edits, an earlier worker "
+             "stopped here and nobody has checked what it left: check it against the acceptance "
+             "items, and keep what is right.", ""]
+    if commits:
+        lines.append(f"- **Commits on `{branch}`:** {commits} (`git log {integration}..{branch}`)")
+    if files:
+        lines.append(f"- **Uncommitted files:** {len(files)}")
+        lines += [f"  - `{entry}`" for entry in files[:MAX_PICKUP_FILES]]
+        if len(files) > MAX_PICKUP_FILES:
+            lines.append(f"  - ({len(files) - MAX_PICKUP_FILES} more)")
+    return lines
 
 
 def _decisions_branch_lacks(project: Project, ws: dict, branch: str) -> list[dict]:
@@ -266,6 +295,10 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
     parts += _cannot_edit_lines(project, task)
     if task.get("notes"):
         parts += ["", f"**Notes:** {task['notes']}"]
+    pickup = _pickup_lines(project, task) if task["status"] == "in-progress" else []
+    if pickup:
+        existing_evidence = _resume_evidence(project, ws, task)
+        parts += pickup
     if task.get("acceptance"):
         parts += ["", "## Acceptance", ""]
         parts += [f"{n}. {tasks.acceptance_text(a)}"
