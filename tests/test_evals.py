@@ -67,6 +67,46 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertIn("still leave D-1 blocked", " ".join(result["problems"]))
 
+    def test_leftover_starts_with_uncommitted_partial_work_and_no_evidence(self) -> None:
+        base = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, base, True)
+        scenario = harness.SCENARIOS["leftover"]
+        repo = harness.build_repo(base, harness.STUB, scenario.plan)
+        repo.must("ws", "claim", "--commit", "-w", "demo", "D-1")
+        repo.must("ws", "worktree", "create", "-w", "demo", "D-1")
+        scenario.setup(repo)
+        where = repo.root / ".workstream" / "worktrees" / "d-1"
+        self.assertEqual(repo.queue()["D-1"]["status"], "in-progress")
+        self.assertEqual(repo.run("git", "status", "--porcelain", cwd=where).stdout.split(),
+                         ["??", "src/one.txt"])
+        self.assertFalse((where / "workstreams" / "demo" / "evidence" / "D-1.md").exists())
+        self.assertNotEqual(repo.run("ws", "verify", "D-1", "-w", "demo", cwd=where).returncode, 0,
+                            "the work isn't partial if it already passes")
+        brief = repo.must("ws", "brief", "D-1", "-w", "demo")
+        self.assertIn("## Picking up", brief)
+        self.assertIn("`?? src/one.txt`", brief)
+        self.assertNotIn("## Resuming", brief)
+
+    def test_keeping_and_finishing_the_partial_work_passes(self) -> None:
+        result = self.run_stub("leftover")
+        self.assertTrue(result["passed"], result)
+
+    def test_discarding_the_partial_work_is_caught(self) -> None:
+        result = self.run_stub("leftover", "discard")
+        self.assertFalse(result["passed"])
+        self.assertEqual(len(result["problems"]), 1, result)
+        self.assertIn("the partial work didn't land", result["problems"][0])
+
+    def test_requeueing_the_partial_work_is_caught(self) -> None:
+        result = self.run_stub("leftover", "requeue")
+        self.assertFalse(result["passed"])
+        self.assertIn("D-1 is todo", " ".join(result["problems"]))
+
+    def test_leaving_the_partial_work_uncommitted_is_caught(self) -> None:
+        result = self.run_stub("leftover", "give-up")
+        self.assertFalse(result["passed"])
+        self.assertIn("the partial work didn't land", " ".join(result["problems"]))
+
     def private_temp(self) -> Path:
         """Point tempfile at a folder only this test uses, so parallel suites can't show up in it."""
         folder = Path(tempfile.mkdtemp(prefix="ws-test-scratch-"))

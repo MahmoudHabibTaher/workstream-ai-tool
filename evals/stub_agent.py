@@ -23,6 +23,12 @@ def run(*argv: str, cwd: Path | None = None) -> str:
     return proc.stdout
 
 
+def fill_evidence(task_id: str, where: Path) -> None:
+    evidence = where / "workstreams" / WS_ID / "evidence" / f"{task_id}.md"
+    text = evidence.read_text().replace("{{done, or blocked (the reason)}}", "done")
+    evidence.write_text(text.replace("{{command and quoted output}}", "`ws verify`: OK"))
+
+
 def do_task(task_id: str, behaviour: str, root: Path) -> None:
     brief = run("ws", "brief", task_id, "-w", WS_ID)
     where = Path(re.search(r"Work in `([^`]+)`", brief)[1])
@@ -37,9 +43,7 @@ def do_task(task_id: str, behaviour: str, root: Path) -> None:
     if behaviour != "skip-verify":
         run("ws", "verify", task_id, "-w", WS_ID, cwd=where)
     run("ws", "evidence", "new", task_id, "-w", WS_ID, cwd=where)
-    evidence = where / "workstreams" / WS_ID / "evidence" / f"{task_id}.md"
-    text = evidence.read_text().replace("{{done, or blocked (the reason)}}", "done")
-    evidence.write_text(text.replace("{{command and quoted output}}", "`ws verify`: OK"))
+    fill_evidence(task_id, where)
     if behaviour == "edit-tracking":
         progress = where / "workstreams" / WS_ID / "PROGRESS.md"
         progress.write_text(progress.read_text() + "\nD-1 done\n")
@@ -71,12 +75,36 @@ def resume_task(task_id: str, brief: str, behaviour: str) -> None:
     run("git", "commit", "-q", "-m", f"{task_id} finished", cwd=where)
 
 
+def pick_up_task(task_id: str, brief: str, behaviour: str) -> None:
+    """An earlier worker's uncommitted edit stays: finish what it left, and land it as this task."""
+    if behaviour == "give-up":
+        return
+    if behaviour == "requeue":
+        run("ws", "unclaim", task_id, "-w", WS_ID)
+        return
+    where = Path(re.search(r"Work in `([^`]+)`", brief)[1])
+    partial = where / "src" / "one.txt"
+    if behaviour == "discard":
+        run("git", "clean", "-fdq", cwd=where)
+        partial.write_text("ok one\nred\n")
+    else:
+        kept = [line for line in partial.read_text().splitlines() if "TODO" not in line]
+        partial.write_text("\n".join(kept) + "\n")
+    run("ws", "verify", task_id, "-w", WS_ID, cwd=where)
+    run("ws", "evidence", "new", task_id, "-w", WS_ID, cwd=where)
+    fill_evidence(task_id, where)
+    run("git", "add", "-A", cwd=where)
+    run("git", "commit", "-q", "-m", f"{task_id} picked up and finished", cwd=where)
+
+
 def main(prompt: str, behaviour: str) -> int:
     root = Path.cwd()
     if "ws brief D-1" in prompt:
         brief = run("ws", "brief", "D-1", "-w", WS_ID)
         if "## Resuming" in brief:
             resume_task("D-1", brief, behaviour)
+        elif "## Picking up" in brief:
+            pick_up_task("D-1", brief, behaviour)
         else:
             do_task("D-1", behaviour, root)
         return 0

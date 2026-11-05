@@ -111,6 +111,16 @@ The user wants this kept small.
 ```
 """
 
+# The sample's tasks fix every byte of their file, so a restart would look just like work that was
+# kept. Here the second line is the worker's own choice, which only keeping the work can preserve.
+PARTIAL_WORK = "vermilion"
+PARTIAL_TODO = "TODO check this colour"
+LEFTOVER_PLAN = PLAN.replace(
+    _task(1)["summary"], "Create src/one.txt holding two lines: `ok one`, then a colour of your choice."
+).replace(
+    _task(1)["acceptance"][0],
+    "src/one.txt exists, its first line is `ok one`, its second names a colour, and it has no other lines")
+
 
 class Repo:
     """The scratch repository, and the commands a check needs."""
@@ -140,7 +150,7 @@ class Repo:
         return {t["id"]: t for t in json.loads(path.read_text())["tasks"]}
 
 
-def build_repo(base: Path, agent: str) -> Repo:
+def build_repo(base: Path, agent: str, plan_text: str = PLAN) -> Repo:
     """A committed sample repo with lint debt, adopted through `ws init`, adapted for this agent,
     with the plan seeded and a known baseline. Everything an agent sees here is synthetic."""
     root = base / "sample repo"
@@ -171,7 +181,7 @@ def build_repo(base: Path, agent: str) -> Repo:
     repo.must("git", "add", "-A")
     repo.must("git", "commit", "-q", "-m", "adopt ws")
     plan = base / "approved-plan.md"
-    plan.write_text(PLAN)
+    plan.write_text(plan_text)
     repo.must("ws", "new", WS_ID, "--title", "Demo", "--summary", "A small sample.", "--prefix", "D")
     repo.must("ws", "seed", "-w", WS_ID, "--from-plan", str(plan))
     repo.must("ws", "baseline", "record", "-w", WS_ID)
@@ -296,6 +306,23 @@ def check_resume(repo: Repo) -> list[str]:
     return problems
 
 
+def leave_partial_work(repo: Repo) -> None:
+    """An earlier worker's run that simply stopped: its edit is uncommitted and still has a TODO
+    the lint refuses, and it wrote no evidence. Nobody has settled anything."""
+    where = repo.root / ".workstream" / "worktrees" / "d-1"
+    (where / "src" / "one.txt").write_text(f"ok one\n{PARTIAL_WORK}\n{PARTIAL_TODO}\n")
+
+
+def check_leftover(repo: Repo) -> list[str]:
+    problems = _landed_problems(repo)
+    status = repo.queue()["D-1"]["status"]
+    if status != "in-progress":
+        problems.append(f"it changed the queue: D-1 is {status}, and should wait for settle")
+    if PARTIAL_WORK not in repo.git("show", "task/d-1:src/one.txt"):
+        problems.append(f"the partial work didn't land: `{PARTIAL_WORK}` isn't in src/one.txt on task/d-1")
+    return problems
+
+
 @dataclass(frozen=True)
 class Scenario:
     name: str
@@ -303,6 +330,7 @@ class Scenario:
     check: Callable[[Repo], list[str]]
     worker: bool = True  # a worker's job, so the task is claimed and a worktree made first
     setup: Callable[[Repo], None] | None = None  # what happened before this agent starts
+    plan: str = PLAN
 
 
 WORKER_PROMPT = f"Run `ws brief D-1 -w {WS_ID}` and follow it."
@@ -318,6 +346,9 @@ SCENARIOS = {s.name: s for s in (
                                          "add a line to PROGRESS.md.", check_tracking),
     # The same prompt a first attempt gets: the brief has to say this one is a resume.
     Scenario("resume", WORKER_PROMPT, check_resume, setup=block_first_attempt),
+    # Again the usual prompt: only the brief's Picking up section says there is work to keep.
+    Scenario("leftover", WORKER_PROMPT, check_leftover, setup=leave_partial_work,
+             plan=LEFTOVER_PLAN),
 )}
 
 
@@ -416,7 +447,7 @@ def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
     scenario = SCENARIOS[name]
     base = Path(tempfile.mkdtemp(prefix=f"ws-eval-{name}-"))
     try:
-        repo = build_repo(base, agent)
+        repo = build_repo(base, agent, scenario.plan)
         if scenario.worker:
             repo.must("ws", "claim", "--commit", "-w", WS_ID, "D-1")
             repo.must("ws", "worktree", "create", "-w", WS_ID, "D-1")
