@@ -88,6 +88,21 @@ class GotchaTests(WsTestCase):
                          ["  - One ends.", f"  (2 more in {POINTER_PATH})"])
 
 
+class CannotEditTests(WsTestCase):
+    def test_the_cannot_edit_line_names_the_text_to_apply_section(self) -> None:
+        rules = self.root / ".claude" / "rules"
+        rules.mkdir(parents=True)
+        (rules / "x.md").write_text("rule\n")
+        self.ok("adapt", "claude-code")
+        self.commit_all("adapted")
+        self.new_ws()
+        self.seed_ok([task("T1", 1, docs=[".claude/rules/x.md"])])
+        line = next(line for line in self.ok("brief", "T1", "-w", "alpha").splitlines()
+                    if "You can't edit these from the background" in line)
+        self.assertIn("`## Text to apply`", line)
+        self.assertNotIn("Gotchas", line)
+
+
 class SourceTests(WsTestCase):
     """A brief and a task's definition come from the integration checkout, the work from the
     worktree."""

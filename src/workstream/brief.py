@@ -243,7 +243,7 @@ def _cannot_edit_lines(project: Project, task: dict) -> list[str]:
     if not named:
         return []
     return ["", "**You can't edit these from the background:** " + ", ".join(f"`{p}`" for p in named)
-            + ". Don't try: if one needs a change, put the exact text under Gotchas for someone who can."]
+            + ". Don't try: if one needs a change, put the exact text under `## Text to apply` in your evidence, for someone who can."]
 
 
 def _open_decision_lines(project: Project, ws: dict, task: dict, rows: list[dict]) -> list[str]:

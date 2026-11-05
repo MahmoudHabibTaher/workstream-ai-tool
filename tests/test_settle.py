@@ -141,7 +141,7 @@ class ProtectedPathTests(SettleTestCase):
         self.arrange(self.t("T1", docs=[".claude/rules/x.md"]))
         out = self.ok("brief", "T1", "-w", "alpha")
         self.assertIn("You can't edit these from the background:** `.claude/rules/x.md`", out)
-        self.assertIn("under Gotchas", out)
+        self.assertIn("under `## Text to apply`", out)
 
     def test_a_foreground_task_can_ask_so_it_isnt_told(self) -> None:
         self.adapted()
@@ -954,8 +954,8 @@ class BriefTests(SettleTestCase):
         log = self.ws_dir / "alpha" / "DECISIONS.md"
         log.write_text("".join(f"## D{n:03d} (2026-01-01, user): call {n}\n\n{'why ' * 100}\n\n"
                                for n in range(1, 40)))
-        brief = self.ok("brief", "T1", "--max-chars", "3100")
-        self.assertLess(len(brief), 3200)
+        brief = self.ok("brief", "T1", "--max-chars", "3250")
+        self.assertLess(len(brief), 3350)
         self.assertIn("more: `ws decisions --for T1 -w alpha`", brief)
         self.assertIn("call 39", brief)
         self.assertNotIn("call 1\n", brief)
