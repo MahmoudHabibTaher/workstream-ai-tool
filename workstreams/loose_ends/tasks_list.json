@@ -1,0 +1,478 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/loose_ends/PLAN.md",
+  "updated": "2026-11-05",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "LE-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "ws-run and the protocol agree with a foreground brief",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "D-FOREGROUND"
+      ],
+      "summary": "The ws-run skill tells a foreground task to return to the integration branch before settling, and the protocol's Don't merge reads against a foreground brief's landing step. LO-05's brief is right; these two are out of date.",
+      "files": [
+        "src/workstream/assets/skills/ws-run/SKILL.md",
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_protocol.py"
+      ],
+      "docs": [
+        "docs/rule-map.md"
+      ],
+      "acceptance": [
+        "A test: the ws-run skill no longer says to return to the integration branch, and still has the Foreground tasks heading",
+        "A test: the protocol's worker section keeps Don't merge and ties its one exception to a foreground brief's landing step",
+        "docs/rule-map.md:118 mentions that exception, and tests.test_rule_map passes",
+        "make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-04",
+      "phase": 1,
+      "priority": 20,
+      "title": "--commit with an unchanged value isn't a failure",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T7",
+        "D-NOOP"
+      ],
+      "summary": "ws update <id> --verify <same value> --commit says refused: commit failed, though nothing is wrong, and on a later day it would commit only a date.",
+      "files": [
+        "src/workstream/cli.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: the same --verify, and the same --notes, with --commit print <id>: nothing changed, exit 0 and leave HEAD where it was",
+        "A test: the same value on a queue dated earlier also commits nothing and leaves the file as it was",
+        "A test: the same text and decision with --summary --because --commit says the same",
+        "A test: a real change with --commit still commits"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-07",
+      "phase": 1,
+      "priority": 30,
+      "title": "Correct the comment in tests/test_gates.py",
+      "kind": "behaviour",
+      "findings": [
+        "D-COMMENT"
+      ],
+      "summary": "The comment on EDITED says a same-size edit can look clean to code_tree, which LO-02 fixed.",
+      "files": [
+        "tests/test_gates.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "The comment on EDITED no longer says a same-size edit can look clean to code_tree, and EDITED's value is unchanged",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-02",
+      "phase": 2,
+      "priority": 40,
+      "title": "A fresh worker can pick up a dead worker's worktree",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T5",
+        "D-LEFTOVER"
+      ],
+      "summary": "ws-run offers landing or requeueing for a leftover, and requeueing discards a dead worker's uncommitted work. LO-08's replacement worked only because of two extra lines in its prompt (left_open D016).",
+      "files": [
+        "src/workstream/brief.py",
+        "src/workstream/assets/skills/ws-run/SKILL.md",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: an in-progress task with uncommitted files in its worktree gets a Picking up section that lists them, capped with a count of the rest",
+        "A test: commits since baseCommit are counted there",
+        "A test: a freshly claimed task's brief has no Picking up section",
+        "A test: with evidence already in the worktree, the finish step updates that file rather than starting a new one",
+        "The ws-run leftovers step names a fresh worker on the same worktree with no new claim, and step 4 points to it instead of treating the worker as blocked; tests.test_rule_map passes",
+        "make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-03",
+      "phase": 2,
+      "priority": 50,
+      "title": "is_open reads only an entry's ending",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T6",
+        "D-OPENMARK"
+      ],
+      "summary": "is_open matches the open mark anywhere, so a closed reason quoting it renders with no ending and counts as open. It is the problem LO-04 fixed for the other mark.",
+      "files": [
+        "src/workstream/decisions.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "tests/test_decisions.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: a body quoting the open mark mid-text renders with the closed ending and isn't in open_entries",
+        "A test: a body ending in the open mark stays open, with or without trailing whitespace",
+        "A test: a proposal quoting the open mark mid-text with no Rejected line is reported by evidence.problems",
+        "The protocol's worker section says to end a proposal with the mark",
+        "make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-05",
+      "phase": 2,
+      "priority": 60,
+      "title": "ws update reports a mode that --requires raised",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T8",
+        "D-RAISED"
+      ],
+      "summary": "--requires can raise mode to foreground, and the ws update line says only requires.",
+      "files": [
+        "src/workstream/cli.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: --requires with a forcing value on a background task prints updated <id>: requires, which raised mode to foreground",
+        "A test: a task already foreground, a value that forces nothing, and an explicit --mode print no such words"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-06",
+      "phase": 2,
+      "priority": 70,
+      "title": "ws-coordinate names --summary",
+      "kind": "prompts",
+      "findings": [
+        "T2",
+        "T9",
+        "D-SUMMARY"
+      ],
+      "summary": "The skill names ws update --acceptance for a decision that changes a task, and not --summary, which LO-10 added.",
+      "files": [
+        "src/workstream/assets/skills/ws-coordinate/SKILL.md",
+        "tests/test_protocol.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: the ws-coordinate skill names --summary with --because",
+        "test_every_command_they_mention_parses passes",
+        "make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-08",
+      "phase": 3,
+      "priority": 80,
+      "title": "The brief says a long verify isn't a hang",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T10",
+        "D-WAIT"
+      ],
+      "summary": "ws verify takes minutes, the shell can move it to the background, and elapsed time can include the machine sleeping. A worker judging a hang by elapsed time could kill a healthy run.",
+      "files": [
+        "src/workstream/brief.py",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: step 1 of a brief's finish section says to wait for a backgrounded verify to exit and not to kill it, because it enforces its own time limit",
+        "tests.test_no_project_literals passes",
+        "make audit passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-09",
+      "phase": 3,
+      "priority": 90,
+      "title": "An eval for a dead worker's worktree",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "D-EVAL",
+        "D-LEFTOVER"
+      ],
+      "summary": "Nothing shows an agent acting on the Picking up section from the brief alone. Add the scenario, proven with the stub; LE-10 runs it for real.",
+      "files": [
+        "evals/harness.py",
+        "evals/stub_agent.py",
+        "tests/test_evals.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "harness.SCENARIOS has leftover, with setup leaving uncommitted partial work in the claimed worktree and no evidence",
+        "A test: with the stub, the good behaviour passes the check",
+        "A test: with the stub, a worker that discards the partial work or requeues the task fails the check"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "Stub only. Don't run real agents in this task.",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "LE-10",
+      "phase": 4,
+      "priority": 100,
+      "title": "Prove it end to end",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2"
+      ],
+      "summary": "Run the plan's end-to-end section for real, refresh the .claude copies, run the Claude Code evals and record the result.",
+      "files": [
+        "docs/decisions/0014-loose-ends.md",
+        ".claude/",
+        "CLAUDE.md",
+        ".workstream/adapters.json",
+        "README.md"
+      ],
+      "docs": [
+        "docs/decisions/0013-left-open.md"
+      ],
+      "acceptance": [
+        "Each step in the plan's end-to-end section is run, with the output quoted",
+        "This task itself ran in a worktree and landed with the main checkout never changing branch",
+        "ws adapt claude-code --check says OK, refreshing first if it doesn't, and no return to the integration branch is left under .claude/",
+        "make eval AGENT=claude-code passes all seven scenarios on Opus 5.5 at medium effort, with the cost recorded",
+        "docs/decisions/0014-loose-ends.md lists each gap, its fix and what stays unproven, and the README's eval line is current"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "LE-01",
+        "LE-02",
+        "LE-03",
+        "LE-04",
+        "LE-05",
+        "LE-06",
+        "LE-07",
+        "LE-08",
+        "LE-09"
+      ],
+      "needsUserDecision": false,
+      "notes": "Claude Code evals cost about $2.50 at the last run's rate, and approving this plan covers them. Don't run Copilot evals: they use paid work-account credits.",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the ws CLI, its protocol, skills and eval harness",
+      "the gaps under Left open in docs/decisions/0013-left-open.md",
+      "this repo's tests and decision record"
+    ],
+    "outOfScope": [
+      "Copilot evals",
+      "any change in subsonic-server or the Kotlin harness",
+      "reversing a closed decision, including the 4500 brief budget",
+      "a foreground eval scenario"
+    ],
+    "rule": "Fix only your task's gap: anything else you notice goes under Gotchas."
+  }
+}

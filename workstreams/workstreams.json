@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-04",
+  "updated": "2026-11-05",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -217,6 +217,29 @@
         "commit": "0947c120fbc4479f78b05b0b9ebdce685316f5eb",
         "pruned": false
       }
+    },
+    {
+      "id": "loose_ends",
+      "title": "Loose ends",
+      "summary": "Close the gaps left_open recorded",
+      "status": "planned",
+      "taskPrefix": "LE",
+      "path": "workstreams/loose_ends",
+      "tier": "standard",
+      "created": "2026-11-05",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "9005d5d",
+      "dependsOn": [],
+      "progress": {
+        "total": 10,
+        "todo": 10,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }
