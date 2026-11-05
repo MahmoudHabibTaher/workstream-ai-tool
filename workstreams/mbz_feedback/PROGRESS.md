@@ -6,6 +6,10 @@ Created 2026-11-05 from `main` at `838de89`.
 
 ---
 
+## 2026-11-05: MF-03: Track text to apply through settle and close
+
+Merged as `74da02c98d`. Verified: test pass, audit pass. [Evidence](evidence/MF-03.md).
+
 ## 2026-11-05: MF-01: Say what's wrong in the settle warning
 
 Merged as `bae5adf83b`. Verified: test pass. [Evidence](evidence/MF-01.md).

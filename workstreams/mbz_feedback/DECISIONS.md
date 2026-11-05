@@ -19,3 +19,11 @@ Everything before the section is what parse, the placeholder check and `rewrite_
 ## D003 (2026-11-05, MF-02): The first `## Text to apply` heading at the start of a line opens the section
 
 The text under it may quote the heading, as text about this very section would. Rejected: the last such heading, which would cut that text short. The cost is that an earlier section can't hold the heading at the start of a line, which would already split it in `_sections`. **Closed.**
+
+## D004 (2026-11-05, MF-03): Text naming a path the evidence check rejects is left out of `to apply:`, unread
+
+The settle gate already refuses such evidence, so this only reaches evidence that skipped the gate. Telling a coordinator to apply text outside the project would be worse than saying nothing. Rejected: listing it unread as not applied, which sends the coordinator to write outside the repo. **Closed.**
+
+## D005 (2026-11-05, MF-03): The close warning reads `warning: to apply: <line>`
+
+It keeps the prefix settle prints, so the same search finds both. Rejected: separate wording for close, which says nothing more. **Closed.**
