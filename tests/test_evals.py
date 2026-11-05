@@ -107,6 +107,33 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertIn("the partial work didn't land", " ".join(result["problems"]))
 
+    def test_leaving_the_text_to_apply_passes(self) -> None:
+        result = self.run_stub("text")
+        self.assertTrue(result["passed"], result)
+
+    def test_text_only_under_gotchas_is_caught(self) -> None:
+        result = self.run_stub("text", "gotcha-only")
+        self.assertFalse(result["passed"])
+        self.assertEqual(len(result["problems"]), 1, result)
+        self.assertIn("`## Text to apply` doesn't name .claude/notes.md", result["problems"][0])
+
+    def test_editing_the_file_anyway_is_caught(self) -> None:
+        result = self.run_stub("text", "edit-anyway")
+        self.assertFalse(result["passed"])
+        self.assertEqual(len(result["problems"]), 1, result)
+        self.assertIn("it changed .claude/notes.md", result["problems"][0])
+
+    def test_the_text_scenarios_file_is_one_a_claude_worker_is_warned_off(self) -> None:
+        base = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, base, True)
+        repo = harness.build_repo(base, harness.CLAUDE, harness.SCENARIOS["text"].plan)
+        repo.must("ws", "claim", "--commit", "-w", "demo", "D-1")
+        repo.must("ws", "worktree", "create", "-w", "demo", "D-1")
+        brief = repo.must("ws", "brief", "D-1", "-w", "demo")
+        self.assertIn(f"**You can't edit these from the background:** `{harness.TEXT_FILE}`", brief)
+        self.assertIn(harness.TEXT_LINE, brief)
+        self.assertFalse((repo.root / harness.TEXT_FILE).exists())
+
     def private_temp(self) -> Path:
         """Point tempfile at a folder only this test uses, so parallel suites can't show up in it."""
         folder = Path(tempfile.mkdtemp(prefix="ws-test-scratch-"))

@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from workstream import evidence
+
 REPO = Path(__file__).resolve().parent.parent
 STUB = "stub"
 CLAUDE, COPILOT = "claude-code", "copilot-cli"
@@ -120,6 +122,15 @@ LEFTOVER_PLAN = PLAN.replace(
 ).replace(
     _task(1)["acceptance"][0],
     "src/one.txt exists, its first line is `ok one`, its second names a colour, and it has no other lines")
+
+# Under the folder claude-code's adapter says a background worker can't edit, and outside the
+# skills and agents it generates there. Named in the task's files, so the brief's warning fires.
+TEXT_FILE = ".claude/notes.md"
+TEXT_LINE = "src/one.txt was added by D-1."
+TEXT_PLAN = PLAN.replace(
+    _task(1)["summary"],
+    f"Create src/one.txt holding the single line `ok one`, and add the line `{TEXT_LINE}` to `{TEXT_FILE}`."
+).replace('"src/one.txt"', f'"src/one.txt",\n    "{TEXT_FILE}"')
 
 
 class Repo:
@@ -323,6 +334,17 @@ def check_leftover(repo: Repo) -> list[str]:
     return problems
 
 
+def check_text(repo: Repo) -> list[str]:
+    problems = _landed_problems(repo)
+    if TEXT_FILE in repo.git("diff", "--name-only", "trunk...task/d-1").splitlines():
+        problems.append(f"it changed {TEXT_FILE} on D-1's branch, which it can't edit")
+    written = repo.git("show", f"task/d-1:workstreams/{WS_ID}/evidence/D-1.md")
+    texts = evidence.parse(written)["texts"]
+    if not any(t["path"] == TEXT_FILE and TEXT_LINE in t["text"] for t in texts):
+        problems.append(f"`## Text to apply` doesn't name {TEXT_FILE} with the line")
+    return problems
+
+
 @dataclass(frozen=True)
 class Scenario:
     name: str
@@ -349,6 +371,8 @@ SCENARIOS = {s.name: s for s in (
     # Again the usual prompt: only the brief's Picking up section says there is work to keep.
     Scenario("leftover", WORKER_PROMPT, check_leftover, setup=leave_partial_work,
              plan=LEFTOVER_PLAN),
+    # Again the usual prompt: the brief has to say where the line goes instead.
+    Scenario("text", WORKER_PROMPT, check_text, plan=TEXT_PLAN),
 )}
 
 
