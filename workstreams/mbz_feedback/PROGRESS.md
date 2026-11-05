@@ -6,6 +6,10 @@ Created 2026-11-05 from `main` at `838de89`.
 
 ---
 
+## 2026-11-05: MF-10: Prove it end to end
+
+Merged as `0f2d4be1b4`. Verified: test pass, audit pass. [Evidence](evidence/MF-10.md).
+
 ## 2026-11-05: MF-08: Propose differences, and `--expect` on `ws update`
 
 Merged as `431851e770`. Verified: test pass, audit pass. [Evidence](evidence/MF-08.md).
