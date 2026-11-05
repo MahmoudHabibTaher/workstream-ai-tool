@@ -9,7 +9,7 @@ from workstream import evidence, gates, registry, snapshot, tasks
 from workstream.project import open_project
 
 SCOPE_GATE = "the diff stays within the task's files"
-EDITED = "a different size from the original\n"  # a same-size edit can look clean to code_tree
+EDITED = "a different size from the original\n"
 
 
 class ScopeGateTests(SettleTestCase):
