@@ -109,6 +109,7 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | new | Applying that text is the coordinator's job before the next round | skill | ws-run: "apply it and commit before the next round" |
 | subsonic | The single writer is enforced, not hoped for | code | gates.tracking_violations |
 | both | Check each acceptance item for real and quote it | protocol | worker: "Check each acceptance item for real" |
+| new | A result that differs from an acceptance item is proposed as a decision, even if it seems fine | protocol | worker: "goes under Proposed decisions as well as in the proof" |
 | both | Findings already in the baseline aren't the task's to fix or grow | protocol | worker: "don't fix them, and don't add to them" |
 | subsonic | Decisions are proposed, never numbered, by workers | protocol | worker: "Never invent a `D` number" |
 | both | Don't reopen a settled decision without new evidence | protocol | worker: "Don't reopen a recorded decision" |

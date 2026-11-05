@@ -11,6 +11,7 @@ Version 1. `ws protocol <section>` prints one section, so nobody loads the rest.
 - Write code, docs and your own evidence file. Every other file in a workstream folder, and the registry, belongs to the coordinator.
 - A change to a file you can't edit goes last in your evidence, under `## Text to apply`: a line of ### `path`, then the exact text.
 - Check each acceptance item for real and quote what you saw. "Done" isn't proof.
+- A result that differs from an acceptance item goes under Proposed decisions as well as in the proof, even if you think it's fine.
 - Findings in the baseline aren't yours: don't fix them, and don't add to them.
 - A reversible call goes in your evidence as `### P1: the call`, with the reason and what you rejected. Never invent a `D` number. End one that someone must still settle with `**Open.**`.
 - Don't reopen a recorded decision without new evidence.
@@ -64,7 +65,7 @@ Required: `id` (`<PREFIX>-01`), `phase`, `priority` (10, 20, 30; the real order)
 | `findings` | Plan sections to read: `T1`, `D-API` |
 | `files` | Expected paths, folders or globs. Touching anything not here or in `docs` warns |
 | `docs` | Paths that bear on the task; each must exist, and may be changed |
-| `acceptance` | Observable facts: a named test, a command and its output. `{"text": "...", "kind": "manual"}` for a person's check. `{"text": "...", "expect": "72/5/16"}` fails `ws verify` unless that literal is in the logs of its commands. A name filter that matches nothing can still exit 0, so there `expect` should name the line the runner prints for that test passing: a bare test name can match an echoed command. `ws add` and `ws update` with `--acceptance` can't set `expect`; `ws seed` can add such a task to an existing queue |
+| `acceptance` | Observable facts: a named test, a command and its output. `{"text": "...", "kind": "manual"}` for a person's check. `{"text": "...", "expect": "72/5/16"}` fails `ws verify` unless that literal is in the logs of its commands. A name filter that matches nothing can still exit 0, so there `expect` should name the line the runner prints for that test passing: a bare test name can match an echoed command. `ws add --acceptance` can't set `expect`, and `ws seed` can add such a task to an existing queue. `ws update <task> --acceptance <n> "<text>" --expect "<literal>" --because <Dnnn>` sets it on a corrected item; without `--expect` the old literal goes |
 | `verify` | Keys from `[commands]`, or a raw command. Must run what the task produces |
 | `blockedBy` | Task ids. Tasks sharing files must be chained |
 | `needsUserDecision` | True only for what planning couldn't settle |

@@ -569,10 +569,11 @@ def marks(task: dict) -> set[str]:
 
 
 def correct_acceptance(path: Path, task_id: str, number: str, text: str, because: str,
-                       config: Config) -> dict:
+                       config: Config, expect: str | None = None) -> dict:
     """Replace one acceptance item, naming the decision that changed it. Its position and kind
-    stay, since evidence pairs with acceptance by number. Its `expect` goes: that literal belonged
-    to the old text, and keeping it could leave the corrected item impossible to pass."""
+    stay, since evidence pairs with acceptance by number. Its `expect` goes unless a new one is
+    given: the old literal belonged to the old text, and keeping it could leave the corrected item
+    impossible to pass."""
     data = load(path, config)
     task = find_task(data, task_id)
     if task.get("status") not in OPEN_STATUSES:
@@ -590,6 +591,13 @@ def correct_acceptance(path: Path, task_id: str, number: str, text: str, because
         items[index].pop("expect", None)
     else:
         items[index] = corrected
+    if expect is not None:
+        if isinstance(items[index], str):
+            items[index] = {"text": corrected}
+        items[index]["expect"] = expect
+        errors = _expect_errors(task, task_id)
+        if errors:
+            raise WsError("; ".join(errors))
     data["updated"] = today()
     save(path, data)
     return task
