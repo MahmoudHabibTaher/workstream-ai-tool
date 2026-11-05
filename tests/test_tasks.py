@@ -182,12 +182,39 @@ class CorrectAcceptanceTests(WsTestCase):
         self.assertEqual(item, {"text": "new two (changed by D001)", "kind": "manual"})
         self.assertEqual(tasks.acceptance_text(item), "new two (changed by D001) (manual)")
 
-    def test_a_second_correction_names_only_the_later_decision(self) -> None:
+    def test_a_second_correction_keeps_both_marks(self) -> None:
         self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
         for decision in ("D001", "D002"):
             self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new",
                     "--because", decision)
-        self.assertEqual(self.by_id("X-01")["acceptance"][0], "new (changed by D002)")
+        self.assertEqual(self.by_id("X-01")["acceptance"][0], "new (changed by D001, D002)")
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "two",
+                "--because", "D001")
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "newer",
+                "--because", "D002")
+        self.assertEqual(self.by_id("X-01")["acceptance"][1],
+                         {"text": "newer (changed by D001, D002)", "kind": "manual"})
+
+    def test_repeating_either_correction_says_nothing_changed(self) -> None:
+        self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
+        self.commit_all("seed")
+        for decision in ("D001", "D002"):
+            self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new",
+                    "--because", decision, "--commit")
+        before = self.queue_path.read_bytes()
+        for decision in ("D001", "D002"):
+            out = self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new",
+                          "--because", decision, "--commit")
+            self.assertIn("X-01: nothing changed", out)
+        self.assertEqual(self.queue_path.read_bytes(), before)
+
+    def test_pasting_the_marked_text_back_does_not_double_the_mark(self) -> None:
+        self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new", "--because", "D001")
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "newer (changed by D001)",
+                "--because", "D002")
+        self.assertEqual(self.by_id("X-01")["acceptance"][0], "newer (changed by D001, D002)")
+        self.refused("new text", "X-01", "--acceptance", "1", "(changed by D001)", "--because", "D001")
 
     def test_a_missing_because_is_refused(self) -> None:
         self.refused("needs --because", "X-01", "--acceptance", "1", "new")
@@ -307,11 +334,24 @@ class CorrectSummaryTests(WsTestCase):
         self.assertIn("new text (changed by D001)", brief)
         self.assertNotIn("\nold\n", brief)
 
-    def test_a_second_correction_names_only_the_later_decision(self) -> None:
+    def test_a_second_correction_keeps_both_marks(self) -> None:
         self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
         for decision in ("D001", "D002"):
             self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", decision)
-        self.assertEqual(self.by_id("X-01")["summary"], "new (changed by D002)")
+        self.assertEqual(self.by_id("X-01")["summary"], "new (changed by D001, D002)")
+
+    def test_repeating_either_correction_says_nothing_changed(self) -> None:
+        self.ok("decide", "Again", "--why", "it moved again", "--by", "user", "-w", "alpha")
+        self.commit_all("seed")
+        for decision in ("D001", "D002"):
+            self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", decision,
+                    "--commit")
+        before = self.queue_path.read_bytes()
+        for decision in ("D001", "D002"):
+            out = self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", decision,
+                          "--commit")
+            self.assertIn("X-01: nothing changed", out)
+        self.assertEqual(self.queue_path.read_bytes(), before)
 
     def test_a_missing_because_is_refused(self) -> None:
         self.refused("--summary needs --because", "X-01", "--summary", "new")
@@ -1344,6 +1384,74 @@ class MalformedQueueTests(WsTestCase):
             with self.subTest(argv=argv):
                 code, out, err = self.ws(*argv)
                 self.assertNotIn("Traceback", out + err)
+
+
+class ClaimWarnsOfChangesTests(WsTestCase):
+    WARNING = ("warning: X-01: D001 changes it, and its summary and acceptance don't say so yet: "
+               'ws update X-01 --summary "..." --because D001')
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("X-01", 10, summary="old", acceptance=["one"]),
+                      task("X-02", 20, summary="old", acceptance=["one"])])
+
+    def decide(self, *extra: str) -> None:
+        self.ok("decide", "Change it", "--why", "It moved.", "--changes", "X-01", "-w", "alpha", *extra)
+
+    def test_it_warns_without_commit_and_exits_0(self) -> None:
+        self.decide()
+        out = self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123")
+        self.assertIn(self.WARNING, out.splitlines())
+        self.assertEqual(self.by_id("X-01")["status"], "in-progress")
+
+    def test_it_warns_with_commit_and_exits_0(self) -> None:
+        self.decide()
+        self.commit_all("seed")
+        out = self.ok("claim", "--commit", "X-01", "-w", "alpha")
+        self.assertIn("committed", out)
+        self.assertIn(self.WARNING, out.splitlines())
+        self.assertEqual(self.by_id("X-01")["status"], "in-progress")
+
+    def test_only_the_claimed_task_and_only_the_decision_naming_it(self) -> None:
+        self.decide()
+        self.ok("decide", "Mentions X-02", "--why", "X-02 stays as it is.", "-w", "alpha")
+        self.assertNotIn("warning", self.ok("claim", "X-02", "-w", "alpha", "--base", "cafe123"))
+
+    def test_no_warning_for_an_open_decision_until_it_is_settled(self) -> None:
+        self.ok("decide", "Maybe", "--why", "Someone must pick. **Open.**", "--changes", "X-01",
+                "-w", "alpha")
+        self.assertNotIn("warning", self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
+        self.ok("unclaim", "X-01", "-w", "alpha")
+        self.ok("decide", "Picked", "--why", "It won.", "--closes", "D001", "-w", "alpha")
+        self.assertIn(self.WARNING, self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
+
+    def test_no_warning_once_the_summary_has_the_mark(self) -> None:
+        self.decide()
+        self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", "D001")
+        self.assertNotIn("warning", self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
+
+    def test_no_warning_once_an_acceptance_item_has_the_mark(self) -> None:
+        self.decide()
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new", "--because", "D001")
+        self.assertNotIn("warning", self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
+
+    def test_a_later_correction_does_not_bring_the_warning_back(self) -> None:
+        self.decide()
+        self.ok("decide", "Again", "--why", "It moved again.", "--changes", "X-01", "-w", "alpha")
+        for decision in ("D001", "D002"):
+            self.ok("update", "-w", "alpha", "X-01", "--summary", "new", "--because", decision)
+        self.assertNotIn("warning", self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
+
+    def test_a_mark_is_a_whole_id(self) -> None:
+        self.decide()
+        path = self.ws_dir / "alpha" / "tasks_list.json"
+        path.write_text(path.read_text().replace('"old"', '"old (changed by D0011)"', 1))
+        self.assertIn(self.WARNING, self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
+
+    def test_a_workstream_with_no_log_claims_quietly(self) -> None:
+        (self.ws_dir / "alpha" / "DECISIONS.md").unlink(missing_ok=True)
+        self.assertNotIn("warning", self.ok("claim", "X-01", "-w", "alpha", "--base", "cafe123"))
 
 
 CLAIM_FIELDS = ("status", "startedAt", "baseCommit", "claimedBy")
