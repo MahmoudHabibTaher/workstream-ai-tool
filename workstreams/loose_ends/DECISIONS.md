@@ -13,3 +13,8 @@ The title above is the tool's fixed wording. When this was seeded, the user had 
 ## D002 (2026-11-05, user): The user approved the plan, including Claude Code evals in LE-10
 
 Asked whether to approve running loose_ends, including about $2.50 of Claude Code evals, the user answered: Approve the plan. This is the approval D001 says comes in a later entry. Copilot evals stay out, and every other constraint in D001 stands. **Closed.**
+
+## D003 (2026-11-05, LE-04): reuse `act.changed_paths` for the comparison
+
+D-NOOP says to compare the queue before and after, ignoring `updated`. `act.changed_paths` (`src/workstream/act.py`) already does exactly that, so `_commit_queue` calls it. `act.py` isn't changed, and neither is `act.commit`'s refusal.
+Rejected: a second comparison in `cli.py`, which would duplicate that logic. **Closed.**
