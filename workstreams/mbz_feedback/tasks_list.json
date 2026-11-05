@@ -483,7 +483,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/mf-08",
       "blockedBy": [
         "MF-02",
         "MF-07"
@@ -493,10 +493,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T15:13:50Z",
+      "baseCommit": "09363972c102e3dce59122b64b178f08440abd53",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
@@ -526,7 +526,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/mf-09",
       "blockedBy": [
         "MF-03"
       ],
@@ -535,10 +535,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T15:13:50Z",
+      "baseCommit": "09363972c102e3dce59122b64b178f08440abd53",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
