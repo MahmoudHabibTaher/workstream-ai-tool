@@ -16,7 +16,7 @@ from unittest import mock
 from tests.helpers import WsTestCase, evidence_text, task
 from tests.test_schema import load_schema, problems
 import workstream
-from workstream import act, audit, protocol, registry, settle
+from workstream import act, audit, handoff, protocol, registry, settle
 
 
 class SettleTestCase(WsTestCase):
@@ -1041,6 +1041,109 @@ class BriefBudgetTests(SettleTestCase):
 
     def test_the_stop_rules_list_it(self) -> None:
         self.assertIn("10. `ws settle` says a brief is over budget", protocol.section("stop"))
+
+
+class TextToApplyTests(SettleTestCase):
+    LINE = "to apply: T1: rules/x.md (evidence/T1.md)"
+    TEXT = "Keep the first line short\nand the second one too."
+
+    def with_text(self, task_id: str = "T1", path: str = "rules/x.md", status: str = "done") -> str:
+        return (evidence_text(task_id, status=status)
+                + f"\n## Text to apply\n\n### `{path}`\n{self.TEXT}\n")
+
+    def land_t1(self) -> str:
+        self.arrange(self.t("T1"))
+        self.work("T1", evidence=self.with_text())
+        return self.ok("settle", "T1", "-w", "alpha")
+
+    def apply(self, content: str) -> None:
+        target = self.root / "rules" / "x.md"
+        target.parent.mkdir(exist_ok=True)
+        target.write_text(content)
+        self.commit_all("applied")
+
+    def listed(self, evidence_body: str, status: str = "done") -> list[str]:
+        """What texts_to_apply says of T1 with this evidence in the checkout and this status."""
+        project = self.project()
+        ws = registry.find(registry.load(project), "alpha")
+        folder = project.folder(ws) / "evidence"
+        folder.mkdir(exist_ok=True)
+        (folder / "T1.md").write_text(evidence_body)
+        rows = [{"id": "T1", "status": status}]
+        return [t["line"] for t in handoff.texts_to_apply(project, ws, rows)]
+
+    def test_settling_lists_the_text_and_the_handoff_does_too(self) -> None:
+        self.assertIn(self.LINE, self.land_t1().splitlines())
+        handoff_text = (self.root / "workstreams" / "alpha" / "session_handoff.md").read_text()
+        self.assertIn("- T1: rules/x.md (evidence/T1.md)", handoff_text)
+
+    def test_a_second_task_lists_text_left_by_a_first_it_does_not_depend_on(self) -> None:
+        self.arrange(self.t("T1"), self.t("T2", 20))
+        self.work("T1", evidence=self.with_text())
+        self.ok("settle", "T1", "-w", "alpha")
+        self.work("T2")
+        self.assertIn(self.LINE, self.ok("settle", "T2", "-w", "alpha").splitlines())
+
+    def test_text_applied_with_different_line_breaks_is_no_longer_listed(self) -> None:
+        self.arrange(self.t("T1"), self.t("T2", 20))
+        self.work("T1", evidence=self.with_text())
+        self.ok("settle", "T1", "-w", "alpha")
+        self.apply("# Rules\n\nKeep the first\nline short and   the second\n  one too.\n\nMore.\n")
+        self.work("T2")
+        out = self.ok("settle", "T2", "-w", "alpha")
+        self.assertNotIn("to apply:", out)
+        handoff_text = (self.root / "workstreams" / "alpha" / "session_handoff.md").read_text()
+        self.assertNotIn("Text to apply", handoff_text)
+
+    def test_text_reworded_stays_listed(self) -> None:
+        self.apply("Keep the first line brief and the second one too.\n")
+        self.assertEqual(self.listed(self.with_text()), [self.LINE.removeprefix("to apply: ")])
+
+    def test_a_blocked_tasks_text_is_not_listed(self) -> None:
+        self.arrange(self.t("T1"))
+        self.work("T1", evidence=self.with_text(status="blocked (needs a call)"), run_verify=False)
+        out = self.ok("settle", "T1", "-w", "alpha")
+        self.assertIn("T1: blocked", out)
+        self.assertNotIn("to apply:", out)
+        # It is the status that rules it out, not only that its evidence stayed on the branch.
+        self.assertEqual(self.listed(self.with_text(), status="blocked"), [])
+
+    def test_a_file_that_is_missing_or_a_directory_counts_as_not_applied(self) -> None:
+        self.assertEqual(len(self.listed(self.with_text())), 1)
+        (self.root / "rules").mkdir()
+        self.assertEqual(self.listed(self.with_text(path="rules")),
+                         ["T1: rules (evidence/T1.md)"])
+
+    def test_a_path_outside_the_project_is_never_read_or_listed(self) -> None:
+        outside = self.root.parent / "outside.md"
+        for path in ("../outside.md", str(outside)):
+            with self.subTest(path=path):
+                self.assertEqual(self.listed(self.with_text(path=path)), [])
+
+    def test_evidence_with_no_text_lists_nothing(self) -> None:
+        self.assertEqual(self.listed(evidence_text("T1")), [])
+
+    def test_close_warns_exits_zero_and_still_closes(self) -> None:
+        self.land_t1()
+        warning = "warning: " + self.LINE
+        self.assertIn(warning, self.ok("close", "-w", "alpha", "--dry-run").splitlines())
+        project = self.project()
+        ws = registry.find(registry.load(project), "alpha")
+        self.assertEqual(ws["status"], "active")
+        self.assertIn(warning, self.ok("close", "-w", "alpha").splitlines())
+        ws = registry.find(registry.load(project), "alpha")
+        self.assertEqual(ws["status"], "done")
+
+    def test_close_warns_before_a_purge_removes_the_evidence(self) -> None:
+        self.land_t1()
+        out = self.ok("close", "-w", "alpha", "--purge", "--yes")
+        self.assertIn("warning: " + self.LINE, out.splitlines())
+        self.assertFalse((self.root / "workstreams" / "alpha").exists())
+
+    def test_close_is_quiet_once_the_text_is_applied(self) -> None:
+        self.land_t1()
+        self.apply(self.TEXT + "\n")
+        self.assertNotIn("warning:", self.ok("close", "-w", "alpha"))
 
 
 class ReviewAfterClaimTests(SettleTestCase):

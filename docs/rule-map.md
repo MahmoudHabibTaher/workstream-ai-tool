@@ -105,6 +105,8 @@ Rules are restated in my own words. Neither harness's text is copied here.
 | both | Work outside scope is a stop, not a quiet widening | protocol | worker: "the work needs something out of scope" |
 | subsonic | Workers write code, docs and their own evidence | protocol | worker: "Every other file in a workstream folder" |
 | new | Text for a file a worker can't edit goes in its own evidence section | protocol | worker: "under `## Text to apply`" |
+| new | That text is tracked at settle and close until it is in its file | code | handoff.texts_to_apply |
+| new | Applying that text is the coordinator's job before the next round | skill | ws-run: "apply it and commit before the next round" |
 | subsonic | The single writer is enforced, not hoped for | code | gates.tracking_violations |
 | both | Check each acceptance item for real and quote it | protocol | worker: "Check each acceptance item for real" |
 | both | Findings already in the baseline aren't the task's to fix or grow | protocol | worker: "don't fix them, and don't add to them" |

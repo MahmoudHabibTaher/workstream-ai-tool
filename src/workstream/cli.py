@@ -252,12 +252,16 @@ def cmd_close(args: argparse.Namespace) -> int:
     removes = ("the whole folder" if args.purge
                else "the queue and handoff" if args.prune else "nothing")
     print(f"{ws_id}: {plan['tasks']} task(s), closing removes {removes}")
+    ws = registry.find(registry.load(project), ws_id)
+    queue = project.tasks_path(ws)
+    rows = tasks.load(queue, project.config)["tasks"] if queue.exists() else []
+    for entry in handoff.texts_to_apply(project, ws, rows):  # before a prune or purge removes it
+        print(f"warning: to apply: {entry['line']}")
     if args.dry_run:
         return 0
     if destructive and not args.yes and not _confirm(
             "This cannot be undone unless it is committed.", "close"):
         raise Refused("not closed (destructive close needs confirmation or --yes)")
-    ws = registry.find(registry.load(project), ws_id)
     if ws.get("tier") == tasks.RELEASING_TIER:
         _print_release(project, tasks.load(project.tasks_path(ws), project.config)["tasks"])
     registry.close(project, ws_id, allow_deferred=args.allow_deferred, prune=args.prune,
@@ -908,6 +912,8 @@ def cmd_settle(args: argparse.Namespace) -> int:
         print(f"numbered {', '.join(result['decisions'])}")
     for line in result["open"]:
         print(f"open: {line}")
+    for line in result["to_apply"]:
+        print(f"to apply: {line}")
     for warning in result["warnings"]:
         print(f"warning: {warning}")
     return 1 if stopped else 0

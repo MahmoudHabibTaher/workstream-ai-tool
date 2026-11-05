@@ -6,7 +6,7 @@ worth keeping belongs in the evidence, which stays.
 
 from __future__ import annotations
 
-from workstream import decisions, gitutil, graph, tasks
+from workstream import decisions, evidence, gitutil, graph, tasks
 from workstream.fsutil import today
 from workstream.project import Project
 
@@ -50,6 +50,36 @@ def open_decisions(project: Project, ws: dict, rows: list[dict]) -> list[dict]:
     return found
 
 
+def _collapsed(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _is_applied(project: Project, entry: dict) -> bool:
+    """Whether the file under the root holds the text, whatever its line breaks: a coordinator
+    may reflow it. Rewording more than that reads as not applied, which only ever warns."""
+    target = project.root / entry["path"]
+    try:
+        held = target.read_text(errors="replace") if target.is_file() else ""
+    except OSError:
+        return False
+    return _collapsed(entry["text"]) in _collapsed(held)
+
+
+def texts_to_apply(project: Project, ws: dict, rows: list[dict]) -> list[dict]:
+    """Each done task's text not yet in its file, as {id, path, line}. A blocked task hasn't
+    landed, so its text isn't due. A path the evidence check rejects is never read, since a
+    worker's evidence can point anywhere."""
+    found = []
+    for row in rows:
+        text = evidence.read_at(project, ws, row["id"], None) if row["status"] == "done" else None
+        for entry in evidence.parse(text)["texts"] if text else []:
+            if evidence._text_problem(entry) or _is_applied(project, entry):
+                continue
+            line = f"{row['id']}: {entry['path']} (evidence/{row['id']}.md)"
+            found.append({"id": row["id"], "path": entry["path"], "line": line})
+    return found
+
+
 def render(project: Project, ws: dict, rows: list[dict], outcomes: list[dict],
            note: str | None) -> str:
     head = gitutil.rev_parse(project.root, "HEAD", short=True)
@@ -74,6 +104,9 @@ def render(project: Project, ws: dict, rows: list[dict], outcomes: list[dict],
     still_open = open_decisions(project, ws, rows)
     if still_open:
         lines += ["**Open decisions:**", *[f"- {d['line']}" for d in still_open], ""]
+    to_apply = texts_to_apply(project, ws, rows)
+    if to_apply:
+        lines += ["**Text to apply:**", *[f"- {t['line']}" for t in to_apply], ""]
     lines += ["**Next:** " + " ".join(next_lines(rows)), ""]
     gotchas = []
     for out in outcomes:
