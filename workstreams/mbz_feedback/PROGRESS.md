@@ -6,6 +6,10 @@ Created 2026-11-05 from `main` at `838de89`.
 
 ---
 
+## 2026-11-05: MF-05: `ws decide --changes`, with a warning at claim
+
+Merged as `fe51f32fc8`. Verified: test pass, audit pass. [Evidence](evidence/MF-05.md).
+
 ## 2026-11-05: MF-04: Keep decisions naming the task when trimming
 
 Merged as `340b438e51`. Verified: test pass. [Evidence](evidence/MF-04.md).

@@ -31,3 +31,11 @@ It keeps the prefix settle prints, so the same search finds both. Rejected: sepa
 ## D006 (2026-11-05, MF-04): `_with_decisions` tells whether an entry names the task with `decisions._mentions`
 
 It is the match `relevant` already uses, so `T1` doesn't count as named by `T10`, which a test pins. An entry's author line counts too, so a decision a task recorded itself names it. The name is private to another module, because `decisions.py` isn't on this task's file list. Rejected: a plain substring check, which would put `T10`'s decisions first in `T1`'s brief. **Closed.**
+
+## D007 (2026-11-05, MF-05): A correction whose new text ends in a mark merges that mark rather than doubling it
+
+A coordinator may paste the old text back with an edit, so `--summary "new (changed by D001)" --because D002` writes `new (changed by D001, D002)`, and text that is only a mark is refused as empty. Rejected: treating the pasted mark as plain text, which writes two marks in a row. **Closed.**
+
+## D008 (2026-11-05, MF-05): The warning reads the marks anywhere in the summary and acceptance, while a merge reads only the mark at the end
+
+The warning asks whether a decision has been applied at all, and the task's text is the only record of that. Rejected: counting only a trailing mark for the warning, which would warn about a correction a coordinator reworded by hand. **Closed.**
