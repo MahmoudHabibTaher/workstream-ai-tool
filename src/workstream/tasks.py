@@ -372,6 +372,28 @@ def _verify_warnings(task: dict, label: str, config: Config) -> list[str]:
     return warnings
 
 
+def _names_file(text: str, name: str) -> bool:
+    """Whether the text names this file whole, so `MY_DECISIONS.md` isn't `DECISIONS.md`."""
+    return re.search(rf"(?<![\w.-]){re.escape(name)}(?![\w-])(?!\.\w)", text) is not None
+
+
+def tracking_file_warnings(task: dict, n: int = 0) -> list[str]:
+    """A warning for each acceptance item of an open task that names a tracking file. Never an
+    error: a test about one of these files is a legitimate item."""
+    from workstream.hook import WRITERS  # the hook imports modules that import this one
+    acceptance = task.get("acceptance")
+    if task.get("status") not in OPEN_STATUSES or not isinstance(acceptance, list):
+        return []
+    warnings = []
+    for number, item in enumerate(acceptance, 1):
+        named = [name for name in WRITERS if _names_file(acceptance_text(item), name)]
+        if named:
+            warnings.append(f"{_label(task, n)}: acceptance {number} names {', '.join(named)}: "
+                            f"`ws settle` writes it after evidence must pass, so the item should "
+                            f"ask for the evidence or a proposed decision")
+    return warnings
+
+
 def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
                    tier: str = "standard") -> tuple[list[str], list[str]]:
     """Every integrity problem in a queue, as (errors, warnings).
@@ -382,8 +404,8 @@ def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
     exist, a mode that requires contradicts, an unknown verify key, or a verify that falls
     short of the task's kind. Warnings: a files path missing on an open task (it may be one
     the task creates), an open task's verify command whose leading VAR=x stops at its first
-    step, and two open tasks in the same phase, neither waiting on the other, that name the
-    same files path. Open-only rules keep a finished queue valid untouched.
+    step, an open task's acceptance item naming a tracking file, and two open tasks in the
+    same phase, neither waiting on the other, that name the same files path. Open-only rules keep a finished queue valid untouched.
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -412,6 +434,7 @@ def validate_tasks(tasks: list[dict], repo_root: Path, config: Config,
                           f"{t.get('mode', 'background')!r}; it must be 'foreground'")
         errors += _verify_errors(t, label, config)
         warnings += _verify_warnings(t, label, config)
+        warnings += tracking_file_warnings(t, n)
         for path in t.get("files", []) if is_type(t.get("files", []), STR_LIST) else []:
             if not (repo_root / path).exists():
                 warnings.append(f"{label}: files path {path!r} {MISSING_FILES_SUFFIX}")

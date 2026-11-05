@@ -31,7 +31,8 @@ PLAN_NAME = "PLAN.md"
 PLACEHOLDER = "{{"
 PATCH_FILE_RE = re.compile(r"^\*\*\* (?:Update|Add|Delete) File: (.+?)\s*$", re.MULTILINE)
 PATH_KEYS = ("file_path", "path", "filePath", "notebook_path")
-# In a workstream's folder: who writes each file instead.
+# In a workstream's folder: who writes each file instead. Acceptance naming one of them gets a
+# warning too (`tasks.tracking_file_warnings`), so this is the one list of tracking files.
 WRITERS = {
     TASKS_NAME: "the queue is written by `ws` (`ws add`, `ws update`, `ws claim`, `ws settle`)",
     BASELINE_NAME: "the baseline is written by `ws baseline record`",
