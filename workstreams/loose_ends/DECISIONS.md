@@ -35,3 +35,15 @@ Rejected: the top of the brief, which needs that extra heading and sits apart fr
 
 D-RAISED only shows `requires` alone. `release-impact` is named after `requires`, so words added at the end would read `requires, release-impact, which raised mode to foreground` and blame the wrong field. The line reads `updated X-01: requires, which raised mode to foreground, release-impact`, and `test_the_raise_stays_next_to_the_requires_that_caused_it` holds it.
 Rejected: appending to the end of the line, for the misattribution above. **Closed.**
+
+## D007 (2026-11-05, LE-08): Raise `--max-chars` from 3000 to 3100 in `test_long_decision_logs_get_trimmed_with_a_pointer`
+
+The new sentence adds 164 characters to every brief, so that test's 3000-character limit no longer left room for one decision: the first `ws verify` failed with `'call 39' not found`. At 3100 the brief is 3129 characters and still holds call 39 and not call 38, and the test's other assertions are unchanged, including `assertLess(len(brief), 3200)`. The test is about trimming and not about that exact number. `tests/test_settle.py` isn't in this task's expected files, but the required sentence can't pass `make test` without this.
+
+Rejected: shortening the sentence to fit, which would drop wording D-WAIT specifies to satisfy an arbitrary fixture number. The 4500 brief budget is a different limit and is untouched. **Closed.**
+
+## D008 (2026-11-05, LE-09): leftover seeds a reworded D-1, so that keeping the work can be told from redoing it
+
+The sample's D-1 fixes every byte of src/one.txt (`ok one`), so a worker that wiped the partial work and rewrote the file would leave a branch identical to one that kept it, and the check could not catch a discard. `LEFTOVER_PLAN` changes D-1 for this scenario only: two lines, `ok one` then a colour of the worker's choice. The partial work holds `vermilion` plus a TODO that fails lint, so there is something left to finish, and `vermilion` on task/d-1 shows the work survived. `Scenario` gains `plan`, and `build_repo` takes it, with PLAN as the default for every other scenario.
+
+Rejected: a marker line under the unchanged task, because the summary says "the single line" and a careful worker would be right to remove it; a correction through `ws decide` and `ws update --because`, because the decision would then show in the brief the agent reads; and a commit-based check like `resume`'s, because the work here is uncommitted. **Closed.**

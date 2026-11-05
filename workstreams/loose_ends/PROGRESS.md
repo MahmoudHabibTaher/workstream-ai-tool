@@ -6,6 +6,14 @@ Created 2026-11-05 from `main` at `9005d5d`.
 
 ---
 
+## 2026-11-05: LE-08: The brief says a long verify isn't a hang
+
+Merged as `1daa54669b`. Verified: test pass, audit pass. [Evidence](evidence/LE-08.md).
+
+## 2026-11-05: LE-09: An eval for a dead worker's worktree
+
+Merged as `4fcb20d159`. Verified: test pass. [Evidence](evidence/LE-09.md).
+
 ## 2026-11-05: LE-06: ws-coordinate names --summary
 
 Merged as `e2ff5f53e8`. Verified: test pass, audit pass. [Evidence](evidence/LE-06.md).

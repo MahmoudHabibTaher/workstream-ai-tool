@@ -446,13 +446,29 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-05T10:39:10Z",
       "baseCommit": "7ce0198a3803ef640a22087253a7c398597dd8ef",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-05T10:59:24Z",
+      "commit": "1daa54669b5019e66d74d6cab6f5339164ba1739",
+      "verification": {
+        "tree": "60a7dc1d9d6ccd1c3af50651fe043bd4d90d216c",
+        "at": "2026-11-05T10:51:46Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {
@@ -490,13 +506,24 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-05T10:39:10Z",
       "baseCommit": "7ce0198a3803ef640a22087253a7c398597dd8ef",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-05T10:59:24Z",
+      "commit": "4fcb20d1593e102277aa13616fdef7ba99a86bc4",
+      "verification": {
+        "tree": "ab28c89b24da095d3f26700e0323164ff6809208",
+        "at": "2026-11-05T10:59:24Z",
+        "postMerge": "ran",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {
