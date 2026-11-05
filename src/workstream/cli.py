@@ -317,14 +317,18 @@ def cmd_add(args: argparse.Namespace) -> int:
 
 
 def _commit_queue(project: Project, ws: dict, path: Path, message: str,
-                  change: Callable[[], object]) -> str:
+                  change: Callable[[], object]) -> str | None:
     """Run `change` and commit only the queue, putting it back if either fails. Returns the
-    short hash."""
+    short hash, or None when `change` altered nothing but the `updated` date: the queue goes back
+    as it was, since a commit would hold only that date."""
     rows = registry.load(project)["workstreams"]
     act.check_checkout(project, snapshot.git_facts(project, rows), "update", ws["id"], rows)
     before = path.read_bytes()
     try:
         change()
+        if not act.changed_paths({path: before}):
+            act.restore({path: before})
+            return None
         return act.commit(project, [path], message)
     except BaseException:
         act.restore({path: before})
@@ -351,6 +355,9 @@ def _correct(project: Project, ws: dict, path: Path, args: argparse.Namespace, f
         print(f"updated {args.id}: {what}, {args.because}; commit it")
         return
     short = _commit_queue(project, ws, path, f"{ws['id']}: {args.id} {what}, {args.because}", change)
+    if short is None:
+        print(f"{args.id}: nothing changed")
+        return
     print(f"updated {args.id}: {what}, {args.because}; committed {short}")
 
 
@@ -379,6 +386,9 @@ def _commit_verify_or_notes(project: Project, ws: dict, path: Path,
     short = _commit_queue(project, ws, path, f"{ws['id']}: {args.id} {what}",
                           lambda: tasks.update(path, args.id, project.config, notes=args.notes,
                                                verify=args.verify))
+    if short is None:
+        print(f"{args.id}: nothing changed")
+        return
     print(f"updated {args.id}: {what}; committed {short}")
 
 
