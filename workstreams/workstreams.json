@@ -249,13 +249,13 @@
       "id": "mbz_feedback",
       "title": "MBZ feedback",
       "summary": "Fixes from the subsonic MBZ run: text left for files a worker cannot edit, decisions reaching the tasks they change, the settle warning, and acceptance that cannot be proven in time",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "MF",
       "path": "workstreams/mbz_feedback",
       "tier": "standard",
       "created": "2026-11-05",
       "startedAt": "2026-11-05",
-      "completedAt": null,
+      "completedAt": "2026-11-05",
       "baseCommit": "838de89",
       "dependsOn": [],
       "progress": {
@@ -266,7 +266,11 @@
         "done": 10,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "a5cf7fffe2b10f38990a05a644cf4989158fe52c",
+        "pruned": false
+      }
     }
   ]
 }
