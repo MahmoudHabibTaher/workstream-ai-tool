@@ -1,12 +1,10 @@
 # Session handoff
 
-**State:** 3/10 done on `main` at `74da02c`, as of 2026-11-05.
+**State:** 4/10 done on `main` at `340b438`, as of 2026-11-05.
 
-**Just landed:** MF-03 (`74da02c98d`)
+**Just landed:** MF-04 (`340b438e51`)
 
-**Next:** `ws claim --commit MF-04` (phase 2).
+**Next:** `ws claim --commit MF-05` (phase 3).
 
 **Gotchas:**
-- MF-03: The `.claude/` copy of `ws-run` keeps the old steps 5 and 6 until MF-10 refreshes it (T2).
-
-`handoff.texts_to_apply` calls `evidence._text_problem`, a private name in another module, because `evidence` wasn't on this task's file list and `evidence.problems` also reports everything else about the file.
+- MF-04: `tests/test_settle.py` is on this task's file list but didn't need changing: `test_long_decision_logs_get_trimmed_with_a_pointer` passes as it is. The first entry skipped now no longer ends the loop, but a shorter one that then fits leaves too little room for any older one of the same length, so `call 1` stays out.

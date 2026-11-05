@@ -27,3 +27,7 @@ The settle gate already refuses such evidence, so this only reaches evidence tha
 ## D005 (2026-11-05, MF-03): The close warning reads `warning: to apply: <line>`
 
 It keeps the prefix settle prints, so the same search finds both. Rejected: separate wording for close, which says nothing more. **Closed.**
+
+## D006 (2026-11-05, MF-04): `_with_decisions` tells whether an entry names the task with `decisions._mentions`
+
+It is the match `relevant` already uses, so `T1` doesn't count as named by `T10`, which a test pins. An entry's author line counts too, so a decision a task recorded itself names it. The name is private to another module, because `decisions.py` isn't on this task's file list. Rejected: a plain substring check, which would put `T10`'s decisions first in `T1`'s brief. **Closed.**
