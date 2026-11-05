@@ -377,7 +377,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/le-06",
       "blockedBy": [
         "LE-01"
       ],
@@ -386,10 +386,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-05T10:32:48Z",
+      "baseCommit": "1d1475e5e59c75b98008f19a7ddb7165457d81a8",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
