@@ -377,7 +377,7 @@ def _correct_acceptance(project: Project, ws: dict, path: Path, args: argparse.N
     number, text = args.acceptance
     _correct(project, ws, path, args, "--acceptance", f"acceptance {number}",
              lambda: tasks.correct_acceptance(path, args.id, number, text, args.because,
-                                              project.config))
+                                              project.config, args.expect))
     _print_tracking_warnings(tasks.find_task(tasks.load(path, project.config), args.id))
 
 
@@ -417,6 +417,8 @@ def _given(args: argparse.Namespace) -> list[str]:
 def cmd_update(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
+    if args.expect is not None and not args.acceptance:
+        raise Refused("--expect goes with --acceptance: it pins the item being corrected")
     if args.acceptance:
         _correct_acceptance(project, ws, path, args)
         return 0
@@ -1199,6 +1201,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--verify", action="append", help="replaces the list; repeatable")
     p.add_argument("--acceptance", nargs=2, metavar=("N", "TEXT"),
                    help="replace item N, keeping its kind; needs --because")
+    p.add_argument("--expect", metavar="LITERAL",
+                   help="with --acceptance: ws verify fails unless the logs hold this; without "
+                        "it, the item's old literal goes")
     p.add_argument("--summary", metavar="TEXT", help="replace the summary; needs --because")
     p.add_argument("--because", metavar="DNNN", help="the decision that changed it")
     _add_typed_arguments(p)

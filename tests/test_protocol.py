@@ -36,8 +36,20 @@ class ProtocolTests(unittest.TestCase):
         self.assertIn("A name filter that matches nothing can still exit 0", row)
         self.assertIn("`expect` should name the line the runner prints for that test passing", row)
         self.assertIn("a bare test name can match an echoed command", row)
-        self.assertIn("`ws add` and `ws update` with `--acceptance` can't set `expect`", row)
+        self.assertIn("`ws add --acceptance` can't set `expect`", row)
         self.assertIn("`ws seed` can add such a task to an existing queue", row)
+
+    def test_the_schema_says_ws_update_can_set_expect(self) -> None:
+        row = next(line for line in protocol.section("task-schema").splitlines()
+                   if line.startswith("| `acceptance` |"))
+        self.assertNotIn("`ws update` with `--acceptance` can't set `expect`", row)
+        self.assertIn('--expect "<literal>" --because <Dnnn>` sets it', row)
+        self.assertIn("without `--expect` the old literal goes", row)
+
+    def test_a_worker_proposes_a_result_that_differs_from_acceptance(self) -> None:
+        self.assertIn("A result that differs from an acceptance item goes under Proposed decisions "
+                      "as well as in the proof, even if you think it's fine.",
+                      protocol.section("worker"))
 
     def test_an_unknown_section_names_the_real_ones(self) -> None:
         with self.assertRaisesRegex(WsError, "there is: worker"):

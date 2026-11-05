@@ -310,6 +310,79 @@ class CorrectAcceptanceTests(WsTestCase):
         self.assertEqual((args.acceptance, args.because, args.commit), (["x", "x"], "x", True))
 
 
+class CorrectAcceptanceExpectTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.output = self.root.parent / "output.txt"
+        self.output.write_text("nothing yet\n")
+        self.set_commands(test=f"cat {self.output}")
+        self.seed_ok([task("X-01", 10, verify=["test"], acceptance=[
+                          "one", {"text": "two", "expect": "old"}, {"text": "three", "kind": "manual"}]),
+                      task("X-02", 20, acceptance=["one"])])
+        self.ok("decide", "Change it", "--why", "the target moved", "--by", "user", "-w", "alpha")
+        self.queue_path = self.ws_dir / "alpha" / "tasks_list.json"
+
+    def refused(self, needle: str, *argv: str) -> None:
+        before = self.queue_path.read_bytes()
+        self.assertIn(needle, self.fails("update", "-w", "alpha", *argv))
+        self.assertEqual(self.queue_path.read_bytes(), before)
+
+    def test_verify_fails_until_the_output_holds_the_literal(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "new two", "--expect", "x=1",
+                "--because", "D001")
+        self.commit_all("seeded")
+        self.output.write_text("old\n")
+        self.assertIn("acceptance 2: expected output not in the logs: x=1",
+                      self.fails("verify", "X-01", "-w", "alpha"))
+        self.output.write_text("x=1\n")
+        self.assertIn("PASS test", self.ok("verify", "X-01", "-w", "alpha"))
+
+    def test_a_string_item_becomes_text_and_expect(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "1", "new one", "--expect", "x=1",
+                "--because", "D001")
+        self.assertEqual(self.by_id("X-01")["acceptance"][0],
+                         {"text": "new one (changed by D001)", "expect": "x=1"})
+
+    def test_a_new_literal_replaces_the_old_one(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "new two", "--expect", "x=1",
+                "--because", "D001")
+        self.assertEqual(self.by_id("X-01")["acceptance"][1],
+                         {"text": "new two (changed by D001)", "expect": "x=1"})
+
+    def test_without_expect_the_old_literal_goes(self) -> None:
+        self.ok("update", "-w", "alpha", "X-01", "--acceptance", "2", "new two", "--because", "D001")
+        self.assertEqual(self.by_id("X-01")["acceptance"][1], {"text": "new two (changed by D001)"})
+
+    def test_expect_alone_is_refused(self) -> None:
+        self.refused("--expect goes with --acceptance", "X-01", "--expect", "x=1")
+        self.refused("--expect goes with --acceptance", "X-01", "--expect", "")
+        self.refused("--expect goes with --acceptance", "X-01", "--expect", "x=1",
+                     "--because", "D001")
+        self.refused("--expect goes with --acceptance", "X-01", "--expect", "x=1",
+                     "--summary", "new", "--because", "D001")
+
+    def test_expect_on_a_manual_item_is_refused(self) -> None:
+        self.refused("a manual item has no command output", "X-01", "--acceptance", "3", "new",
+                     "--expect", "x=1", "--because", "D001")
+
+    def test_expect_on_a_task_with_no_verify_is_refused(self) -> None:
+        self.refused("needs a verify command", "X-02", "--acceptance", "1", "new",
+                     "--expect", "x=1", "--because", "D001")
+
+    def test_a_blank_expect_is_refused(self) -> None:
+        for blank in ("", "  "):
+            self.refused("non-empty string", "X-01", "--acceptance", "1", "new",
+                         "--expect", blank, "--because", "D001")
+
+    def test_a_refused_expect_commits_nothing(self) -> None:
+        self.commit_all("tracking")
+        head = self.git("rev-parse", "HEAD").strip()
+        self.refused("a manual item has no command output", "X-01", "--acceptance", "3", "new",
+                     "--expect", "x=1", "--because", "D001", "--commit")
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head)
+
+
 class CorrectSummaryTests(WsTestCase):
     def setUp(self) -> None:
         super().setUp()
