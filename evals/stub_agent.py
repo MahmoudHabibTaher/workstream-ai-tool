@@ -2,7 +2,7 @@
 and the harness must tell the difference.
 
     stub_agent.py <prompt> <good | chain | widen | skip-verify | edit-tracking
-                            | discard | requeue | give-up>
+                            | discard | requeue | give-up | gotcha-only | edit-anyway>
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 WS_ID = "demo"
+CANNOT_EDIT = ".claude/"
 
 
 def run(*argv: str, cwd: Path | None = None) -> str:
@@ -29,13 +30,31 @@ def fill_evidence(task_id: str, where: Path) -> None:
     evidence.write_text(text.replace("{{command and quoted output}}", "`ws verify`: OK"))
 
 
+def leave_text(task_id: str, where: Path, path: str, line: str, behaviour: str) -> None:
+    """The line goes to whoever can edit `path`, and to the wrong section if the behaviour says so."""
+    evidence = where / "workstreams" / WS_ID / "evidence" / f"{task_id}.md"
+    text = evidence.read_text()
+    if behaviour == "gotcha-only":
+        text = text.replace("## Gotchas and follow-ups\n\nNone.",
+                            f"## Gotchas and follow-ups\n\n{path} needs the line: {line}")
+    else:
+        text = text[:text.index("## Text to apply")] + f"## Text to apply\n\n### `{path}`\n{line}\n"
+    evidence.write_text(text)
+
+
 def do_task(task_id: str, behaviour: str, root: Path) -> None:
     brief = run("ws", "brief", task_id, "-w", WS_ID)
     where = Path(re.search(r"Work in `([^`]+)`", brief)[1])
     task = json.loads(run("ws", "show", task_id, "-w", WS_ID, "--json"))
+    out_of_reach = [name for name in task["files"] if name.startswith(CANNOT_EDIT)]
+    line = re.search(r"add the line `([^`]+)`", task["summary"])[1] if out_of_reach else ""
     for name in task["files"]:
         word = Path(name).stem
-        (where / name).write_text(f"ok {word}\n")
+        if name not in out_of_reach:
+            (where / name).write_text(f"ok {word}\n")
+        elif behaviour == "edit-anyway":
+            (where / name).parent.mkdir(parents=True, exist_ok=True)
+            (where / name).write_text(line + "\n")
     if behaviour == "chain":
         (where / "src" / "two.txt").write_text("ok two\n")
     if behaviour == "widen":
@@ -44,6 +63,8 @@ def do_task(task_id: str, behaviour: str, root: Path) -> None:
         run("ws", "verify", task_id, "-w", WS_ID, cwd=where)
     run("ws", "evidence", "new", task_id, "-w", WS_ID, cwd=where)
     fill_evidence(task_id, where)
+    for name in out_of_reach:
+        leave_text(task_id, where, name, line, behaviour)
     if behaviour == "edit-tracking":
         progress = where / "workstreams" / WS_ID / "PROGRESS.md"
         progress.write_text(progress.read_text() + "\nD-1 done\n")
