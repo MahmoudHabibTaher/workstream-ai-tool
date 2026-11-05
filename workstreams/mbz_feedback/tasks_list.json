@@ -1,0 +1,519 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/mbz_feedback/PLAN.md",
+  "updated": "2026-11-05",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "MF-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Say what's wrong in the settle warning",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "D-WARNING"
+      ],
+      "summary": "The scope gate's detail names the files as outside the task's list, and ws settle prints that detail as the warning rather than the check's name. See D-WARNING.",
+      "files": [
+        "src/workstream/gates.py",
+        "src/workstream/cli.py",
+        "tests/test_settle.py",
+        "tests/test_gates.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: settling a task that touches b.txt outside its list prints `warning: files outside the task's list: b.txt`, and not `warning: the diff stays within`",
+        "A test: the doctor's `warn <name>: <detail>` lines are unchanged",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Add the evidence section for text to apply",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T4",
+        "T6",
+        "T13",
+        "D-TEXT"
+      ],
+      "summary": "Evidence gains a last section, `## Text to apply`, holding exact text per named file. parse returns it, problems checks its shape, and the brief and worker rules point there instead of Gotchas. See D-TEXT.",
+      "files": [
+        "src/workstream/evidence.py",
+        "src/workstream/brief.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "docs/rule-map.md",
+        "tests/test_plan_tools.py",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: parse returns each file's text whole, including text holding `## ` and `### ` lines",
+        "A test: the skeleton's section parses as empty, and evidence with no section still parses",
+        "A test: problems reports text with no file, a file with no text, an absolute path and a `..` path",
+        "A test: the cannot-edit line in a background brief names the new section",
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-03",
+      "phase": 2,
+      "priority": 30,
+      "title": "Track text to apply through settle and close",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T5",
+        "T6",
+        "T13",
+        "D-APPLY"
+      ],
+      "summary": "ws settle prints a `to apply:` line per done task's text not yet in its file, the handoff lists them, and ws close warns about them and still closes. ws-run makes applying them the coordinator's job. See D-APPLY.",
+      "files": [
+        "src/workstream/handoff.py",
+        "src/workstream/settle.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets/skills/ws-run/SKILL.md",
+        "docs/rule-map.md",
+        "tests/test_settle.py",
+        "tests/test_protocol.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: settling a second task lists text left by the first, which it doesn't depend on",
+        "A test: text applied with different line breaks is no longer listed",
+        "A test: a blocked task's text isn't listed",
+        "A test: `ws close --dry-run` and `ws close` warn about unapplied text, exit 0, and closing still happens",
+        "A test: `ws-run` names the `to apply:` line",
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-01",
+        "MF-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "Keep decisions naming the task when trimming",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T7",
+        "D-TRIM"
+      ],
+      "summary": "The brief's decisions put those naming the task first, and an entry that doesn't fit no longer hides shorter ones after it. See D-TRIM.",
+      "files": [
+        "src/workstream/brief.py",
+        "tests/test_brief.py",
+        "tests/test_settle.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: an old user decision naming the task is in the brief where newer generic ones are dropped",
+        "A test: an entry too long to fit doesn't hide a shorter one after it, and the `more:` count is right",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-02",
+        "MF-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-05",
+      "phase": 3,
+      "priority": 50,
+      "title": "`ws decide --changes`, with a warning at claim",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T8",
+        "T9",
+        "T10",
+        "T13",
+        "D-CHANGES"
+      ],
+      "summary": "ws decide --changes records the tasks a decision changes. ws claim warns on either path while a settled one has no mark in the task's summary or acceptance, and repeated corrections keep every mark. See D-CHANGES.",
+      "files": [
+        "src/workstream/decisions.py",
+        "src/workstream/cli.py",
+        "src/workstream/tasks.py",
+        "src/workstream/assets/skills/ws-coordinate/SKILL.md",
+        "tests/test_decisions.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: `--changes` with `--closes` still closes, and both lines read back",
+        "A test: `--changes` refuses an unknown task and a done one",
+        "A test: ws claim warns with and without `--commit`, naming the decision and the command, and exits 0",
+        "A test: no warning for an open decision, or once the task has the mark",
+        "A test: a second correction keeps both marks, and repeating one says `nothing changed`",
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-06",
+      "phase": 3,
+      "priority": 60,
+      "title": "Show what changed since the plan in the brief",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "D-CHANGED-SECTION"
+      ],
+      "summary": "A `## Changed since the plan` section lists settled decisions whose Changes line names the task, by title, never trimmed, and says they outrank the plan and summary. See D-CHANGED-SECTION.",
+      "files": [
+        "src/workstream/brief.py",
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: the section lists the decision after Acceptance, including when the decision's body was trimmed",
+        "A test: it is absent when no decision changes the task, and leaves out an open one",
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-04",
+        "MF-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-07",
+      "phase": 3,
+      "priority": 70,
+      "title": "Warn on acceptance naming a tracking file",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T2",
+        "T11",
+        "T13",
+        "D-TRACKING"
+      ],
+      "summary": "ws validate, ws seed, ws add and ws update --acceptance warn when an open task's acceptance names a tracking file, pointing at evidence or a proposed decision. Nothing refuses. See D-TRACKING.",
+      "files": [
+        "src/workstream/tasks.py",
+        "src/workstream/cli.py",
+        "src/workstream/hook.py",
+        "src/workstream/assets/skills/ws-plan/SKILL.md",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: each of ws validate, ws seed --from-plan, ws seed from JSON, ws add and ws update --acceptance prints the warning and exits 0",
+        "A test: a done task's item doesn't warn",
+        "A test: the file names come from one list",
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-08",
+      "phase": 4,
+      "priority": 80,
+      "title": "Propose differences, and `--expect` on `ws update`",
+      "kind": "prompts",
+      "findings": [
+        "T1",
+        "T12",
+        "T13",
+        "D-DIFFERS"
+      ],
+      "summary": "The worker rules say a result differing from an acceptance item is proposed as a decision. ws update --acceptance takes --expect, and its absence still drops the old pin. See D-DIFFERS.",
+      "files": [
+        "src/workstream/tasks.py",
+        "src/workstream/cli.py",
+        "src/workstream/assets/PROTOCOL.md",
+        "docs/rule-map.md",
+        "tests/test_tasks.py",
+        "tests/test_protocol.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test: `--acceptance N text --expect x --because D` makes ws verify fail until the output holds x",
+        "A test: without `--expect` the old pin still goes",
+        "A test: `--expect` alone is refused, as is one on a manual item or a task with no verify",
+        "A test: `ws protocol worker` says a difference is proposed, and task-schema no longer says ws update can't set expect",
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-02",
+        "MF-07"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-09",
+      "phase": 4,
+      "priority": 90,
+      "title": "An eval for text left for a file a worker can't edit",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "D-TEXT"
+      ],
+      "summary": "A new eval scenario gives a worker a task needing a line in a file its agent can't edit from the background. It passes only if the branch leaves that file alone and the evidence's `## Text to apply` names it with the line. Tested here with the stub agent; MF-10 runs it for real.",
+      "files": [
+        "evals/harness.py",
+        "evals/stub_agent.py",
+        "tests/test_evals.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test with the stub agent: the scenario's check passes on a well-behaved run and fails when the text is only under Gotchas",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "MF-10",
+      "phase": 5,
+      "priority": 100,
+      "title": "Prove it end to end",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2"
+      ],
+      "summary": "Run the section 5 replay with the installed ws, refresh the .claude copies with ws adapt, run the Claude Code evals, and record it all in docs/decisions/0015-mbz-feedback.md, with what stays unproven.",
+      "files": [
+        "docs/decisions/0015-mbz-feedback.md",
+        ".claude/",
+        ".workstream/adapters.json"
+      ],
+      "docs": [],
+      "acceptance": [
+        "The five replay steps in section 5 are recorded with their output in the decision record",
+        {
+          "text": "`ws adapt claude-code --check` says OK",
+          "kind": "manual"
+        },
+        {
+          "text": "`make eval AGENT=claude-code` passes each scenario, with its cost in the record",
+          "kind": "manual"
+        },
+        "make test and make audit pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "MF-06",
+        "MF-08",
+        "MF-09"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the settle warning's wording",
+      "tracking text left for files a worker can't edit",
+      "how a decision reaches the tasks it changes",
+      "warning on acceptance naming a tracking file",
+      "proposing a difference from acceptance",
+      "--expect on ws update"
+    ],
+    "outOfScope": [
+      "automatic comparison of results against worded acceptance",
+      "following all earlier tasks for gotchas in a brief",
+      "changing the gotcha cap",
+      "showing the new evidence section in the web review",
+      "Copilot evals",
+      "any change in subsonic-server or the Kotlin harness",
+      "making a plan editable"
+    ],
+    "rule": "Each task fixes one finding from the MBZ feedback in the ws core, its skills and its tests, and nothing outside this repo changes."
+  }
+}
