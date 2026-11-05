@@ -259,6 +259,12 @@ class NewGateTests(WsTestCase):
         self.assertIn("**Foreground tasks**", skill)
         self.assertNotIn("return to the integration branch", skill)
 
+    def test_ws_run_makes_a_to_apply_line_the_coordinators_to_apply(self) -> None:
+        skill = protocol.skill_text("ws-run")
+        self.assertIn("A `to apply:` line", skill)
+        self.assertIn("apply it and commit before the next round", skill)
+        self.assertIn("do nothing else but apply that text", skill)
+
     def test_the_only_exception_to_dont_merge_is_a_foreground_briefs_landing_step(self) -> None:
         rule = next(line for line in protocol.section("worker").splitlines()
                     if "Don't merge" in line)

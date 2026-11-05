@@ -319,8 +319,8 @@ def _over_budget(project: Project, ws: dict) -> list[str]:
 def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None = None,
            skip_post_verify: bool = False, keep: bool = False, dry_run: bool = False,
            note: str | None = None) -> dict:
-    """Settle these tasks. {outcomes, decisions, open, warnings}; a task that couldn't land is in
-    outcomes with state "stopped" and its reason, not raised, so the ones before it still
+    """Settle these tasks. {outcomes, decisions, open, to_apply, warnings}; a task that couldn't
+    land is in outcomes with state "stopped" and its reason, not raised, so the ones before it still
     count. Raises Refused only when nothing could be tried at all."""
     rows = registry.load(project)["workstreams"]
     ws = registry.find({"workstreams": rows}, ws_id)
@@ -338,7 +338,7 @@ def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None =
         outcomes.append(out)
         if out["state"] == STOPPED:
             break
-    result = {"outcomes": outcomes, "decisions": [], "open": [], "warnings": []}
+    result = {"outcomes": outcomes, "decisions": [], "open": [], "to_apply": [], "warnings": []}
     settled = [o for o in outcomes if o["state"] in (MERGED, BLOCKED)]
     if dry_run or not settled:
         return result
@@ -346,6 +346,7 @@ def settle(project: Project, ws_id: str, ids: list[str], *, commit: str | None =
     rows_now = tasks.load(project.tasks_path(ws), project.config)["tasks"]
     result["open"] = [d["line"] for d in handoff.open_decisions(project, ws, rows_now)
                       if d["id"] in result["decisions"]]
+    result["to_apply"] = [t["line"] for t in handoff.texts_to_apply(project, ws, rows_now)]
     result["warnings"] += _over_budget(project, ws)
     if not keep:
         for out in settled:
