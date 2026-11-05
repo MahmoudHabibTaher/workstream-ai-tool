@@ -39,3 +39,23 @@ A coordinator may paste the old text back with an edit, so `--summary "new (chan
 ## D008 (2026-11-05, MF-05): The warning reads the marks anywhere in the summary and acceptance, while a merge reads only the mark at the end
 
 The warning asks whether a decision has been applied at all, and the task's text is the only record of that. Rejected: counting only a trailing mark for the warning, which would warn about a correction a coordinator reworded by hand. **Closed.**
+
+## D009 (2026-11-05, MF-06): The section goes after `## Open decisions`, not before it
+
+An open decision is a stop condition, so it stays straight after Acceptance when both sections print. No test covers a brief with both. Rejected: placing the new section first, which would move the stop condition down. **Closed.**
+
+## D010 (2026-11-05, MF-06): A decision with a Changes line counts once a later entry closes it
+
+"Settled" is read as not in `decisions.open_entries`, so an entry that opened and was later closed is listed under its own title, alongside the closing entry if that one names the task too. Rejected: looking for the closed mark in the entry's own text, which would miss a closure recorded by a later entry. **Closed.**
+
+## D011 (2026-11-05, MF-07): `tasks.tracking_file_warnings` imports `hook.WRITERS` inside the function
+
+`hook` imports `registry` and `handoff`, which import `tasks`, so a top-level import is a cycle. `audit.py` and `cli.py` already import inside a function, with a comment saying why. Rejected: moving the names to a lower module, which needs `project.py` and `baseline.py`, off this task's file list, and which still can't take `handoff.FILE_NAME` without its own cycle. **Closed.**
+
+## D012 (2026-11-05, MF-07): `ws update --acceptance` warns about every item of the task, not only the corrected one
+
+The warning has one source and each line gives its item number, so a line about another item is still true. Rejected: filtering to the corrected number, more code to hide a true warning. **Closed.**
+
+## D013 (2026-11-05, MF-07): A name counts only whole, and an optional `n` labels a task with no id
+
+`MY_DECISIONS.md`, `old-PROGRESS.md` and `DECISIONS.md.bak` don't warn, and a test pins that. An item's `expect` counts as well as its text, since `acceptance_text` includes it. `tracking_file_warnings(task, n=0)` adds `n` to D-TRACKING's signature so `validate_tasks` labels an id-less task as its other rules do. Rejected: a plain substring check, which warns on other files. **Closed.**

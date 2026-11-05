@@ -6,6 +6,14 @@ Created 2026-11-05 from `main` at `838de89`.
 
 ---
 
+## 2026-11-05: MF-06: Show what changed since the plan in the brief
+
+Merged as `cbdc9f7787`. Verified: test pass, audit pass. [Evidence](evidence/MF-06.md).
+
+## 2026-11-05: MF-07: Warn on acceptance naming a tracking file
+
+Merged as `b0df12bd4d`. Verified: test pass, audit pass. [Evidence](evidence/MF-07.md).
+
 ## 2026-11-05: MF-05: `ws decide --changes`, with a warning at claim
 
 Merged as `fe51f32fc8`. Verified: test pass, audit pass. [Evidence](evidence/MF-05.md).
