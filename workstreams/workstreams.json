@@ -222,13 +222,13 @@
       "id": "loose_ends",
       "title": "Loose ends",
       "summary": "Close the gaps left_open recorded",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "LE",
       "path": "workstreams/loose_ends",
       "tier": "standard",
       "created": "2026-11-05",
       "startedAt": "2026-11-05",
-      "completedAt": null,
+      "completedAt": "2026-11-05",
       "baseCommit": "9005d5d",
       "dependsOn": [],
       "progress": {
@@ -239,7 +239,11 @@
         "done": 10,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "905509a91d8dca8ad1ab9e5664154932d01edd3e",
+        "pruned": false
+      }
     }
   ]
 }
