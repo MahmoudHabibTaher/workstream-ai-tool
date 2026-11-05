@@ -213,7 +213,9 @@ def _finish_lines(project: Project, ws: dict, task: dict,
         "## When the work is done", "",
         f"1. `ws verify {tid}` runs the checks above and records the result. Use it rather than "
         "running them by hand: its output stays short, and only its record counts. Run it in the "
-        "foreground with the longest timeout your shell allows, and wait for it.",
+        "foreground with the longest timeout your shell allows, and wait for it. If your shell "
+        "moves it to the background, wait for it to exit: it enforces its own time limit, and "
+        "elapsed time can include the machine sleeping, so don't kill it.",
         evidence_step,
         f"3. `ws commit {tid} -m \"<what changed>\"` commits the code and the evidence together on "
         "your branch.",

@@ -365,3 +365,17 @@ class ResumeTests(WsTestCase):
         self.assertIn("only when the worktree has nothing to keep", skill)
         self.assertIn("handle it as a leftover, as in step 2", skill)
         self.assertNotIn("treat it as blocked", skill)
+
+
+class FinishTests(WsTestCase):
+    def test_step_1_says_a_backgrounded_verify_is_not_a_hang(self) -> None:
+        self.set_commands(test="true")
+        self.new_ws()
+        self.seed_ok([task("T1", 1, verify=["test"], acceptance=["works"], summary="Do the thing.")])
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        finish = brief.split("## When the work is done", 1)[1]
+        step_1 = next(line for line in finish.splitlines() if line.startswith("1. "))
+        self.assertIn("`ws verify T1 -w alpha`", step_1)
+        self.assertIn("If your shell moves it to the background, wait for it to exit: it enforces "
+                      "its own time limit, and elapsed time can include the machine sleeping, so "
+                      "don't kill it.", step_1)

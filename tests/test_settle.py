@@ -954,7 +954,7 @@ class BriefTests(SettleTestCase):
         log = self.ws_dir / "alpha" / "DECISIONS.md"
         log.write_text("".join(f"## D{n:03d} (2026-01-01, user): call {n}\n\n{'why ' * 100}\n\n"
                                for n in range(1, 40)))
-        brief = self.ok("brief", "T1", "--max-chars", "3000")
+        brief = self.ok("brief", "T1", "--max-chars", "3100")
         self.assertLess(len(brief), 3200)
         self.assertIn("more: `ws decisions --for T1 -w alpha`", brief)
         self.assertIn("call 39", brief)
