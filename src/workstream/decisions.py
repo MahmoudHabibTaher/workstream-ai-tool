@@ -11,11 +11,16 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from workstream import tasks
 from workstream.errors import Refused
 
 ENTRY_RE = re.compile(r"^## (D(\d+))\s*(?:\(([^)]*)\))?\s*:?\s*(.*)$", re.MULTILINE)
 # Only as an entry's first line, so a reason quoting another entry's Closes line closes nothing.
 CLOSES_RE = re.compile(r"\A## .*\n+Closes: (D\d+(?:, D\d+)*)\.")
+# Anchored the same way, and after any Closes line, which has to stay first.
+_TASK_ID = r"[A-Za-z0-9][A-Za-z0-9._-]*"
+CHANGES_RE = re.compile(rf"\A## .*\n+(?:Closes: D\d+(?:, D\d+)*\.\n+)?"
+                        rf"Changes: ({_TASK_ID}(?:, {_TASK_ID})*)\.(?=\s|\Z)")
 USER = "user"
 OPEN_MARK = "**Open.**"
 CLOSED_MARK = "**Closed.**"
@@ -83,6 +88,34 @@ def closing_body(entries: list[dict], closes: str, why: str) -> str:
         if wanted not in still_open:
             raise Refused(f"{wanted} is already closed")
     return f"Closes: {', '.join(ids)}.\n\n{why}"
+
+
+def changing_body(rows: list[dict], changes: str, why: str) -> str:
+    """`why` with the Changes line for a comma-separated list of task ids, each of which `ws update`
+    must still be able to correct. Refusing here is what leaves the log untouched."""
+    ids = list(dict.fromkeys(part.strip() for part in changes.split(",")))
+    status = {t["id"]: t.get("status") for t in rows}
+    for wanted in ids:
+        if wanted not in status:
+            raise Refused(f"no task {wanted or '(empty id)'} to change")
+        if status[wanted] not in tasks.OPEN_STATUSES:
+            raise Refused(f"{wanted} is {status[wanted]}: `ws update` can't correct it")
+    return f"Changes: {', '.join(ids)}.\n\n{why}"
+
+
+def changed_tasks(entry: dict) -> list[str]:
+    """The tasks this entry says it changes."""
+    changes = CHANGES_RE.search(entry["text"])
+    return changes[1].split(", ") if changes else []
+
+
+def unmarked(entries: list[dict], task: dict) -> list[str]:
+    """Settled decisions that change this task and that its summary and acceptance don't name. An
+    open one has settled nothing yet, so it asks for no correction."""
+    still_open = {e["id"] for e in open_entries(entries)}
+    marks = tasks.marks(task)
+    return [e["id"] for e in entries if task["id"] in changed_tasks(e)
+            and e["id"] not in still_open and e["id"] not in marks]
 
 
 def render_entry(number: int, date: str, who: str, title: str, body: str) -> str:

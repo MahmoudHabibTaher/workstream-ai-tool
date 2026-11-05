@@ -663,6 +663,18 @@ def cmd_graph(args: argparse.Namespace) -> int:
     return 0
 
 
+def _warn_unmarked(project: Project, ws: dict, path: Path, ids: list[str]) -> None:
+    """Say which claimed tasks a settled decision changed without anyone correcting them. Only a
+    warning: some decisions change just notes or verify, and workers start after the claim."""
+    log = project.folder(ws) / "DECISIONS.md"
+    entries = decisions.parse(log.read_text()) if log.exists() else []
+    data = tasks.load(path, project.config)
+    for task_id in dict.fromkeys(ids):
+        for decision in decisions.unmarked(entries, tasks.find_task(data, task_id)):
+            print(f"warning: {task_id}: {decision} changes it, and its summary and acceptance "
+                  f"don't say so yet: ws update {task_id} --summary \"...\" --because {decision}")
+
+
 def cmd_claim(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
@@ -670,10 +682,12 @@ def cmd_claim(args: argparse.Namespace) -> int:
     if args.commit:
         base, short = act.commit_claim(project, ws, args.ids, args.base, args.by)
         print(f"claimed {', '.join(args.ids)} at {base}; committed {short}")
+        _warn_unmarked(project, ws, path, args.ids)
         return 0
     base = args.base if args.base is not None else gitutil.rev_parse(project.root, "HEAD")
     ids = tasks.claim(path, args.ids, base, args.by, project.config)
     print(f"claimed {', '.join(ids)} at {base}" + (f" for {args.by}" if args.by else ""))
+    _warn_unmarked(project, ws, path, ids)
     return 0
 
 
@@ -788,9 +802,11 @@ def cmd_decisions(args: argparse.Namespace) -> int:
 
 def cmd_decide(args: argparse.Namespace) -> int:
     project = _project(args)
-    ws, _ = _queue(project, args)
+    ws, queue = _queue(project, args)
     path = project.folder(ws) / "DECISIONS.md"
     why = args.why
+    if args.changes is not None:
+        why = decisions.changing_body(tasks.load(queue, project.config)["tasks"], args.changes, why)
     if args.closes is not None:
         entries = decisions.parse(path.read_text()) if path.exists() else []
         why = decisions.closing_body(entries, args.closes, why)
@@ -1240,6 +1256,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by", default="coordinator", help="`user` makes it apply to every task")
     p.add_argument("--closes", metavar="IDS",
                    help="open decisions this settles, comma-separated; their text stays as it is")
+    p.add_argument("--changes", metavar="TASKS",
+                   help="open tasks this changes, comma-separated; `ws claim` warns until each is corrected")
     p.add_argument("--commit", action="store_true",
                    help="commit DECISIONS.md on the integration branch too, and print the hash")
 

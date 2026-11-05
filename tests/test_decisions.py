@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from tests.helpers import WsTestCase, evidence_text
+from tests.helpers import WsTestCase, evidence_text, task
 from workstream import decisions, evidence, protocol
 from workstream.cli import build_parser
 
@@ -184,6 +184,58 @@ class ClosingTests(WsTestCase):
         self.assertIn("Closes: D015.", self.git("show", "HEAD:workstreams/alpha/DECISIONS.md"))
 
 
+class ChangesTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+        self.seed_ok([task("T1", 10), task("T1.2", 20), task("T2", 30, status="done", commit="abc1234"),
+                      task("T3", 40, status="deferred")])
+        self.log = self.ws_dir / "alpha" / "DECISIONS.md"
+
+    def entries(self) -> list[dict]:
+        return decisions.parse(self.log.read_text())
+
+    def test_the_changes_line_comes_first_and_reads_back(self) -> None:
+        self.ok("decide", "x", "--why", "Because.", "--changes", "T1, T1.2,T1", "-w", "alpha")
+        entry = self.entries()[0]
+        self.assertIn("\n\nChanges: T1, T1.2.\n\nBecause. **Closed.**", entry["text"])
+        self.assertEqual(decisions.changed_tasks(entry), ["T1", "T1.2"])
+
+    def test_with_closes_it_still_closes_and_both_lines_read_back(self) -> None:
+        self.log.write_text(LOG)
+        self.ok("decide", "x", "--why", "Because.", "--changes", "T1", "--closes", "D014",
+                "-w", "alpha")
+        entries = self.entries()
+        self.assertEqual(ids(decisions.open_entries(entries)), ["D015"])
+        text = entries[-1]["text"]
+        self.assertEqual(decisions.CLOSES_RE.search(text)[1], "D014")
+        self.assertEqual(decisions.changed_tasks(entries[-1]), ["T1"])
+        self.assertLess(text.index("Closes: D014."), text.index("Changes: T1."))
+
+    def test_a_reason_quoting_a_changes_line_changes_nothing(self) -> None:
+        self.ok("decide", "x", "--why", "Not this. Changes: T1.\n\nChanges: T1.", "-w", "alpha")
+        self.assertEqual(decisions.changed_tasks(self.entries()[0]), [])
+
+    def test_an_empty_reason_still_reads_back(self) -> None:
+        self.ok("decide", "x", "--why", "", "--changes", "T1", "-w", "alpha")
+        self.assertEqual(decisions.changed_tasks(self.entries()[0]), ["T1"])
+
+    def test_refuses_an_unknown_task_and_a_finished_one_and_writes_nothing(self) -> None:
+        self.log.write_text(LOG)
+        for changes, needle in (("T9", "no task T9"), ("T1,T9", "no task T9"), ("T1,", "(empty id)"),
+                                ("T2", "T2 is done"), ("T3", "T3 is deferred")):
+            for extra in ((), ("--commit",)):
+                self.assertIn(needle, self.fails("decide", "x", "--why", "y", "--changes", changes,
+                                                 "-w", "alpha", *extra))
+                self.assertEqual(self.log.read_text(), LOG)
+
+    def test_commit_carries_the_changes_line(self) -> None:
+        self.commit_all("queue")
+        self.assertIn("committed", self.ok("decide", "x", "--why", "y", "--changes", "T1",
+                                           "--commit", "-w", "alpha"))
+        self.assertIn("Changes: T1.", self.git("show", "HEAD:workstreams/alpha/DECISIONS.md"))
+
+
 class FromAWorktreeTests(WsTestCase):
     """The worktree's copy of the log stops at the claim; `ws decisions` reads past it."""
 
@@ -262,3 +314,9 @@ class SkillTests(unittest.TestCase):
         self.assertTrue(parser.parse_args(["decisions", "--open", "-w", "x"]).open)
         args = parser.parse_args(["decide", "x", "--why", "x", "--closes", "D015,D014", "-w", "x"])
         self.assertEqual(args.closes, "D015,D014")
+
+    def test_ws_coordinate_names_changes_and_it_parses(self) -> None:
+        self.assertIn('`ws decide "..." --why "..." --changes T1,T2 -w <id>`',
+                      protocol.skill_text("ws-coordinate"))
+        args = build_parser().parse_args(["decide", "x", "--why", "x", "--changes", "T1,T2", "-w", "x"])
+        self.assertEqual(args.changes, "T1,T2")

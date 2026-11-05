@@ -90,6 +90,8 @@ TYPE_DESCRIPTIONS = {
     ACCEPTANCE: "a list of strings or {text, kind} objects",
 }
 # An id names a file, a worktree folder and a branch, and git may read it as an option.
+MARKS_RE = re.compile(r"\(changed by (D\d+(?:, D\d+)*)\)")
+MARKS_AT_END_RE = re.compile(r"\s*\(changed by (D\d+(?:, D\d+)*)\)\s*\Z")
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 # Ends the warning for an open task's `files` path that doesn't exist: expected on any task
 # that creates the file, so the health findings leave it out.
@@ -524,6 +526,25 @@ def update(path: Path, task_id: str, config: Config, *, status: str | None = Non
     return task
 
 
+def _split_marks(text: str) -> tuple[str, list[str]]:
+    """Text without the marks at its end, and those marks. A correction may paste the old text."""
+    found = MARKS_AT_END_RE.search(text)
+    return (text[:found.start()].strip(), found[1].split(", ")) if found else (text.strip(), [])
+
+
+def _marked(old: str, new: str, because: str) -> str:
+    """The new text with every decision that has changed this so far. A decision already named
+    keeps its place, so repeating a correction writes the same bytes."""
+    text, own = _split_marks(new)
+    return f"{text} (changed by {', '.join(_unique([*_split_marks(old)[1], *own, because]))})"
+
+
+def marks(task: dict) -> set[str]:
+    """The decisions a task's summary and acceptance say changed them."""
+    texts = [task.get("summary") or "", *map(acceptance_text, task.get("acceptance", []))]
+    return {mark for text in texts for found in MARKS_RE.findall(text) for mark in found.split(", ")}
+
+
 def correct_acceptance(path: Path, task_id: str, number: str, text: str, because: str,
                        config: Config) -> dict:
     """Replace one acceptance item, naming the decision that changed it. Its position and kind
@@ -533,14 +554,15 @@ def correct_acceptance(path: Path, task_id: str, number: str, text: str, because
     task = find_task(data, task_id)
     if task.get("status") not in OPEN_STATUSES:
         raise WsError(f"{task_id} is {task.get('status')}: its acceptance stays as it was")
-    if not text.strip():
+    if not _split_marks(text)[0]:
         raise WsError("--acceptance needs the item's new text")
     items = task["acceptance"]
     if not number.isdecimal() or not 1 <= int(number) <= len(items):
         raise WsError(f"{task_id} has no acceptance item {number}: it has {len(items)}")
-    corrected = f"{text.strip()} (changed by {because})"
     index = int(number) - 1
-    if isinstance(items[index], dict):
+    item = items[index]
+    corrected = _marked(item["text"] if isinstance(item, dict) else item, text, because)
+    if isinstance(item, dict):
         items[index]["text"] = corrected
         items[index].pop("expect", None)
     else:
@@ -556,9 +578,9 @@ def correct_summary(path: Path, task_id: str, text: str, because: str, config: C
     task = find_task(data, task_id)
     if task.get("status") not in OPEN_STATUSES:
         raise WsError(f"{task_id} is {task.get('status')}: its summary stays as it was")
-    if not text.strip():
+    if not _split_marks(text)[0]:
         raise WsError("--summary needs the new text")
-    task["summary"] = f"{text.strip()} (changed by {because})"
+    task["summary"] = _marked(task.get("summary") or "", text, because)
     data["updated"] = today()
     save(path, data)
     return task
