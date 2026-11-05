@@ -54,6 +54,11 @@ def out_of_scope(paths: list[str], files: list[str], docs: list[str],
     return [p for p in paths if p != own_evidence and not named(p)]
 
 
+def _scope_gate(extra: list[str]) -> dict:
+    detail = f"files outside the task's list: {', '.join(extra[:8])}" if extra else ""
+    return gate("the diff stays within the task's files", not extra, detail, blocking=False)
+
+
 def _kind_gate(task: dict, config: Config) -> dict:
     """Validation adequacy once more, at the point it matters: `verify` can change after seed."""
     needed = [k for k in config.adequacy.get(task.get("kind") or "", []) if k in config.commands]
@@ -111,8 +116,7 @@ def settle_gates(project: Project, ws: dict, task: dict, rev: str, *, text: str 
     bad = tracking_violations(paths, project.rel(project.registry_path), folders, own)
     out.append(gate("the branch leaves tracking files alone", not bad, ", ".join(bad[:8])))
     extra = out_of_scope(paths, task.get("files", []), task.get("docs", []), own)
-    out.append(gate("the diff stays within the task's files", not extra,
-                    ", ".join(extra[:8]), blocking=False))
+    out.append(_scope_gate(extra))
     return out
 
 
@@ -135,6 +139,5 @@ def ready_gates(project: Project, ws: dict, task: dict, folders: list[str]) -> l
     bad = tracking_violations(paths, project.rel(project.registry_path), folders, own)
     out.append(gate("tracking files are untouched", not bad, ", ".join(sorted(set(bad))[:8])))
     extra = out_of_scope(sorted(set(paths)), task.get("files", []), task.get("docs", []), own)
-    out.append(gate("the diff stays within the task's files", not extra, ", ".join(extra[:8]),
-                    blocking=False))
+    out.append(_scope_gate(extra))
     return out

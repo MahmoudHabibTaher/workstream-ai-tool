@@ -394,8 +394,8 @@ class GateTests(SettleTestCase):
         self.arrange(self.t("T1", files=["a.txt"]))
         self.work(files={"a.txt": "x", "b.txt": "y"})
         out = self.ok("settle", "T1")
-        self.assertIn("warning: the diff stays within", out)
-        self.assertIn("b.txt", out)
+        self.assertIn("T1: warning: files outside the task's list: b.txt", out)
+        self.assertNotIn("warning: the diff stays within", out)
 
     def test_a_kind_that_needs_more_verification(self) -> None:
         self.arrange(self.t("T1", kind="behaviour"))
