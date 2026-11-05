@@ -12,13 +12,13 @@ You coordinate; workers do the tasks, each in a clean context. Never do a backgr
 **Then loop:**
 
 1. `ws wave -w <id>`. Exit 2 means finished: see `ws-coordinate` to close. Exit 3 means stuck: stop.
-2. **Leftovers first.** A task listed as in progress outside a batch you are running was interrupted. Try `ws settle <task> -w <id> --dry-run`: land it if the gates pass. Otherwise requeue it with `ws worktree remove <task> -w <id>` and `ws unclaim <task> -w <id>`, checking first that nothing is worth keeping. Say which you did.
+2. **Leftovers first.** A task listed as in progress outside a batch you are running was interrupted. Try `ws settle <task> -w <id> --dry-run`: land it if the gates pass. If they fail but the worktree holds work, start a fresh worker with the usual prompt on the same worktree, and don't claim it again: its brief lists what it found. Requeue with `ws worktree remove <task> -w <id>` and `ws unclaim <task> -w <id>` only when the worktree has nothing to keep. Say which you did.
 3. **Claim one batch** from the wave: background tasks, up to `max_workers`.
    ```
    ws claim --commit -w <id> --by <label> <task> <task>
    ws worktree create -w <id> <task> <task>
    ```
-4. **Start one fresh worker per task,** in parallel, on your own model unless the user named another. The whole prompt is: run `ws brief <task> -w <id>` and follow it. Wait to be notified; never poll. A finished worker's context is spent, so never give it a second task. One that ends without saying done or blocked has stopped, and won't resume: treat it as blocked.
+4. **Start one fresh worker per task,** in parallel, on your own model unless the user named another. The whole prompt is: run `ws brief <task> -w <id>` and follow it. Wait to be notified; never poll. A finished worker's context is spent, so never give it a second task. One that ends without saying done or blocked has stopped, and won't resume: handle it as a leftover, as in step 2.
 5. **Land them:** `ws settle -w <id> <task> <task>`. A worker's report is a claim; the gates in this command are the check. Don't redo their work to verify it.
 6. Give the user one line: what landed and what is open. Back to 1. Between rounds, do nothing else: work outside a claimed task can't be attributed.
 

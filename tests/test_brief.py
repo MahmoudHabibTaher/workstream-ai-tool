@@ -286,7 +286,7 @@ class ResumeTests(WsTestCase):
         self.assertIn("`DECISIONS.md` lacks:** none", section)
         self.assertIn("2. `ws evidence new T1 -w alpha`", self.finish_steps(brief))
 
-    def test_a_todo_or_in_progress_brief_is_unchanged(self) -> None:
+    def test_a_todo_or_in_progress_brief_has_no_resume_section(self) -> None:
         todo = self.ok("brief", "T1", "-w", "alpha")
         self.start()
         self.commit_at_tree("code.txt", "x")
@@ -305,3 +305,63 @@ class ResumeTests(WsTestCase):
         self.assertIn("**Resuming a blocked task:** once the user answers, start a fresh worker "
                       "with the same prompt on the same worktree.", skill)
         self.assertIn("Never `ws unclaim <task> -w <id>` for this", skill)
+
+    def pickup(self, brief: str) -> str:
+        return brief.split("## Picking up\n", 1)[1].split("\n## ", 1)[0]
+
+    def test_uncommitted_files_are_listed_and_capped_with_a_count_of_the_rest(self) -> None:
+        self.start()
+        for n in range(13):
+            (self.tree / f"edit{n:02}.txt").write_text("x")
+        section = self.pickup(self.ok("brief", "T1", "-w", "alpha"))
+        self.assertIn("Unless these are your own edits, an earlier worker stopped here", section)
+        self.assertIn("check it against the acceptance items", section)
+        self.assertIn("- **Uncommitted files:** 13", section)
+        for n in range(10):
+            self.assertIn(f"edit{n:02}.txt", section)
+        self.assertNotIn("edit10.txt", section)
+        self.assertIn("  - (3 more)", section)
+        self.assertNotIn("Commits on", section)
+
+    def test_a_short_list_has_no_count_of_the_rest(self) -> None:
+        self.start()
+        (self.tree / "edit.txt").write_text("x")
+        section = self.pickup(self.ok("brief", "T1", "-w", "alpha"))
+        self.assertIn("edit.txt", section)
+        self.assertNotIn("more)", section)
+
+    def test_commits_since_the_claim_are_counted_without_the_claim_itself(self) -> None:
+        self.start()
+        self.commit_at_tree("one.txt", "x")
+        self.commit_at_tree("two.txt", "x")
+        section = self.pickup(self.ok("brief", "T1", "-w", "alpha"))
+        self.assertIn("- **Commits on `task/t1`:** 2 (", section)
+        self.assertNotIn("Uncommitted files", section)
+
+    def test_a_fresh_claim_has_no_picking_up_section(self) -> None:
+        self.start()
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        self.assertNotIn("## Picking up", brief)
+        self.assertIn("2. `ws evidence new T1 -w alpha`", self.finish_steps(brief))
+
+    def test_a_blocked_task_resumes_rather_than_picks_up(self) -> None:
+        self.block()
+        self.assertNotIn("## Picking up", self.ok("brief", "T1", "-w", "alpha"))
+
+    def test_evidence_in_the_worktree_is_updated_rather_than_made_new(self) -> None:
+        self.start()
+        path = self.tree / "workstreams/alpha/evidence/T1.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# T1\n")
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        self.assertIn("## Picking up", brief)
+        self.assertNotIn("ws evidence new", brief)
+        self.assertIn(f"2. Update the existing evidence, `{path}`", self.finish_steps(brief))
+
+    def test_ws_run_sends_a_fresh_worker_to_a_leftover_with_work_in_it(self) -> None:
+        skill = protocol.skill_text("ws-run")
+        self.assertIn("If they fail but the worktree holds work, start a fresh worker with the "
+                      "usual prompt on the same worktree, and don't claim it again", skill)
+        self.assertIn("only when the worktree has nothing to keep", skill)
+        self.assertIn("handle it as a leftover, as in step 2", skill)
+        self.assertNotIn("treat it as blocked", skill)
