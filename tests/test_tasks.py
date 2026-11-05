@@ -12,7 +12,7 @@ from unittest import mock
 from tests.helpers import WsTestCase, task
 from tests.test_protocol import fill_in
 from tests.test_schema import load_schema, problems
-from workstream import fsutil, graph, protocol, tasks
+from workstream import fsutil, graph, hook, protocol, tasks
 from workstream.cli import build_parser
 from workstream.config import Config
 
@@ -1260,6 +1260,96 @@ class ValidateTests(WsTestCase):
             [self.open_task("X-01", 10, acceptance=[{"text": "x", "kind": "vibes"}])],
             "X-01: acceptance must be a list of strings or {text, kind} objects",
         )
+
+
+class TrackingFileWarningTests(WsTestCase):
+    NAMING = "the handoff in session_handoff.md says so"
+    PLAN = ("# Thing: plan\n\n```json ws-tasks\n"
+            + json.dumps([task("X-01", 10, acceptance=[NAMING])])
+            + "\n```\n\n```text ws-decisions\nThe user ruled out caching.\n```\n")
+    WARNING = ("X-01: acceptance 1 names session_handoff.md: `ws settle` writes it after evidence "
+               "must pass, so the item should ask for the evidence or a proposed decision")
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws()
+
+    def assert_warned(self, argv_result: tuple[int, str, str]) -> None:
+        code, out, err = argv_result
+        self.assertEqual(code, 0, out + err)
+        self.assertIn(f"warning: {self.WARNING}", out)
+
+    def test_validate_warns_and_exits_0(self) -> None:
+        self.write_queue([task("X-01", 10, status="todo", acceptance=[self.NAMING])])
+        code, out, err = self.ws("validate", "-w", "alpha")
+        self.assertEqual(code, 0, out + err)
+        self.assertIn(self.WARNING, out)
+        self.assertIn("no integrity problems (1 warning(s))", out)
+
+    def test_seed_from_json_warns_and_exits_0(self) -> None:
+        self.assert_warned(self.seed([task("X-01", 10, acceptance=[self.NAMING])]))
+        self.assertEqual(self.by_id("X-01")["acceptance"], [self.NAMING])
+
+    def test_seed_from_a_plan_warns_and_exits_0(self) -> None:
+        path = self.root.parent / "plan.md"
+        path.write_text(self.PLAN)
+        self.assert_warned(self.ws("seed", "-w", "alpha", "--from-plan", str(path), "--force"))
+        self.assertEqual(self.by_id("X-01")["acceptance"], [self.NAMING])
+
+    def test_add_warns_and_exits_0(self) -> None:
+        self.assert_warned(self.ws("add", "-w", "alpha", "--id", "X-01", "--phase", "1",
+                                   "--priority", "10", "--title", "t",
+                                   "--acceptance", self.NAMING))
+        self.assertEqual(self.by_id("X-01")["acceptance"], [self.NAMING])
+
+    def test_update_acceptance_warns_and_exits_0(self) -> None:
+        self.seed_ok([task("X-01", 10, acceptance=["one"])])
+        self.ok("decide", "Change it", "--why", "the target moved", "--by", "user", "-w", "alpha")
+        self.assert_warned(self.ws("update", "-w", "alpha", "X-01", "--acceptance", "1",
+                                   self.NAMING, "--because", "D001"))
+
+    def test_a_done_or_deferred_tasks_item_does_not_warn(self) -> None:
+        rows = [task("X-01", 10, status="done", commit="abc1234", acceptance=[self.NAMING]),
+                task("X-02", 20, status="deferred", acceptance=[self.NAMING])]
+        code, out, err = self.seed(rows)
+        self.assertEqual(code, 0, out + err)
+        self.assertNotIn("names session_handoff.md", out)
+        code, out, err = self.ws("validate", "-w", "alpha")
+        self.assertEqual(code, 0, out + err)
+        self.assertNotIn("names session_handoff.md", out)
+
+    def test_an_item_that_names_no_file_stays_quiet(self) -> None:
+        for text in ("the queue is right", "MY_DECISIONS.md holds it", "DECISIONS.md.bak is gone",
+                     "old-PROGRESS.md is gone"):
+            with self.subTest(text):
+                self.assertEqual(tasks.tracking_file_warnings(task("X-01", 10, status="todo",
+                                                                   acceptance=[text])), [])
+
+    def test_one_warning_per_item_counting_a_typed_items_text_and_expect(self) -> None:
+        row = task("X-01", 10, status="todo", acceptance=[
+            "fine", {"text": "see .workstream/a/DECISIONS.md and PROGRESS.md", "kind": "manual"},
+            {"text": "prints", "expect": "tasks_list.json"}])
+        found = tasks.tracking_file_warnings(row)
+        self.assertEqual(len(found), 2)
+        self.assertIn("acceptance 2 names DECISIONS.md, PROGRESS.md:", found[0])
+        self.assertIn("acceptance 3 names tasks_list.json:", found[1])
+
+    def test_ill_typed_acceptance_is_left_to_the_errors(self) -> None:
+        self.assertEqual(tasks.tracking_file_warnings(
+            task("X-01", 10, status="todo", acceptance="DECISIONS.md")), [])
+
+    def test_the_file_names_come_from_the_hooks_one_list(self) -> None:
+        for name in hook.WRITERS:
+            with self.subTest(name):
+                row = task("X-01", 10, status="todo", acceptance=[f"see {name}"])
+                self.assertEqual(len(tasks.tracking_file_warnings(row)), 1)
+        added = task("X-01", 10, status="todo", acceptance=["see NEW.md"])
+        self.assertEqual(tasks.tracking_file_warnings(added), [])
+        with mock.patch.dict(hook.WRITERS, {"NEW.md": "written by nobody"}):
+            self.assertEqual(len(tasks.tracking_file_warnings(added)), 1)
+        kept = task("X-01", 10, status="todo", acceptance=["see DECISIONS.md"])
+        with mock.patch.dict(hook.WRITERS, clear=True):
+            self.assertEqual(tasks.tracking_file_warnings(kept), [])
 
 
 class TypedFieldTests(WsTestCase):

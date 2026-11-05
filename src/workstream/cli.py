@@ -273,6 +273,11 @@ def cmd_close(args: argparse.Namespace) -> int:
 # --- the queue ----------------------------------------------------------------------------
 
 
+def _print_tracking_warnings(task: dict) -> None:
+    for warning in tasks.tracking_file_warnings(task):
+        print(f"warning: {warning}")
+
+
 def cmd_seed(args: argparse.Namespace) -> int:
     project = _project(args)
     ws, path = _queue(project, args)
@@ -296,6 +301,8 @@ def cmd_seed(args: argparse.Namespace) -> int:
         raise WsError(f"cannot read {args.seed_file}: {e}") from None
     total = tasks.seed(path, new_tasks, project.config)
     print(f"seeded {len(new_tasks)} task(s) into {ws['id']} ({total} total)")
+    for t in new_tasks:  # as written: a task that leaves out its status is a todo
+        _print_tracking_warnings(tasks.normalize_task(t, project.config))
     registry.sync(project)
     return 0
 
@@ -317,6 +324,7 @@ def cmd_add(args: argparse.Namespace) -> int:
     task = tasks.add(path, fields, project.config)
     registry.sync(project)
     print(f"added {task['id']}")
+    _print_tracking_warnings(task)
     return 0
 
 
@@ -370,6 +378,7 @@ def _correct_acceptance(project: Project, ws: dict, path: Path, args: argparse.N
     _correct(project, ws, path, args, "--acceptance", f"acceptance {number}",
              lambda: tasks.correct_acceptance(path, args.id, number, text, args.because,
                                               project.config))
+    _print_tracking_warnings(tasks.find_task(tasks.load(path, project.config), args.id))
 
 
 def _correct_summary(project: Project, ws: dict, path: Path, args: argparse.Namespace) -> None:
