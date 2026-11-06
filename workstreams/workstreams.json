@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-05",
+  "updated": "2026-11-06",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -271,6 +271,29 @@
         "commit": "a5cf7fffe2b10f38990a05a644cf4989158fe52c",
         "pruned": false
       }
+    },
+    {
+      "id": "vscode_extension",
+      "title": "VS Code extension",
+      "summary": "A native VS Code extension shows the registry, tasks, reviews, health and budget from the ws CLI, and writes only through ws act.",
+      "status": "planned",
+      "taskPrefix": "VS",
+      "path": "workstreams/vscode_extension",
+      "tier": "standard",
+      "created": "2026-11-06",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "fea25e7",
+      "dependsOn": [],
+      "progress": {
+        "total": 8,
+        "todo": 8,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }

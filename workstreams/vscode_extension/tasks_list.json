@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/vscode_extension/PLAN.md",
+  "updated": "2026-11-06",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "VS-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "The snapshot says what's allowed and what to watch",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "T3",
+        "D-FACTS"
+      ],
+      "summary": "Registry rows carry the status writes ws act would accept, and the snapshot lists every path whose change alters a view, which ws serve also uses.",
+      "files": [
+        "src/workstream/snapshot.py",
+        "src/workstream/act.py",
+        "src/workstream/serve.py",
+        "schema/snapshot.schema.json",
+        "tests/test_snapshot.py",
+        "tests/test_act.py",
+        "tests/test_serve.py",
+        "tests/test_schema.py"
+      ],
+      "docs": [
+        "docs/decisions/0016-native-ide-ui.md",
+        "docs/decisions/0011-web-ui.md"
+      ],
+      "acceptance": [
+        "a test shows an active row's actions are [\"pause\"], a paused row's [\"resume\"], a done row's [], and a progress-stale row's include \"sync\"",
+        "a test shows act refuses exactly what a row's actions leave out, read from the one table in snapshot.py",
+        "a test shows refresh holds the registry, each workstream folder recursively, and git's HEAD, index, packed-refs, refs/heads and worktrees",
+        "test_serve shows the server's watched paths are expanded from refresh, and an evidence file still reaches an open event stream",
+        "the snapshot with both fields passes its schema, and make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "ws review --show gives one side of a diff",
+      "kind": "behaviour",
+      "findings": [
+        "T4",
+        "D-SHOW"
+      ],
+      "summary": "One file's content on the old or new side of a task's review range, with a branch review's old side at the merge base.",
+      "files": [
+        "src/workstream/review.py",
+        "src/workstream/cli.py",
+        "schema/review-show.schema.json",
+        "tests/test_review.py"
+      ],
+      "docs": [
+        "docs/decisions/0011-web-ui.md"
+      ],
+      "acceptance": [
+        "a test with main moved after a task's claim shows --side old of a branch review is the merge base's content, not main's tip",
+        "tests cover an added file (old text null), a deleted file (new text null), a modified file and a binary file (binary true, no text)",
+        "a path not in the task's diffstat is refused with a non-zero exit, as --file is",
+        "a test in tests/test_review.py shows the output passes schema/review-show.schema.json, plain ws review is unchanged, and make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "The extension's package, CLI module and test harness",
+      "kind": "behaviour",
+      "findings": [
+        "T5",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "D-PKG",
+        "D-CLI"
+      ],
+      "summary": "ui/vscode builds with tsc, activates in VS Code, finds the project through ws root, and has unit, source and integration tests wired into make.",
+      "files": [
+        "ui/vscode/**",
+        "Makefile",
+        ".gitignore",
+        ".workstream/config.toml",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [
+        "docs/decisions/0016-native-ide-ui.md",
+        "ui/mod/hooks/data.ts",
+        "tests/test_mod_files.py",
+        "tests/test_web.py"
+      ],
+      "acceptance": [
+        "make test-vscode builds with tsc and runs an integration test in the installed VS Code, with no download, in which the extension activates on a sample project and loads its snapshot",
+        "the integration test runs the branch's CLI through workstreams.wsCommand, not the ws on the PATH",
+        "a folder that isn't a project and a missing ws each show their message, and nothing else runs",
+        "tests/test_vscode_files.py runs the node logic tests, finds no project or agent literal in ui/vscode/src, and shows the real CLI accepts each argv cli.ts builds",
+        "make vsix produces a .vsix, and package.json declares untrusted and virtual workspaces unsupported",
+        ".workstream/config.toml has a [worktree] setup line installing ui/vscode's locked dependencies"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "The first npm install needs the network; the lockfile is committed.",
+      "mode": "background",
+      "requires": [
+        "external-network"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "Registry, tasks, documents, status bar and live refresh",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "T6",
+        "D-VIEWS"
+      ],
+      "summary": "The Registry tree, task tooltips, documents in Markdown preview and the status bar, kept current by watchers on the snapshot's refresh paths.",
+      "files": [
+        "ui/vscode/**",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [
+        "src/workstream/assets/web/logic.js",
+        "ui/web/tests/logic.test.mjs",
+        "ui/mod/README.md"
+      ],
+      "acceptance": [
+        "logic tests cover waveLine, badgesOf, lanes and splitRows with the cases ui/web/tests/logic.test.mjs uses",
+        "an integration test shows the Registry tree's workstreams, phases and tasks, in priority order with their badges, on a sample project",
+        "an integration test shows a claim made from a shell reaches the tree without a manual refresh",
+        "a source test shows every MarkdownString built from repo text uses appendText, with isTrusted and supportHtml off",
+        "Show done adds closed workstreams, and each document opens in Markdown preview"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VS-01",
+        "VS-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-05",
+      "phase": 2,
+      "priority": 50,
+      "title": "Writes through ws act, and launching in a terminal",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T7",
+        "T8",
+        "D-ACTIONS"
+      ],
+      "summary": "Pause, resume, sync and unclaim behind a modal with pinned revisions; Run, Coordinate, Close and Abandon start the configured agent in a terminal, or copy the prompt.",
+      "files": [
+        "ui/vscode/**",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [
+        "src/workstream/act.py",
+        "src/workstream/assets/web/logic.js"
+      ],
+      "acceptance": [
+        "an integration test shows a confirmed pause on a sample project commits through ws act and the tree shows paused",
+        "an integration test commits from a shell while the modal is open; confirming shows act's stale-view refusal, and HEAD and the tree are unchanged",
+        "commands appear only where the snapshot's row actions or a finding's actions offer them",
+        "an integration test shows Run with workstreams.agentCommand set creates a terminal whose shellPath and shellArgs carry the prompt as one argument, with cwd at the root",
+        "with no agent command, Run copies the prompt; Abandon asks for a reason first",
+        "launch targets live in one module that a chat target could join without changing the callers"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VS-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-06",
+      "phase": 3,
+      "priority": 60,
+      "title": "The review queue and diffs in the diff editor",
+      "kind": "behaviour",
+      "findings": [
+        "T4",
+        "T6",
+        "D-REVIEW-UI"
+      ],
+      "summary": "The review queue, each task's gates and acceptance-with-proof, its evidence in the editor, and its files in the built-in diff editor through ws review --show.",
+      "files": [
+        "ui/vscode/**",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [
+        "src/workstream/review.py",
+        "src/workstream/assets/web/review.js"
+      ],
+      "acceptance": [
+        "logic tests cover gateSummary and rangeLine with the web UI's cases",
+        "an integration test shows the queue lists branch work before landed work",
+        "an integration test opens a branch task's file after main moved, and the diff editor's two sides match ws review --show old and new",
+        "a binary file opens no diff and says so, and an added file's old side is empty",
+        "each acceptance item shows its proof or that it has none, and the evidence file opens in the editor"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VS-02",
+        "VS-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-07",
+      "phase": 3,
+      "priority": 70,
+      "title": "Health in the Problems panel, and the budget",
+      "kind": "behaviour",
+      "findings": [
+        "D-REVIEW-UI",
+        "D-ACTIONS"
+      ],
+      "summary": "Health findings as a tree and as diagnostics with quick fixes through the same confirm, and the context budget from ws audit context --json.",
+      "files": [
+        "ui/vscode/**",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [
+        "src/workstream/assets/web/health.js",
+        "src/workstream/assets/web/budget.js"
+      ],
+      "acceptance": [
+        "an integration test with a stale claim shows its finding in the Health tree and as a diagnostic on that workstream's tasks file",
+        "the finding's quick fix opens the same confirm, and confirming unclaims through ws act",
+        "diagnostics clear when the finding goes",
+        "the Budget view shows each role's used and limit from ws audit context --json, and runs it only when visible"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VS-06"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VS-08",
+      "phase": 4,
+      "priority": 80,
+      "title": "Prove it in VS Code, and write down what's true",
+      "kind": "behaviour",
+      "findings": [
+        "D-PKG",
+        "D-ACTIONS",
+        "D-REVIEW-UI"
+      ],
+      "summary": "The packaged .vsix installed in the real VS Code, every view and write checked by hand on a sample project and read-only on this repo, then the guide, the decision record and the plan's status.",
+      "files": [
+        "ui/vscode/README.md",
+        "docs/decisions/0017-vscode-extension.md",
+        "docs/plan.md",
+        "README.md"
+      ],
+      "docs": [
+        "docs/decisions/0011-web-ui.md",
+        "docs/decisions/0016-native-ide-ui.md"
+      ],
+      "acceptance": [
+        "evidence records make vsix and code --install-extension installing it into VS Code 1.139",
+        "evidence records, on a sample project built from an installed wheel: every view drawn, a pause landing, a stale pause refused with HEAD unchanged, a branch diff after main moved, a quick-fix unclaim, and Run in a terminal",
+        "evidence records this repo viewed with HEAD, status and refs unchanged afterwards",
+        {
+          "text": "The owner sees the extension drawn in VS Code",
+          "kind": "manual"
+        },
+        "docs/decisions/0017-vscode-extension.md has what was shown and what is not proven, and docs/plan.md's status row for M9 links it"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VS-07"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the VS Code extension in ui/vscode",
+      "additive snapshot facts: row actions and refresh paths",
+      "ws review --show",
+      "make test-vscode and make vsix",
+      "the [worktree] setup line for ui/vscode"
+    ],
+    "outOfScope": [
+      "Cursor",
+      "chat windows as a launch target",
+      "the JetBrains plugin",
+      "Marketplace publishing",
+      "new kinds of write",
+      "moving the web UI or the pane onto the new facts",
+      "restricted or virtual workspaces"
+    ],
+    "rule": "Every fact and every write comes from the ws CLI; the extension arranges what it returns and asks before act."
+  }
+}
