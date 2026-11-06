@@ -10,7 +10,8 @@
     "revisions",
     "health",
     "git",
-    "watch"
+    "watch",
+    "refresh"
   ],
   "properties": {
     "snapshotVersion": {
@@ -30,7 +31,8 @@
           "id",
           "status",
           "progress",
-          "progressStale"
+          "progressStale",
+          "actions"
         ],
         "properties": {
           "id": {
@@ -44,6 +46,18 @@
           },
           "progressStale": {
             "type": "boolean"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "pause",
+                "resume",
+                "sync"
+              ]
+            },
+            "uniqueItems": true,
+            "description": "The status writes ws act would accept for this row now."
           }
         }
       }
@@ -317,6 +331,26 @@
         "type": "string"
       },
       "description": "Absolute paths whose change should make a UI read the snapshot again."
+    },
+    "refresh": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "recursive"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Every absolute path whose change alters a view; a recursive one covers everything under it. ws serve watches the same list."
     }
   },
   "additionalProperties": false

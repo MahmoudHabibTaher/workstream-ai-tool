@@ -236,6 +236,35 @@ class RefusalTests(ActTestCase):
             self.assertIn("invalid choice", err)
 
 
+class ActionTableTests(unittest.TestCase):
+    """act refuses exactly the status writes a row's `actions` leave out."""
+
+    def refuses(self, action: str, status: str) -> bool:
+        try:
+            act.check_transition(action, {"id": "x", "status": status}, None, None, {})
+        except Refused:
+            return True
+        return False
+
+    def test_act_refuses_exactly_what_a_rows_actions_leave_out(self) -> None:
+        from workstream import registry
+        for status in registry.STATUS_VALUES:
+            for stale in (False, True):
+                offered = snapshot.row_actions(status, stale)
+                for action in ("pause", "resume"):
+                    with self.subTest(status=status, action=action, stale=stale):
+                        self.assertEqual(self.refuses(action, status), action not in offered)
+                # sync is never a refused transition; a row that isn't stale gets `no change`.
+                self.assertFalse(self.refuses("sync", status))
+
+    def test_act_reads_the_one_table_in_snapshot(self) -> None:
+        self.assertFalse(hasattr(act, "FROM_STATUSES"))
+        self.assertEqual(set(act.ACTIONS), set(snapshot.ACTION_STATUSES))
+        with mock.patch.dict(snapshot.ACTION_STATUSES, {"pause": ("paused",)}):
+            self.assertTrue(self.refuses("pause", "active"))
+            self.assertFalse(self.refuses("pause", "paused"))
+
+
 class ScriptTests(ActTestCase):
     def test_runs_as_a_separate_process(self) -> None:
         # As a UI runs it.

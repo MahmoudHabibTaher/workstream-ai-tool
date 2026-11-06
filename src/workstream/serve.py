@@ -34,7 +34,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from workstream import act, gitutil, registry, review, snapshot, worktree
+from workstream import act, registry, review, snapshot, worktree
 from workstream.errors import Refused, WsError
 from workstream.project import ASSETS_DIR, Project, open_project
 
@@ -70,39 +70,25 @@ def _files_under(folder: Path) -> list[Path]:
     return found
 
 
-def git_paths(root: Path) -> list[Path]:
-    """Git's own files whose change alters what a view shows: the branch, the index, every
-    branch, and the linked checkouts."""
-    proc = gitutil.run(root, "rev-parse", "--absolute-git-dir")
-    common = gitutil.common_dir(root)
-    if proc.returncode != 0 or common is None:
-        return []
-    git_dir = Path(proc.stdout.strip())
-    return [git_dir / "HEAD", git_dir / "index", common / "packed-refs", common / "worktrees",
-            common / "refs" / "heads"]
+def git_paths(root: Path) -> list[dict]:
+    """Git's part of snapshot.refresh, looked up once: it doesn't move while serving."""
+    return snapshot.git_refresh(root)
 
 
-def watched_paths(project: Project, git: list[Path]) -> list[Path]:
-    """Every file a view of this project depends on. Reads the registry, which is how a new
+def watched_paths(project: Project, git: list[dict]) -> list[Path]:
+    """Every file a view of this project depends on: snapshot.refresh_paths, with each
+    recursive entry expanded to what is under it. Reads the registry, which is how a new
     workstream's files join in."""
-    paths = [project.registry_path]
     try:
         rows = registry.load(project)["workstreams"]
     except WsError:
         rows = []
-    for ws in rows:
-        if not ws.get("id"):
-            continue
-        try:
-            folder = project.folder(ws)
-        except WsError:
-            continue
-        paths += [Path(p) for p in snapshot.watch_paths(project, ws)]
-        paths += [folder / name for name in snapshot.NARRATIVE_FILES.values()]
-        paths.append(folder / "evidence")
-        paths += _files_under(folder / "evidence")
-    paths += git
-    paths += _files_under(git[-1]) if git else []
+    paths = []
+    for entry in snapshot.refresh_paths(project, rows, git):
+        path = Path(entry["path"])
+        paths.append(path)
+        if entry["recursive"]:
+            paths += _files_under(path)
     return paths
 
 

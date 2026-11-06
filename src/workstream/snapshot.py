@@ -29,6 +29,13 @@ NARRATIVE_FILES = {
     "decisions": "DECISIONS.md",
     "handoff": "session_handoff.md",
 }
+# The registry status each `ws act` action may start from; None means any. `act` reads this
+# table, and each registry row's `actions` is drawn from it, so there is one copy of the rule.
+ACTION_STATUSES = {"pause": ("planned", "active"), "resume": ("paused",), "unclaim": None,
+                   "sync": None}
+# The status writes a registry row offers. `unclaim` is a task's, and `sync` is offered only
+# when the recorded progress is stale.
+ROW_ACTIONS = ("pause", "resume")
 
 
 # --- git ----------------------------------------------------------------------------------
@@ -333,6 +340,44 @@ def watch_paths(project: Project, ws: dict | None) -> list[str]:
     return [str(p) for p in paths]
 
 
+def row_actions(status: object, progress_stale: bool) -> list[str]:
+    """The status writes `ws act` would accept for a row now, from ACTION_STATUSES."""
+    found = [a for a in ROW_ACTIONS
+             if ACTION_STATUSES[a] is None or status in ACTION_STATUSES[a]]
+    return found + (["sync"] if progress_stale else [])
+
+
+def git_refresh(root: Path) -> list[dict]:
+    """Git's own files whose change alters what a view shows: the branch, the index, every
+    branch, and the linked checkouts. Empty outside a repository."""
+    try:
+        git_dir = Path(_git(root, "rev-parse", "--absolute-git-dir").strip())
+        common = Path(root, _git(root, "rev-parse", "--git-common-dir").strip()).resolve()
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return [{"path": str(git_dir / "HEAD"), "recursive": False},
+            {"path": str(git_dir / "index"), "recursive": False},
+            {"path": str(common / "packed-refs"), "recursive": False},
+            {"path": str(common / "refs" / "heads"), "recursive": True},
+            {"path": str(common / "worktrees"), "recursive": True}]
+
+
+def refresh_paths(project: Project, rows: list[dict], git: list[dict]) -> list[dict]:
+    """Every path whose change alters a view, as {path, recursive}: the registry, each
+    workstream folder (its queue, narrative files and evidence), and `git`, which is
+    git_refresh's answer. A row whose folder can't be resolved is left out."""
+    found = [{"path": str(project.registry_path), "recursive": False}]
+    for ws in rows:
+        if not ws.get("id"):
+            continue
+        try:
+            folder = project.folder(ws)
+        except WsError:
+            continue
+        found.append({"path": str(folder), "recursive": True})
+    return found + git
+
+
 def build_snapshot(project: Project, ws_id: str | None = None,
                    stale_hours: float = DEFAULT_STALE_HOURS,
                    now: datetime | None = None) -> dict:
@@ -359,15 +404,21 @@ def build_snapshot(project: Project, ws_id: str | None = None,
             return registry.count_progress(queues[ws["id"]]["tasks"])
         return ws.get("progress") or registry.count_progress([])
 
+    def row(ws: dict) -> dict:
+        progress = live_progress(ws)
+        stale = ws.get("progress") != progress
+        return {**ws, "progress": progress, "progressStale": stale,
+                "actions": row_actions(ws.get("status"), stale)}
+
     facts = git_facts(project, rows)
     snapshot = {
         "snapshotVersion": SNAPSHOT_VERSION,
         "repoRoot": str(project.root),
         "integrationBranch": project.config.integration,
-        "registry": [{**ws, "progress": live_progress(ws),
-                      "progressStale": ws.get("progress") != live_progress(ws)} for ws in rows],
+        "registry": [row(ws) for ws in rows],
         "revisions": {"registry": sha256(registry_raw), "tasks": task_revisions},
         "watch": watch_paths(project, None),
+        "refresh": refresh_paths(project, rows, git_refresh(project.root)),
     }
     if ws_id is not None:
         task_list = sorted(queues[ws_id]["tasks"], key=lambda t: t["priority"])
