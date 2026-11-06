@@ -148,3 +148,9 @@ The write menus' `when` is now `view =~ /^workstreams\.(registry|health)$/`, key
 ## D033 (2026-11-06, VS-08): the hand check of Run used a stand-in agent command
 
 The sample's `workstreams.agentCommand` was `["/bin/sh", "-c", "printf ... \"$0\"; exec /bin/zsh -i"]`, which shows the argument it got, instead of `claude`, so the check didn't start a real agent on the sample. `/bin/echo` was tried first and exited before the terminal drew anything. 0017 lists a real agent under Not proven. Rejected: `claude`, which would have started a billed session working on a throwaway project. **Closed.**
+
+## D034 (2026-11-06, coordinator): D009, D010 and D029 accepted as recorded
+
+Closes: D009, D010, D029.
+
+the owner accepted all three after the run: --show is in cli.ts since VS-06 (D025), @types/node ^20 stays as the fifth dev dependency, and the tasks file stays found from the snapshot's watch order until the snapshot gains paths.tasks **Closed.**
