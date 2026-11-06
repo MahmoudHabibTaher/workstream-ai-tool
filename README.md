@@ -2,7 +2,7 @@
 
 A tool for running large bodies of work with coding agents: a task graph kept in your repo, executed in clean contexts, verified by commands rather than claims. It works with any project and framework.
 
-**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample. Two UIs exist, [a pane for Claude Code](ui/mod/README.md) and [a web UI](ui/web/README.md), and the IDE ones are not built.
+**Status:** early development. The CLI runs a workstream end to end, and real Claude Code and Copilot CLI agents have each completed a small sample workstream through it. On a real Rust project it landed five tasks with workers carrying 60% less context over a session ([the results](docs/pilot-results.md)). Copilot CLI has only run the sample. Three UIs exist, [a pane for Claude Code](ui/mod/README.md), [a web UI](ui/web/README.md) and [a VS Code extension](ui/vscode/README.md); the JetBrains one is not built.
 
 ## Try it
 
@@ -49,6 +49,8 @@ ws serve
 ```
 
 It needs nothing but `ws`: no Node, no build. It listens on localhost only, and writes only through `ws act`, which refuses a stale write.
+
+[The VS Code extension](ui/vscode/README.md) shows the same facts in VS Code's own trees, Problems panel and diff editor, and starts your agent in a terminal. Install it with `make vsix` and `code --install-extension ui/vscode/workstreams.vsix`.
 
 ## How a workstream runs
 

@@ -11,6 +11,8 @@ code --install-extension ui/vscode/workstreams.vsix
 
 The extension runs only in trusted workspaces, and not in virtual ones.
 
+It was checked by hand in VS Code 1.139 on macOS; what that covered, and what it didn't, is in [decision 0017](../../docs/decisions/0017-vscode-extension.md). Set `workstreams.agentCommand` (below) before using **Run**, or the prompt only goes to the clipboard.
+
 ## What it shows
 
 The **Workstreams** view container holds the **Registry**, **Review**, **Health** and **Budget** trees.
