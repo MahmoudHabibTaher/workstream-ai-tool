@@ -22,9 +22,17 @@ The **Workstreams** view container holds the **Registry** tree.
 - The status bar shows the active workstream's wave line and error count. Clicking it focuses the view.
 - The view stays current without Refresh. The extension watches every path in the snapshot's `refresh` list, waits until changes stop for 300 ms, and then reads one snapshot per burst. A claim, a commit or a new evidence file made from a shell shows up on its own.
 
+## What it does
+
+A workstream's or task's context menu holds only what the snapshot offers there: a row's `actions`, or a finding's.
+
+- **Pause**, **Resume**, **Sync Progress** and **Unclaim** open a modal naming the commit line and the integration branch. Confirming runs `ws act` against the revisions of the snapshot the item was drawn from, so a change made after you saw it is refused. A refusal is shown as `ws act` gave it. When the extension already holds a newer snapshot, the modal says the write will be refused.
+- **Run**, **Coordinate**, **Close** and **Abandon…** on an open workstream start your agent in a terminal at the project root, with the prompt as its last argument; no shell parses it. Abandon asks for the reason first. With no agent command set, the prompt goes to the clipboard instead.
+
 ## Settings
 
 - `workstreams.wsCommand`: the argv that runs the CLI, `["ws"]` by default. No shell parses it. Point it at a checkout's own code with `["python3", "-B", "-m", "workstream"]` and that checkout's `src` on `PYTHONPATH`.
+- `workstreams.agentCommand`: the argv that starts your coding agent, empty by default. The prompt is added as the last argument.
 
 When the CLI can't be started, the extension says so, names this setting, and runs nothing else. A window whose folders aren't workstream projects gets one message and nothing more.
 

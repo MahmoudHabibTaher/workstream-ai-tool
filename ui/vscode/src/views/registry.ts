@@ -2,6 +2,7 @@
 // arranges what the store holds; the store holds only what the CLI printed.
 import * as vscode from 'vscode'
 
+import { contextValue } from '../logic/actions.ts'
 import {
   documentChildren, type Node, phaseChildren, shown, workstreamChildren, workstreams,
 } from '../logic/registry.ts'
@@ -48,7 +49,8 @@ export class RegistryTree implements vscode.TreeDataProvider<Node> {
     item.description = s.description
     if (s.tip) item.tooltip = tooltip(s.tip)
     item.iconPath = iconOf(node)
-    item.contextValue = node.kind
+    item.contextValue = node.kind === 'workstream' ? contextValue(node.kind, node.writes, node.launch)
+      : node.kind === 'task' ? contextValue(node.kind, node.writes) : node.kind
     if (node.kind === 'workstream' && node.row.status === 'active') item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
     if (node.kind === 'document') {
       item.resourceUri = vscode.Uri.file(node.path)

@@ -56,7 +56,7 @@ test('a workstream opens to its wave line, its phases in order, then its documen
 
 test('a task tooltip carries its summary, acceptance and verify lines as plain lines under fixed headings', () => {
   const task = t('A-1', { title: 'First', summary: '<img src=x>', acceptanceText: ['[a](command:x)'], verifyCommands: [{ label: 'test', command: 'make test' }, { label: 'make lint', command: 'make lint' }] })
-  const tip = shown({ kind: 'task', id: 'x', root: '/p', ws: 'alpha', task, badges: [] }).tip
+  const tip = shown({ kind: 'task', id: 'x', root: '/p', ws: 'alpha', task, badges: [], revisions: base.revisions, writes: [] }).tip
   assert.deepEqual(tip, [
     { lines: ['A-1: First'] }, { lines: ['todo'] }, { lines: ['<img src=x>'] },
     { heading: 'Acceptance', lines: ['[a](command:x)'] }, { heading: 'Verify', lines: ['test: make test', 'make lint'] },

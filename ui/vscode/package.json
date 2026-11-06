@@ -37,6 +37,14 @@
             "ws"
           ],
           "markdownDescription": "The argv that runs the `ws` CLI; the extension appends each command's arguments. No shell parses it. For example `[\"python3\", \"-B\", \"-m\", \"workstream\"]` runs a checkout's own CLI."
+        },
+        "workstreams.agentCommand": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "The argv that starts your coding agent for Run, Coordinate, Close and Abandon. The extension adds the prompt as the last argument and starts it in a terminal, at the project root; no shell parses it. Empty copies the prompt to the clipboard instead."
         }
       }
     },
@@ -86,6 +94,46 @@
         "command": "workstreams.openDocument",
         "title": "Open in Markdown Preview",
         "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.pause",
+        "title": "Pause",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.resume",
+        "title": "Resume",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.sync",
+        "title": "Sync Progress",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.unclaim",
+        "title": "Unclaim",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.run",
+        "title": "Run",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.coordinate",
+        "title": "Coordinate",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.close",
+        "title": "Close",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.abandon",
+        "title": "Abandon…",
+        "category": "Workstreams"
       }
     ],
     "menus": {
@@ -118,6 +166,80 @@
         {
           "command": "workstreams.hideDone",
           "when": "workstreams.showDone"
+        },
+        {
+          "command": "workstreams.pause",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.resume",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.sync",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.unclaim",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.run",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.coordinate",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.close",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.abandon",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "workstreams.pause",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )act:pause( |$)/",
+          "group": "1_write@1"
+        },
+        {
+          "command": "workstreams.resume",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )act:resume( |$)/",
+          "group": "1_write@2"
+        },
+        {
+          "command": "workstreams.sync",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )act:sync( |$)/",
+          "group": "1_write@3"
+        },
+        {
+          "command": "workstreams.unclaim",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )act:unclaim( |$)/",
+          "group": "1_write@4"
+        },
+        {
+          "command": "workstreams.run",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "group": "2_launch@1"
+        },
+        {
+          "command": "workstreams.coordinate",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "group": "2_launch@2"
+        },
+        {
+          "command": "workstreams.close",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "group": "2_launch@3"
+        },
+        {
+          "command": "workstreams.abandon",
+          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "group": "2_launch@4"
         }
       ]
     }

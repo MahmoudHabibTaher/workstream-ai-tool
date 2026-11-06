@@ -4,6 +4,9 @@
 import * as vscode from 'vscode'
 
 import { type Cli, execRun, makeCli, type Run } from './cli.ts'
+import { nativeUi, registerCommands, type Ui } from './commands.ts'
+import type { Started as Launched } from './launch.ts'
+import type { ConfirmText } from './logic/actions.ts'
 import { debounce } from './logic/debounce.ts'
 import { activeWorkstream, type Node, statusText } from './logic/registry.ts'
 import { start, type Started } from './logic/start.ts'
@@ -20,11 +23,16 @@ const DEBOUNCE_MS = 300
 
 // What activate returns: the state the views draw, every argv run and every message shown, so
 // the integration test can see what the extension did. `reloads` says why each reload ran.
+// `asked` holds each confirm box's text and `launched` each launch; `ui` answers the boxes, and
+// the test may replace it, since a modal can't be clicked from the extension API.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
   shown: string[]
-  reloads: ('watch' | 'button')[]
+  reloads: ('watch' | 'button' | 'act')[]
+  asked: ConfirmText[]
+  launched: Launched[]
+  ui: Ui
   store?: Store
   tree?: RegistryTree
   statusBar?: vscode.StatusBarItem
@@ -42,7 +50,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath)
   const shown: string[] = []
   let pending: Promise<void> = Promise.resolve()
-  const api = { ran, shown, reloads: [], settled: () => pending } as unknown as Api
+  const api = { ran, shown, reloads: [], asked: [], launched: [], ui: nativeUi, settled: () => pending } as unknown as Api
 
   const show = (started: Started): Started => {
     const message = started.message
@@ -97,6 +105,19 @@ export function activate(context: vscode.ExtensionContext): Api {
       vscode.commands.registerCommand(SHOW_DONE, () => setShowDone(true)),
       vscode.commands.registerCommand(HIDE_DONE, () => setShowDone(false)),
       vscode.commands.registerCommand(OPEN_DOCUMENT, (node: Extract<Node, { kind: 'document' }>) => openDocument(node)),
+      ...registerCommands(cli, store, async () => {
+        api.reloads.push('act')
+        await (pending = store.reload())
+      }, {
+        get ui() { return api.ui },
+        asked: api.asked,
+        launched: api.launched,
+        say(text, error) {
+          shown.push(text)
+          if (error) void vscode.window.showErrorMessage(text)
+          else void vscode.window.showInformationMessage(text)
+        },
+      }),
     )
     const setShowDone = async (on: boolean) => {
       store.setShowDone(on)
