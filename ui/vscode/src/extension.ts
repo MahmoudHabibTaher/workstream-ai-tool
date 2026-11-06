@@ -1,5 +1,5 @@
 // Activation: read the `ws` argv setting, find the window's projects, load their snapshots, then
-// draw the Registry tree and the status bar and keep them current. Every fact comes from the CLI
+// draw the Registry and Review trees and the status bar and keep them current. Every fact comes from the CLI
 // through cli.ts; nothing here works one out.
 import * as vscode from 'vscode'
 
@@ -12,6 +12,9 @@ import { activeWorkstream, type Node, statusText } from './logic/registry.ts'
 import { start, type Started } from './logic/start.ts'
 import { Store } from './logic/store.ts'
 import { OPEN_DOCUMENT, openDocument, RegistryTree } from './views/registry.ts'
+import {
+  OPEN_EVIDENCE, OPEN_FILE, openEvidence, openFile, type Opened, REVIEW_VIEW, ReviewDocuments, ReviewTree, SCHEME,
+} from './views/review.ts'
 import { Watchers } from './watch.ts'
 
 export const REGISTRY_VIEW = 'workstreams.registry'
@@ -24,7 +27,8 @@ const DEBOUNCE_MS = 300
 // What activate returns: the state the views draw, every argv run and every message shown, so
 // the integration test can see what the extension did. `reloads` says why each reload ran.
 // `asked` holds each confirm box's text and `launched` each launch; `ui` answers the boxes, and
-// the test may replace it, since a modal can't be clicked from the extension API.
+// the test may replace it, since a modal can't be clicked from the extension API. `opened` holds
+// what each review file or evidence click opened, or why it opened nothing.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -32,9 +36,11 @@ export type Api = {
   reloads: ('watch' | 'button' | 'act')[]
   asked: ConfirmText[]
   launched: Launched[]
+  opened: Opened[]
   ui: Ui
   store?: Store
   tree?: RegistryTree
+  review?: ReviewTree
   statusBar?: vscode.StatusBarItem
   settled: () => Promise<void>
 }
@@ -50,7 +56,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath)
   const shown: string[] = []
   let pending: Promise<void> = Promise.resolve()
-  const api = { ran, shown, reloads: [], asked: [], launched: [], ui: nativeUi, settled: () => pending } as unknown as Api
+  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, settled: () => pending } as unknown as Api
 
   const show = (started: Started): Started => {
     const message = started.message
@@ -67,6 +73,13 @@ export function activate(context: vscode.ExtensionContext): Api {
   const draw = (started: Started): Started => {
     const store = new Store(cli, started)
     const tree = new RegistryTree(store)
+    const review = new ReviewTree(store)
+    const docs = new ReviewDocuments(cli, store)
+    const say = (text: string, error?: boolean) => {
+      shown.push(text)
+      if (error) void vscode.window.showErrorMessage(text)
+      else void vscode.window.showInformationMessage(text)
+    }
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50)
     statusBar.name = 'Workstreams'
     statusBar.command = `${REGISTRY_VIEW}.focus`
@@ -94,6 +107,14 @@ export function activate(context: vscode.ExtensionContext): Api {
 
     context.subscriptions.push(
       vscode.window.createTreeView(REGISTRY_VIEW, { treeDataProvider: tree, showCollapseAll: true }),
+      vscode.window.createTreeView(REVIEW_VIEW, { treeDataProvider: review, showCollapseAll: true }),
+      vscode.workspace.registerTextDocumentContentProvider(SCHEME, docs),
+      vscode.commands.registerCommand(OPEN_FILE, async (node: Parameters<typeof openFile>[2]) => {
+        api.opened.push(await openFile(cli, docs, node, say))
+      }),
+      vscode.commands.registerCommand(OPEN_EVIDENCE, async (node: Parameters<typeof openEvidence>[0]) => {
+        api.opened.push(await openEvidence(node))
+      }),
       statusBar,
       watchers,
       { dispose: reload.dispose },
@@ -112,11 +133,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         get ui() { return api.ui },
         asked: api.asked,
         launched: api.launched,
-        say(text, error) {
-          shown.push(text)
-          if (error) void vscode.window.showErrorMessage(text)
-          else void vscode.window.showInformationMessage(text)
-        },
+        say,
       }),
     )
     const setShowDone = async (on: boolean) => {
@@ -124,7 +141,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       await vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, on)
     }
     void vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, false)
-    Object.assign(api, { store, tree, statusBar })
+    Object.assign(api, { store, tree, review, statusBar })
     return started
   }
 

@@ -142,6 +142,29 @@ class PackageTests(unittest.TestCase):
         self.assertIn("export const TARGETS: Target[] = [terminal, clipboard]", (SRC / "launch.ts").read_text())
         self.assertIn("await launch({", (SRC / "commands.ts").read_text())
 
+    def test_the_review_view_and_its_hidden_commands(self) -> None:
+        """Plan D-REVIEW-UI: a Review view beside the Registry; a file and the evidence open from
+        its items only, so neither is in the command palette."""
+        contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]],
+                         ["workstreams.registry", "workstreams.review"])
+        hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
+        self.assertLessEqual({"workstreams.openReviewFile", "workstreams.openEvidence"}, hidden)
+        review = (SRC / "views" / "review.ts").read_text()
+        self.assertIn("registerTextDocumentContentProvider(SCHEME, docs)", (SRC / "extension.ts").read_text())
+        self.assertIn("await vscode.commands.executeCommand('vscode.diff', left, right, title", review)
+
+    def test_gate_and_range_lines_keep_the_web_uis_cases(self) -> None:
+        """The ported gateSummary, rangeLine and statLine are tested with the web UI's own
+        asserts, line for line."""
+        web = (REPO / "ui" / "web" / "tests" / "logic.test.mjs").read_text()
+        ours = (PACKAGE / "test" / "logic" / "format.test.ts").read_text()
+        cases = [line.strip() for line in web.splitlines()
+                 if re.match(r"\s*assert\.\w+\((gateSummary|rangeLine|statLine)\(", line)]
+        self.assertEqual(len(cases), 8)
+        for line in cases:
+            self.assertIn(line, ours)
+
     def test_a_worktree_installs_the_locked_dependencies(self) -> None:
         self.assertIn("cd ui/vscode && npm ci", load_config(REPO / ".workstream" / "config.toml").worktree_setup)
 
@@ -174,6 +197,7 @@ class TheCliAnswersTheExtensionTests(WsTestCase):
         source = (SRC / "cli.ts").read_text()
         for line in ("['root']", "['snapshot', ...(id ? ['-w', id] : [])]",
                      "['review', task, '-w', wsId, ...(ask.checks ? ['--checks'] : []), ...(ask.file ? ['--file', ask.file] : [])]",
+                     "['review', task, '-w', wsId, '--show', path, '--side', side]",
                      "['review', '--queue']", "['audit', 'context', '--json']",
                      "['act', confirm.action, '-w', wsId]", "args.push('--task', confirm.task)",
                      "args.push('--expect-registry', revisions.registry)", "args.push('--expect-tasks', tasks)"):
@@ -185,6 +209,8 @@ class TheCliAnswersTheExtensionTests(WsTestCase):
         self.assertEqual(json.loads(self.ok("review", "T1", "-w", "alpha"))["task"], "T1")
         self.assertEqual(json.loads(self.ok("review", "T1", "-w", "alpha", "--checks"))["task"], "T1")
         self.accepted("review", "T1", "-w", "alpha", "--file", "a.txt")
+        for side in ("old", "new"):
+            self.accepted("review", "T1", "-w", "alpha", "--show", "a.txt", "--side", side)
         self.assertIsInstance(json.loads(self.ok("review", "--queue")), (dict, list))
         self.assertIsInstance(json.loads(self.ok("audit", "context", "--json")), list)
         registry, tasks = snap["revisions"]["registry"], snap["revisions"]["tasks"]["alpha"]

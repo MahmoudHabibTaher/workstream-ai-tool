@@ -1,6 +1,7 @@
 // What the views draw: each root's snapshot, and each workstream's own snapshot, read when first
 // asked for and dropped on every reload. All of it comes from the CLI through cli.ts.
-import { type Cli, type Loaded, loadSnapshot, type Snapshot } from '../cli.ts'
+import { type Cli, type Loaded, loadQueue, loadReview, loadSnapshot, type Snapshot } from '../cli.ts'
+import type { Queue, Review } from './review.ts'
 import type { Started } from './start.ts'
 import type { WsSnapshot } from './registry.ts'
 
@@ -12,6 +13,8 @@ export class Store {
   errors: Record<string, string>
   showDone = false
   private perWs = new Map<string, Promise<Loaded<WsSnapshot>>>()
+  private queues = new Map<string, Promise<Loaded<Queue>>>()
+  private reviews = new Map<string, Promise<Loaded<Review>>>()
   private listeners: (() => void)[] = []
 
   private cli: Cli
@@ -42,6 +45,27 @@ export class Store {
     return got
   }
 
+  // A root's review queue, shared until the next reload.
+  queue(root: string): Promise<Loaded<Queue>> {
+    let got = this.queues.get(root)
+    if (!got) {
+      got = loadQueue(this.cli, root) as Promise<Loaded<Queue>>
+      this.queues.set(root, got)
+    }
+    return got
+  }
+
+  // One task's review with its checks, shared until the next reload.
+  review(root: string, ws: string, task: string): Promise<Loaded<Review>> {
+    const k = JSON.stringify([root, ws, task])
+    let got = this.reviews.get(k)
+    if (!got) {
+      got = loadReview(this.cli, root, ws, task, { checks: true }) as Promise<Loaded<Review>>
+      this.reviews.set(k, got)
+    }
+    return got
+  }
+
   // Reads every root's snapshot again; a root that fails keeps its error, not its old snapshot.
   async reload(): Promise<void> {
     const snapshots: Record<string, Snapshot> = {}
@@ -54,6 +78,8 @@ export class Store {
     this.snapshots = snapshots
     this.errors = errors
     this.perWs.clear()
+    this.queues.clear()
+    this.reviews.clear()
     this.changed()
   }
 
