@@ -358,5 +358,84 @@ class BuildSnapshotTests(RepoTestCase):
         self.assertIn("heldBack", schema["properties"]["wave"]["required"])
 
 
+class RowActionsTests(RepoTestCase):
+    def build(self) -> dict:
+        return snapshot.build_snapshot(self.project(), now=NOW)
+
+    def set_status(self, status: str, sync: bool = True) -> None:
+        if sync:
+            self.ok("sync")
+        data = json.loads(self.registry.read_text())
+        data["workstreams"][0]["status"] = status
+        self.registry.write_text(json.dumps(data, indent=2) + "\n")
+
+    def test_each_status_offers_what_act_would_accept(self) -> None:
+        for status, expected in (("active", ["pause"]), ("paused", ["resume"]), ("done", []),
+                                 ("planned", ["pause"]), ("abandoned", [])):
+            with self.subTest(status=status):
+                self.set_status(status)
+                row = self.build()["registry"][0]
+                self.assertFalse(row["progressStale"])
+                self.assertEqual(row["actions"], expected)
+
+    def test_a_progress_stale_row_offers_sync(self) -> None:
+        self.set_status("active", sync=False)
+        row = self.build()["registry"][0]
+        self.assertTrue(row["progressStale"])
+        self.assertEqual(row["actions"], ["pause", "sync"])
+        self.assertIn("sync", row["actions"])
+
+    def test_the_actions_come_from_the_one_table(self) -> None:
+        self.set_status("active")
+        with mock.patch.dict(snapshot.ACTION_STATUSES, {"pause": ("paused",)}):
+            self.assertEqual(self.build()["registry"][0]["actions"], [])
+
+
+class RefreshTests(RepoTestCase):
+    def test_refresh_holds_the_registry_each_folder_and_gits_files(self) -> None:
+        self.new_ws("beta", "BE")
+        git_dir = Path(self.git("rev-parse", "--absolute-git-dir").strip())
+        refresh = snapshot.build_snapshot(self.project(), now=NOW)["refresh"]
+        self.assertEqual(refresh, [
+            {"path": str(self.registry), "recursive": False},
+            {"path": str(self.ws_dir / "alpha"), "recursive": True},
+            {"path": str(self.ws_dir / "beta"), "recursive": True},
+            {"path": str(git_dir / "HEAD"), "recursive": False},
+            {"path": str(git_dir / "index"), "recursive": False},
+            {"path": str(git_dir / "packed-refs"), "recursive": False},
+            {"path": str(git_dir / "refs" / "heads"), "recursive": True},
+            {"path": str(git_dir / "worktrees"), "recursive": True},
+        ])
+
+    def test_a_linked_checkout_watches_its_own_head_and_the_shared_refs(self) -> None:
+        linked = self.root.parent / "linked"
+        self.git("worktree", "add", "-q", "-b", "task/linked", str(linked))
+        common = Path(self.git("rev-parse", "--absolute-git-dir").strip())
+        found = {e["path"]: e["recursive"] for e in snapshot.git_refresh(linked)}
+        self.assertEqual(found, {str(common / "worktrees" / "linked" / "HEAD"): False,
+                                 str(common / "worktrees" / "linked" / "index"): False,
+                                 str(common / "packed-refs"): False,
+                                 str(common / "refs" / "heads"): True,
+                                 str(common / "worktrees"): True})
+
+    def test_outside_a_repository_git_adds_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as bare:
+            self.assertEqual(snapshot.git_refresh(Path(bare)), [])
+
+    def test_watch_stays_as_it_was(self) -> None:
+        data = snapshot.build_snapshot(self.project(), now=NOW)
+        self.assertEqual(data["watch"], [str(self.registry)])
+
+    def test_the_snapshot_with_both_fields_passes_its_schema(self) -> None:
+        schema = load_schema("snapshot")
+        for argv in ((), ("-w", "alpha")):
+            data = json.loads(self.ok("snapshot", *argv))
+            self.assertIn("refresh", data)
+            self.assertTrue(all("actions" in row for row in data["registry"]))
+            self.assertEqual(problems(data, schema, schema), [])
+        self.assertIn("refresh", schema["required"])
+        self.assertIn("actions", schema["properties"]["registry"]["items"]["required"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -80,6 +80,13 @@ class SchemaAgainstCodeTests(unittest.TestCase):
         snap = load_schema("snapshot")
         self.assertEqual(snap["properties"]["snapshotVersion"]["const"],
                          snapshot.SNAPSHOT_VERSION)
+        row = snap["properties"]["registry"]["items"]
+        self.assertEqual(row["properties"]["actions"]["items"]["enum"],
+                         [*snapshot.ROW_ACTIONS, "sync"])
+        self.assertIn("actions", row["required"])
+        self.assertEqual(set(snap["properties"]["refresh"]["items"]["properties"]),
+                         {"path", "recursive"})
+        self.assertIn("refresh", snap["required"])
 
 
 class ChecksTheCheckerTests(unittest.TestCase):

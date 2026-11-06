@@ -33,9 +33,8 @@ from workstream.fsutil import sha256
 from workstream.project import Project
 
 ACTIONS = ("pause", "resume", "unclaim", "sync")
-# The registry status each action may start from; None means any.
-FROM_STATUSES = {"pause": ("planned", "active"), "resume": ("paused",), "unclaim": None,
-                 "sync": None}
+# The registry status each action may start from lives in snapshot.ACTION_STATUSES, which
+# also draws each registry row's `actions`.
 
 
 def commit_message(ws_id: str, action: str, task: str | None) -> str:
@@ -85,7 +84,7 @@ def check_revisions(registry_raw: bytes, tasks_raw: bytes | None, expect_registr
 
 def check_transition(action: str, ws: dict, tasks_raw: bytes | None, task: str | None,
                      facts: dict) -> None:
-    allowed = FROM_STATUSES[action]
+    allowed = snapshot.ACTION_STATUSES[action]
     if allowed is not None and ws.get("status") not in allowed:
         raise Refused(f"{action} needs status {' or '.join(allowed)}; "
                       f"{ws['id']} is {ws.get('status')}")

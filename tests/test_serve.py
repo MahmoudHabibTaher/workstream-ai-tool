@@ -10,11 +10,12 @@ import socket
 import threading
 import time
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from tests.helpers import WsTestCase, task
 from tests.test_schema import load_schema, problems
-from workstream import serve
+from workstream import serve, snapshot
 from workstream.cli import build_parser
 from workstream.errors import WsError
 
@@ -319,6 +320,23 @@ class EventTests(ServeTestCase):
         stream = self.open_stream()
         self.ok("update", "-w", WS_ID, "AL-02", "--notes", "changed")
         self.wait_for_change(stream)
+
+    def test_the_watched_paths_are_expanded_from_refresh(self) -> None:
+        (self.ws_dir / WS_ID / "evidence").mkdir(exist_ok=True)
+        (self.ws_dir / WS_ID / "evidence" / "AL-01.md").write_text("# AL-01\n")
+        self.git("branch", "task/stray")
+        refresh = self.get_json("/api/snapshot")["refresh"]
+        expected = []
+        for entry in refresh:
+            expected.append(entry["path"])
+            if entry["recursive"]:
+                expected += [str(p) for p in serve._files_under(Path(entry["path"]))]
+        watched = [str(p) for p in serve.watched_paths(self.project(), self.server.watcher.git)]
+        self.assertEqual(watched, expected)
+        self.assertEqual(self.server.watcher.git, snapshot.git_refresh(self.root))
+        self.assertIn(str(self.ws_dir / WS_ID / "evidence" / "AL-01.md"), watched)
+        self.assertIn(str(self.ws_dir / WS_ID / "PLAN.md"), watched)
+        self.assertTrue(any(p.endswith("refs/heads/task/stray") for p in watched))
 
     def test_a_new_evidence_file_reaches_it(self) -> None:
         self.settle_watcher()
