@@ -8,6 +8,7 @@ import { join, sep } from 'node:path'
 import * as vscode from 'vscode'
 
 import type { Api } from '../../src/extension.ts'
+import type { HealthNode } from '../../src/logic/health.ts'
 import type { Node } from '../../src/logic/registry.ts'
 import type { ReviewNode } from '../../src/logic/review.ts'
 
@@ -40,6 +41,7 @@ export async function run(): Promise<void> {
     await registryTree(api, started.roots[0])
     await writes(api, started.roots[0])
     await launches(api, started.roots[0])
+    await healthAndBudget(api, started.roots[0])
   } else if (which === 'review') {
     assert.deepEqual(api.shown, [])
     await reviewQueue(api, started.roots[0])
@@ -309,6 +311,98 @@ async function launches(api: Api, root: string): Promise<void> {
   assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill to abandon workstream alpha: superseded')
   assert.equal(vscode.window.terminals.length, open)
   console.log(`abandon, no agent: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
+}
+
+type HItem = { node: HealthNode; item: vscode.TreeItem; children: HItem[] }
+
+async function walkHealth(tree: NonNullable<Api['health']>, node?: HealthNode): Promise<HItem[]> {
+  const found: HItem[] = []
+  for (const child of await tree.getChildren(node)) {
+    const item = tree.getTreeItem(child)
+    const children = item.collapsibleState === vscode.TreeItemCollapsibleState.None ? [] : await walkHealth(tree, child)
+    found.push({ node: child, item, children })
+  }
+  return found
+}
+
+const STALE = /^A-1 .*/
+const staleIn = (items: HItem[]) => items.flatMap(i => i.children).find(i => i.node.kind === 'finding' && i.node.finding.kind === 'stale-claim')
+
+async function healthAndBudget(api: Api, root: string): Promise<void> {
+  const tree = api.health
+  assert.ok(tree)
+  await api.settled()
+  const asked: string[] = []
+  api.ui = { confirm: async text => { asked.push(`${text.message} | ${text.detail}`); return true }, reason: async () => undefined }
+
+  // 1. A-1's stale claim is in the Health tree, offering unclaim, and in the Problems panel at
+  // line 1 of alpha's tasks file.
+  const top = await walkHealth(tree)
+  const finding = staleIn(top)
+  assert.ok(finding, JSON.stringify(top.map(i => [String(i.item.label), i.children.map(c => String(c.item.label))])))
+  assert.match(String(finding.item.label), STALE)
+  assert.equal(String(finding.item.description), 'stale-claim · alpha A-1')
+  assert.equal(finding.item.contextValue, 'finding act:unclaim')
+  console.log(`health tree: ${JSON.stringify(top.map(i => [`${String(i.item.label)} | ${String(i.item.description)}`, i.children.map(c => `${String(c.item.label)} | ${String(c.item.description)} | ${String(c.item.contextValue)}`)]))}`)
+  const queue = vscode.Uri.file(join(root, 'workstreams', 'alpha', 'tasks_list.json'))
+  const stale = (diags: vscode.Diagnostic[]) => diags.find(d => d.source === 'workstreams' && d.code === 'stale-claim')
+  const diagnostic = await until('the stale claim in the Problems panel', async () => stale(vscode.languages.getDiagnostics(queue)))
+  assert.equal(diagnostic.message, String(finding.item.label))
+  assert.equal(diagnostic.range.start.line, 0)
+  assert.equal(diagnostic.severity, vscode.DiagnosticSeverity.Warning)
+  console.log(`diagnostics on ${queue.fsPath}: ${JSON.stringify(vscode.languages.getDiagnostics(queue).map(d => [d.range.start.line, vscode.DiagnosticSeverity[d.severity], d.code, d.message]))}`)
+
+  // 2. Its quick fix runs the same Unclaim command, so the same confirm, then ws act unclaims.
+  // The lightbulb asks for code actions on an open document, so open it as a click would.
+  await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(queue), { preview: true })
+  const fixes = await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', queue, new vscode.Range(0, 0, 0, 0))
+  const fix = fixes.find(a => a.title === 'Unclaim A-1')
+  assert.ok(fix?.command, JSON.stringify(fixes.map(a => a.title)))
+  assert.equal(fix.command.command, 'workstreams.unclaim')
+  const before = git(root, 'rev-parse', 'HEAD')
+  const ranBefore = api.ran.length
+  await vscode.commands.executeCommand(fix.command.command, ...(fix.command.arguments ?? []))
+  assert.deepEqual(asked, ['Unclaim A-1? | This commits "alpha: unclaim A-1" on main.'])
+  const act = api.ran.slice(ranBefore).find(argv => argv.includes('act'))
+  assert.ok(act)
+  assert.deepEqual(act.slice(BRANCH_CLI.length, BRANCH_CLI.length + 6), ['act', 'unclaim', '-w', 'alpha', '--task', 'A-1'])
+  assert.equal(git(root, 'rev-parse', 'HEAD~1'), before)
+  assert.equal(git(root, 'log', '-1', '--format=%s'), 'alpha: unclaim A-1 (ws act)')
+  assert.equal(git(root, 'status', '--porcelain'), '')
+  const a1 = (JSON.parse(readFileSync(queue.fsPath, 'utf8')) as { tasks: { id: string; status: string }[] }).tasks.find(t => t.id === 'A-1')
+  assert.equal(a1?.status, 'todo')
+  console.log(`quick fix: ${JSON.stringify(fixes.map(a => a.title))} ran ${JSON.stringify(act)}; asked ${JSON.stringify(asked)}; HEAD ${git(root, 'log', '-1', '--format=%h %s')}; shown ${JSON.stringify(api.shown.at(-1))}`)
+
+  // 3. The finding went, so its diagnostic and its tree item clear.
+  await until('the diagnostic to clear', async () => (stale(vscode.languages.getDiagnostics(queue)) ? undefined : true))
+  await api.settled()
+  assert.equal(staleIn(await walkHealth(tree)), undefined)
+  console.log(`after the unclaim: diagnostics ${JSON.stringify(vscode.languages.getDiagnostics(queue).map(d => d.message))}; health ${JSON.stringify((await walkHealth(tree)).map(i => [String(i.item.label), i.children.map(c => String(c.item.label))]))}`)
+
+  // 4. Budget: nothing ran audit while its view was out of sight, not even a Refresh. Shown, it
+  // runs once and draws each role's used against limit as the CLI printed them.
+  const audits = () => api.ran.filter(argv => argv.slice(BRANCH_CLI.length).join(' ') === 'audit context --json').length
+  assert.equal(audits(), 0)
+  await vscode.commands.executeCommand('workstreams.refresh')
+  assert.equal(audits(), 0)
+  await vscode.commands.executeCommand('workstreams.budget.focus')
+  const rows = await until('the budget rows', async () => api.budget?.rows[root])
+  assert.equal(audits(), 1)
+  const expected = JSON.parse(execFileSync(BRANCH_CLI[0], [...BRANCH_CLI.slice(1), 'audit', 'context', '--json'], { cwd: root, encoding: 'utf8' })) as { role: string; tokens: number; budget: number }[]
+  assert.deepEqual(rows.map(r => [r.role, r.tokens, r.budget]), expected.map(r => [r.role, r.tokens, r.budget]))
+  const budget = api.budget
+  assert.ok(budget)
+  const drawnRows = (await budget.getChildren()).map(n => budget.getTreeItem(n))
+  assert.deepEqual(drawnRows.map(i => String(i.label)), expected.map(r => r.role))
+  for (const [i, r] of expected.entries()) {
+    assert.match(String(drawnRows[i].description), new RegExp(`^${r.tokens.toLocaleString('en-US')} / ${r.budget.toLocaleString('en-US')} · \\d+%`))
+  }
+  console.log(`budget: audit ran ${audits()} time(s) once shown; rows ${JSON.stringify(drawnRows.map(i => `${String(i.label)} | ${String(i.description)}`))}`)
+  await vscode.commands.executeCommand('workbench.view.explorer')
+  await until('the budget view hidden', async () => (audits() === 1 ? true : undefined))
+  await vscode.commands.executeCommand('workstreams.refresh')
+  assert.equal(audits(), 1)
+  console.log(`budget hidden: a Refresh ran audit ${audits()} time(s) in all`)
 }
 
 type RItem = { node: ReviewNode; item: vscode.TreeItem; children: RItem[] }

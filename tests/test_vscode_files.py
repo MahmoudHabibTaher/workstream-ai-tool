@@ -102,7 +102,8 @@ class PackageTests(unittest.TestCase):
 
     def test_writes_and_launches_show_only_where_offered(self) -> None:
         """Plan D-ACTIONS: a write's menu entry keys on the `act:<write>` word the tree item's
-        contextValue carries from the snapshot's offers; a launch keys on `launch`. None of them
+        contextValue carries from the snapshot's offers, in the Registry and Health trees; a
+        launch keys on `launch`, in the Registry only. None of them
         is in the command palette, where no tree item says what is offered."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
         setting = contributes["configuration"]["properties"]["workstreams.agentCommand"]
@@ -116,7 +117,8 @@ class PackageTests(unittest.TestCase):
                 command = f"workstreams.{name}"
                 self.assertIn(command, commands)
                 self.assertIn(command, hidden)
-                self.assertEqual(menu[command], "view == workstreams.registry && viewItem =~ "
+                where = r"view =~ /^workstreams\.(registry|health)$/" if word.startswith("act") else "view == workstreams.registry"
+                self.assertEqual(menu[command], f"{where} && viewItem =~ "
                                  f"/(^| ){word.format(name)}( |$)/")
         self.assertIn("contextValue(node.kind, node.writes", (SRC / "views" / "registry.ts").read_text())
 
@@ -146,13 +148,28 @@ class PackageTests(unittest.TestCase):
         """Plan D-REVIEW-UI: a Review view beside the Registry; a file and the evidence open from
         its items only, so neither is in the command palette."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
-        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]],
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]][:2],
                          ["workstreams.registry", "workstreams.review"])
         hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
         self.assertLessEqual({"workstreams.openReviewFile", "workstreams.openEvidence"}, hidden)
         review = (SRC / "views" / "review.ts").read_text()
         self.assertIn("registerTextDocumentContentProvider(SCHEME, docs)", (SRC / "extension.ts").read_text())
         self.assertIn("await vscode.commands.executeCommand('vscode.diff', left, right, title", review)
+
+    def test_the_health_and_budget_views(self) -> None:
+        """Plan D-REVIEW-UI: Health and Budget follow Review. A finding's quick fix calls the
+        write command its menu does, so it goes through the same confirm; Budget is the one view
+        that runs `ws audit context`."""
+        contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]],
+                         ["workstreams.registry", "workstreams.review", "workstreams.health", "workstreams.budget"])
+        titles = {m["when"] for m in contributes["menus"]["view/title"] if m["command"] == "workstreams.refresh"}
+        self.assertLessEqual({"view == workstreams.health", "view == workstreams.budget"}, titles)
+        health = (SRC / "views" / "health.ts").read_text()
+        self.assertIn("action.command = { command: commandOf(write), title: action.title, arguments: [fix.node] }", health)
+        self.assertIn("contextValue(node.kind, node.writes)", health)
+        self.assertEqual([p.name for p in sources() if "loadBudget(" in p.read_text()], ["cli.ts", "health.ts"])
+        self.assertIn("registerCodeActionsProvider", (SRC / "extension.ts").read_text())
 
     def test_gate_and_range_lines_keep_the_web_uis_cases(self) -> None:
         """The ported gateSummary, rangeLine and statLine are tested with the web UI's own

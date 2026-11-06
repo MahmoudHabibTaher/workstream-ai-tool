@@ -1,5 +1,5 @@
 // Activation: read the `ws` argv setting, find the window's projects, load their snapshots, then
-// draw the Registry and Review trees and the status bar and keep them current. Every fact comes from the CLI
+// draw the Registry, Review, Health and Budget trees, the Problems panel and the status bar and keep them current. Every fact comes from the CLI
 // through cli.ts; nothing here works one out.
 import * as vscode from 'vscode'
 
@@ -11,6 +11,7 @@ import { debounce } from './logic/debounce.ts'
 import { activeWorkstream, type Node, statusText } from './logic/registry.ts'
 import { start, type Started } from './logic/start.ts'
 import { Store } from './logic/store.ts'
+import { BUDGET_VIEW, BudgetTree, HEALTH_VIEW, HealthDiagnostics, HealthTree } from './views/health.ts'
 import { OPEN_DOCUMENT, openDocument, RegistryTree } from './views/registry.ts'
 import {
   OPEN_EVIDENCE, OPEN_FILE, openEvidence, openFile, type Opened, REVIEW_VIEW, ReviewDocuments, ReviewTree, SCHEME,
@@ -28,7 +29,8 @@ const DEBOUNCE_MS = 300
 // the integration test can see what the extension did. `reloads` says why each reload ran.
 // `asked` holds each confirm box's text and `launched` each launch; `ui` answers the boxes, and
 // the test may replace it, since a modal can't be clicked from the extension API. `opened` holds
-// what each review file or evidence click opened, or why it opened nothing.
+// what each review file or evidence click opened, or why it opened nothing. `health`, `diagnostics`
+// and `budget` are the Health tree, its Problems panel entries and the Budget tree.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -41,6 +43,9 @@ export type Api = {
   store?: Store
   tree?: RegistryTree
   review?: ReviewTree
+  health?: HealthTree
+  diagnostics?: HealthDiagnostics
+  budget?: BudgetTree
   statusBar?: vscode.StatusBarItem
   settled: () => Promise<void>
 }
@@ -75,6 +80,11 @@ export function activate(context: vscode.ExtensionContext): Api {
     const tree = new RegistryTree(store)
     const review = new ReviewTree(store)
     const docs = new ReviewDocuments(cli, store)
+    const health = new HealthTree(store)
+    const diagnostics = new HealthDiagnostics(store)
+    const budget = new BudgetTree(cli, store)
+    const budgetView = vscode.window.createTreeView(BUDGET_VIEW, { treeDataProvider: budget })
+    budget.setVisible(budgetView.visible)
     const say = (text: string, error?: boolean) => {
       shown.push(text)
       if (error) void vscode.window.showErrorMessage(text)
@@ -92,6 +102,7 @@ export function activate(context: vscode.ExtensionContext): Api {
 
     const paint = async () => {
       watchers.watch(store.refreshPaths())
+      await diagnostics.refresh()
       const active = activeWorkstream(store.roots, store.snapshots)
       if (!active) {
         statusBar.hide()
@@ -108,6 +119,11 @@ export function activate(context: vscode.ExtensionContext): Api {
     context.subscriptions.push(
       vscode.window.createTreeView(REGISTRY_VIEW, { treeDataProvider: tree, showCollapseAll: true }),
       vscode.window.createTreeView(REVIEW_VIEW, { treeDataProvider: review, showCollapseAll: true }),
+      vscode.window.createTreeView(HEALTH_VIEW, { treeDataProvider: health }),
+      budgetView,
+      budgetView.onDidChangeVisibility(e => budget.setVisible(e.visible)),
+      diagnostics,
+      vscode.languages.registerCodeActionsProvider({ scheme: 'file' }, diagnostics, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
       vscode.workspace.registerTextDocumentContentProvider(SCHEME, docs),
       vscode.commands.registerCommand(OPEN_FILE, async (node: Parameters<typeof openFile>[2]) => {
         api.opened.push(await openFile(cli, docs, node, say))
@@ -120,6 +136,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       { dispose: reload.dispose },
       vscode.commands.registerCommand(REFRESH, async () => {
         api.reloads.push('button')
+        budget.refresh()
         await (pending = store.reload())
         await pending
       }),
@@ -141,7 +158,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       await vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, on)
     }
     void vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, false)
-    Object.assign(api, { store, tree, review, statusBar })
+    Object.assign(api, { store, tree, review, health, diagnostics, budget, statusBar })
     return started
   }
 

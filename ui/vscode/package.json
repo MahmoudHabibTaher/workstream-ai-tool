@@ -66,6 +66,14 @@
         {
           "id": "workstreams.review",
           "name": "Review"
+        },
+        {
+          "id": "workstreams.health",
+          "name": "Health"
+        },
+        {
+          "id": "workstreams.budget",
+          "name": "Budget"
         }
       ]
     },
@@ -163,6 +171,16 @@
           "group": "navigation@1"
         },
         {
+          "command": "workstreams.refresh",
+          "when": "view == workstreams.health",
+          "group": "navigation@1"
+        },
+        {
+          "command": "workstreams.refresh",
+          "when": "view == workstreams.budget",
+          "group": "navigation@1"
+        },
+        {
           "command": "workstreams.showDone",
           "when": "view == workstreams.registry && !workstreams.showDone",
           "group": "navigation@2"
@@ -230,22 +248,22 @@
       "view/item/context": [
         {
           "command": "workstreams.pause",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )act:pause( |$)/",
+          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:pause( |$)/",
           "group": "1_write@1"
         },
         {
           "command": "workstreams.resume",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )act:resume( |$)/",
+          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:resume( |$)/",
           "group": "1_write@2"
         },
         {
           "command": "workstreams.sync",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )act:sync( |$)/",
+          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:sync( |$)/",
           "group": "1_write@3"
         },
         {
           "command": "workstreams.unclaim",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )act:unclaim( |$)/",
+          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:unclaim( |$)/",
           "group": "1_write@4"
         },
         {
