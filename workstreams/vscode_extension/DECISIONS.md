@@ -128,3 +128,19 @@ On top of D021: `review` is the Review tree, and `opened` records what each file
 ## D028 (2026-11-06, VS-06): the Review tree groups by `state`, even though the CLI already sorts that way
 
 `queueNodes` splits the queue into **On a branch** and **Landed**, keeping the CLI's order inside each. It leaves out an empty group and says "Nothing to review." when the queue is empty. This is a display arrangement: the order within each group is still the CLI's. Rejected: a flat list, which doesn't show where branch work ends. **Closed.**
+
+## D029 (2026-11-06, VS-07): a workstream's tasks file is the first path its own snapshot's `watch` lists that the root snapshot's doesn't
+
+`ws snapshot -w <id>` has no `paths.tasks`. Its `watch` comes from `watch_paths`, which lists the registry, then the queue, then the handoff and progress. `tasksFileOf` takes the first entry the root's `watch` lacks, so the path still comes from the CLI. That leans on the order `watch_paths` uses. A `paths.tasks` in the snapshot would be cleaner, but `src/workstream/snapshot.py` is outside this task's files. Rejected: joining `repoRoot`, the row's `path` and `tasks_list.json` in the extension, which would hard-code a file name the CLI owns. **Open.**
+
+## D030 (2026-11-06, VS-07): Budget runs when it first comes into sight and on Refresh, not on the store's file-change reloads
+
+`ws audit context` measures the tool's own context, and nothing under the workstreams changes it, so a reload on every claim would rerun it for nothing. A Refresh while the view is hidden only drops the rows, and they're read when the view is next shown. Rejected: rerunning on every store change while visible. **Closed.**
+
+## D031 (2026-11-06, VS-07): findings' writes show in the Health tree's context menu too
+
+The write menus' `when` is now `view =~ /^workstreams\.(registry|health)$/`, keyed on the same `act:<write>` contextValue words. `test_writes_and_launches_show_only_where_offered` was updated to match. Launches stay Registry-only. Rejected: quick fixes only, which leaves a finding with no workstream (none offer a write today) or an unopened tasks file unreachable from the tree. **Closed.**
+
+## D032 (2026-11-06, VS-07): the Health tree leaves out the web UI's "Progress out of date" rows
+
+`health.js` also lists rows with `progressStale` and a Sync button. The Registry tree already offers Sync on those rows through the row's `actions`, and acceptance covers findings. Rejected: copying that section now. **Closed.**

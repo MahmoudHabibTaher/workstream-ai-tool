@@ -1,15 +1,16 @@
 # Session handoff
 
-**State:** 6/8 done on `main` at `71d4572`, as of 2026-11-06.
+**State:** 7/8 done on `main` at `69c422e`, as of 2026-11-06.
 
-**Just landed:** VS-06 (`71d4572b89`)
+**Just landed:** VS-07 (`69c422e0d5`)
 
 **Open decisions:**
-- D009: `--show` is left out of cli.ts until VS-06 (waiting: VS-07, VS-08)
-- D010: `@types/node` is a fifth dev dependency, pinned to Node 20 (waiting: VS-07, VS-08)
+- D009: `--show` is left out of cli.ts until VS-06 (waiting: VS-08)
+- D010: `@types/node` is a fifth dev dependency, pinned to Node 20 (waiting: VS-08)
+- D029: a workstream's tasks file is the first path its own snapshot's `watch` lists that the root snapshot's doesn't (waiting: VS-08)
 
-**Next:** `ws claim --commit VS-07` (phase 3).
+**Next:** `ws claim --commit VS-08` (phase 4).
 
 **Gotchas:**
-- VS-06: - The Review tree reloads with the store, which watches the snapshot's `refresh` paths. A commit made on a task branch inside its worktree may not touch any of those paths, so the queue's diffstat for that task can stay stale until Refresh. Refresh is on the Review view's title bar too.
-- The ws-review skill and README.md still don't mention `--show` (carried over from VS-02). Both are outside this task's files.
+- VS-07: - Every reload now also runs `ws snapshot -w <id>` for each workstream that has a finding, closed ones included (beta in the fixture), to find its tasks file. D029's `paths.tasks` would still need these calls.
+- `vscode.executeCodeActionProvider` throws `Illegal argument` unless the document is open, so the test opens the tasks file first, as a click in the Problems panel would.
