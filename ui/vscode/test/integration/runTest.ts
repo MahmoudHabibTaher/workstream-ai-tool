@@ -22,7 +22,14 @@ function sh(argv: string[], cwd: string): string {
   return execFileSync(file, args, { cwd, encoding: 'utf8', env: { ...process.env, ...GIT_ENV, PYTHONPATH: SRC } })
 }
 
-// A project made by the branch's own CLI: `ws init`, then one registered workstream.
+const SEED = [
+  { id: 'A-3', phase: 2, priority: 30, title: 'Third', blockedBy: ['A-1'] },
+  { id: 'A-2', phase: 1, priority: 20, title: 'Second', mode: 'foreground', needsUserDecision: true },
+  { id: 'A-1', phase: 1, priority: 10, title: 'First', summary: 'see [x](command:workbench.action.quit) <b>now</b>', acceptance: ['it works'] },
+]
+
+// A project made by the branch's own CLI: `ws init`, then `alpha`, active with three tasks over two
+// phases, and `beta`, abandoned, which only Show done draws.
 function sampleProject(under: string): string {
   const root = join(under, 'project')
   mkdirSync(root)
@@ -32,8 +39,14 @@ function sampleProject(under: string): string {
   sh(['git', 'commit', '-qm', 'init'], root)
   const base = sh(['git', 'rev-parse', '--short', 'HEAD'], root).trim()
   sh([...BRANCH_CLI, 'new', 'alpha', '--title', 'Alpha', '--summary', 'sample', '--base', base], root)
+  sh([...BRANCH_CLI, 'new', 'beta', '--title', 'Beta', '--summary', 'dropped', '--base', base], root)
+  const seed = join(under, 'seed.json')
+  writeFileSync(seed, JSON.stringify(SEED))
+  sh([...BRANCH_CLI, 'seed', '-w', 'alpha', seed], root)
+  sh([...BRANCH_CLI, 'set-status', '-w', 'alpha', 'active'], root)
+  sh([...BRANCH_CLI, 'set-status', '-w', 'beta', 'abandoned', '--notes', 'dropped'], root)
   sh(['git', 'add', '-A'], root)
-  sh(['git', 'commit', '-qm', 'alpha'], root)
+  sh(['git', 'commit', '-qm', 'alpha and beta'], root)
   return root
 }
 
@@ -56,7 +69,7 @@ async function main(): Promise<void> {
         vscodeExecutablePath: APP,
         extensionDevelopmentPath: PACKAGE,
         extensionTestsPath: join(__dirname, 'suite.js'),
-        extensionTestsEnv: { PYTHONPATH: SRC, WS_TEST_CASE: c.name, WS_TEST_FOLDER: c.folder, WS_TEST_SRC: SRC },
+        extensionTestsEnv: { ...GIT_ENV, PYTHONPATH: SRC, WS_TEST_CASE: c.name, WS_TEST_FOLDER: c.folder, WS_TEST_SRC: SRC },
         launchArgs: [c.folder, '--user-data-dir', profile, '--extensions-dir', join(scratch, 'extensions'),
           '--disable-extensions', '--disable-workspace-trust', '--skip-welcome', '--skip-release-notes'],
       })
