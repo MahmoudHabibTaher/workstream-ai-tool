@@ -6,6 +6,10 @@ Created 2026-11-06 from `main` at `fea25e7`.
 
 ---
 
+## 2026-11-06: VS-04: Registry, tasks, documents, status bar and live refresh
+
+Merged as `f3f42f5059`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-04.md).
+
 ## 2026-11-06: VS-03: The extension's package, CLI module and test harness
 
 Merged as `cc78144372`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-03.md).

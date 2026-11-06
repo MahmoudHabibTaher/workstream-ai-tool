@@ -59,3 +59,36 @@ D-CLI lists `--show` among `loadReview`'s options. VS-02 adds `--show` and isn't
 ## D012 (2026-11-06, VS-03): the startup logic is `src/logic/start.ts`, and activate returns a small test API
 
 `start(cli, folders)` resolves roots, then loads snapshots, and returns the one message to show. `activate` returns `{ready, ran, shown}` so the integration test can see every argv run and every message shown. VS-04 can add the views behind the same state. `resolveRoots` skips folders that aren't projects and reports a problem only when none is one. Rejected: stubbing `window.showErrorMessage` inside the extension host. **Closed.**
+
+## D013 (2026-11-06, VS-04): only the Registry view is contributed now
+
+D-VIEWS puts four tree views in one container. This task contributes the container and Registry. Review queue, Health and Budget belong to VS-06 and VS-07, which bring their data. Rejected: empty placeholder views, which would draw nothing and would need menus that have no commands yet. **Closed.**
+
+## D014 (2026-11-06, VS-04): a workstream's own snapshot is read when it is first needed
+
+The top level comes from `ws snapshot`. A workstream's wave, tasks and paths come from `ws snapshot -w <id>`. The extension runs that only when the node is expanded, or for the status bar's active workstream. It caches the result until the next reload. VS Code asks again for the expanded nodes after each reload. Rejected: reading every workstream on every reload, which would mean 11 CLI runs per burst on this repo. **Closed.**
+
+## D015 (2026-11-06, VS-04): cli.ts runs ws with `GIT_OPTIONAL_LOCKS=0`
+
+The snapshot runs `git status`, which can rewrite `.git/index`. That file is one of the `refresh` paths, so each reload could trigger the next. `ws serve` already sets this variable for the same reason. `execRun` now sets it too, and a logic test checks it. Rejected: leaving `.git/index` unwatched, which would miss staging. **Closed.**
+
+## D016 (2026-11-06, VS-04): Documents is the last child of each workstream
+
+A workstream opens to its wave line, then its phases, then a Documents node holding Plan, Progress, Decisions and Handoff. Only the documents the snapshot's `paths` lists are shown. Each opens with `markdown.showPreview`. Rejected: putting the four documents beside the phases, which mixes them in with the tasks. **Closed.**
+
+## D017 (2026-11-06, VS-04): the status bar's "active workstream" is the first `active` row
+
+The extension takes the first `active` registry row of the first root that has one. With none, the status bar is hidden. Rejected: following the editor's current file, which the snapshot gives no mapping for. **Open.** Settle this if several workstreams are often active at once. **Closed.**
+
+## D018 (2026-11-06, VS-04): activate's test API grew
+
+On top of D012's `{ready, ran, shown}`, activate now also returns:
+- `reloads`: one reason per reload, `watch` or `button`;
+- `store`, `tree` and `statusBar`;
+- `settled()`, which resolves once pending reloads have finished.
+
+The integration test reads the tree through the same provider methods that VS Code calls. Rejected: reading the rendered tree through the UI, which the extension API doesn't expose. **Closed.**
+
+## D019 (2026-11-06, VS-04): watchers are rebuilt when a `refresh` path appears
+
+A watcher on a path that doesn't exist yet may never fire, `.git/worktrees` for example. The set is keyed on each path's existence as well as the list, so it is rebuilt when one appears. Rejected: rebuilding every watcher on every reload. **Closed.**
