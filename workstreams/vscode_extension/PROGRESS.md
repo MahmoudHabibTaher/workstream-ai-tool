@@ -6,6 +6,10 @@ Created 2026-11-06 from `main` at `fea25e7`.
 
 ---
 
+## 2026-11-06: VS-05: Writes through ws act, and launching in a terminal
+
+Merged as `208aa0beec`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-05.md).
+
 ## 2026-11-06: VS-04: Registry, tasks, documents, status bar and live refresh
 
 Merged as `f3f42f5059`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-04.md).

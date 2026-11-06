@@ -92,3 +92,19 @@ The integration test reads the tree through the same provider methods that VS Co
 ## D019 (2026-11-06, VS-04): watchers are rebuilt when a `refresh` path appears
 
 A watcher on a path that doesn't exist yet may never fire, `.git/worktrees` for example. The set is keyed on each path's existence as well as the list, so it is rebuilt when one appears. Rejected: rebuilding every watcher on every reload. **Closed.**
+
+## D020 (2026-11-06, VS-05): the modal is VS Code's native modal, so the stale note is decided when it opens
+
+`showWarningMessage(..., { modal: true, detail })` can't be redrawn while it is open, unlike the web UI's overlay. The note compares the node's pinned revisions with the latest snapshot the store holds at the moment the box opens. A commit made while the box is open is caught by act's refusal, not by the note (acceptance 2). Rejected: a webview dialog, which D001 rules out. **Closed.**
+
+## D021 (2026-11-06, VS-05): activate's test API grew again: `ui`, `asked`, `launched`, and a reload reason `act`
+
+On top of D018: `ui` holds the confirm and reason prompts, which the test replaces because a modal and an input box can't be answered through the extension API. `asked` records each confirm text, and `launched` records each launch with its terminal. After each `ws act`, the extension reloads with the reason `act`. Rejected: driving the real modal, which has no API. **Closed.**
+
+## D022 (2026-11-06, VS-05): launches show on open workstreams only, as in the web UI
+
+Run, Coordinate, Close and Abandon have no `actions` in the snapshot. Like `lanes.js`, they are offered on rows that aren't done or abandoned (`launches` in `src/logic/actions.ts`). That is a display filter, the same one the web UI uses, not a write rule: the agent decides what happens next. Rejected: asking for launch offers in the snapshot, which is a Python change and outside this task's files. **Open.** Settle this if the snapshot should own launch offers too. **Closed.**
+
+## D023 (2026-11-06, VS-05): the modal shows the web UI's commit line, without act's ` (ws act)` suffix
+
+The modal names `alpha: pause` on `main`, as `commitLine` does in `logic.js`. act's full subject is `alpha: pause (ws act)`. Rejected: copying act's message format into TypeScript, which would be a second copy of a CLI rule. **Closed.**
