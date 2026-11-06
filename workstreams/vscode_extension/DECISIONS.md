@@ -27,3 +27,19 @@ Rejected: listing unclaim on every row, which act would refuse for most tasks. *
 
 `serve.Watcher` caches `snapshot.git_refresh(root)` at startup, as it already did for `git_paths`. It then calls `snapshot.refresh_paths(project, rows, git)` on every scan, so the list is still defined in one place. The snapshot runs git_refresh each time it is built.
 Rejected: running git twice on every 50 ms to 1 s scan. **Closed.**
+
+## D005 (2026-11-06, VS-02): --show refuses a path outside the diffstat; --file stays as it is
+
+Acceptance 3 says "as --file is", but `ws review --file <path>` doesn't refuse an unknown path today. It runs `git diff` and returns empty hunks. I made `--show` refuse with exit 1 and left `--file` alone, so plain review and `--file` behave as before. Rejected: also making `--file` refuse, which would change existing behaviour that the web UI calls. **Open.** Should `--file` refuse the same way? **Closed.**
+
+## D006 (2026-11-06, VS-02): binary means a NUL in the first 8000 bytes, or not UTF-8
+
+Git uses the NUL test, and JSON text can't carry bytes that aren't UTF-8, so both count as binary. The check is per side, so a file can be binary on one side only. Rejected: taking `binary` from numstat's `-`, which covers both sides at once. **Closed.**
+
+## D007 (2026-11-06, VS-02): every git call in review.py runs with GIT_OPTIONAL_LOCKS=0
+
+I set it in the shared `_git` helper as well as in the new bytes helper `_git_read`, so `--show`'s range and diffstat lookups get it too. The output of plain review, `--file`, `--checks` and `--queue` is unchanged. Rejected: a separate env for `--show` only, which would have meant a second copy of the range and diffstat calls. **Closed.**
+
+## D008 (2026-11-06, VS-02): a git failure in --show is an error exit, not an `error` key
+
+The `{path, side, rev, text, binary}` shape has no place for partial data, so a failure from `build_review` or from git raises WsError. Rejected: adding an `error` key to the schema. **Closed.**
