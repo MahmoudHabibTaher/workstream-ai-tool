@@ -1,0 +1,57 @@
+{
+  "name": "workstreams",
+  "displayName": "Workstreams",
+  "description": "Shows a workstream project's registry, reviews and health, all read from the ws CLI.",
+  "version": "0.1.0",
+  "publisher": "workstream",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/src/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension runs the ws CLI in the workspace, so it needs a trusted folder."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Workstreams",
+      "properties": {
+        "workstreams.wsCommand": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "default": [
+            "ws"
+          ],
+          "markdownDescription": "The argv that runs the `ws` CLI; the extension appends each command's arguments. No shell parses it. For example `[\"python3\", \"-B\", \"-m\", \"workstream\"]` runs a checkout's own CLI."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test:logic": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test test/logic/*.test.ts",
+    "test:integration": "node out/test/integration/runTest.js",
+    "vsix": "vsce package --no-dependencies --skip-license --allow-missing-repository -o workstreams.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "~1.100.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.0",
+    "typescript": "^7.0.2"
+  }
+}

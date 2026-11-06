@@ -20,6 +20,10 @@ audit = "make audit"
 behaviour = ["test"]
 prompts = ["test", "audit"]
 
+# Each new worktree installs the VS Code extension's locked dev dependencies.
+[worktree]
+setup = ["cd ui/vscode && npm ci"]
+
 [parallel]
 max_workers = 3
 
