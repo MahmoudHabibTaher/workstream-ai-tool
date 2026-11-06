@@ -1,4 +1,4 @@
-// The tree's context-menu commands. Pause, Resume, Sync and Unclaim ask first, then write through
+// The trees' context-menu commands, which the Health quick fixes call too. Pause, Resume, Sync and Unclaim ask first, then write through
 // `ws act` against the revisions the item was drawn with. Run, Coordinate, Close and Abandon hand
 // a prompt to launch.ts. package.json shows each command only where the item's contextValue
 // offers it, and the handler checks the item again, so a write the snapshot didn't offer never
@@ -9,6 +9,7 @@ import { type Cli, runAct } from './cli.ts'
 import { launch, type Started } from './launch.ts'
 import { type ConfirmText, confirmText, moved, type Write, WRITES } from './logic/actions.ts'
 import { type Launch, LAUNCHES, launchTitle, needsReason, promptText } from './logic/launch.ts'
+import { type FindingNode, offerOf } from './logic/health.ts'
 import type { Node } from './logic/registry.ts'
 import type { Store } from './logic/store.ts'
 
@@ -34,15 +35,21 @@ export const nativeUi: Ui = {
 
 export type Recorder = { ui: Ui; asked: ConfirmText[]; launched: Started[]; say(text: string, error?: boolean): void }
 
-type Target = Extract<Node, { kind: 'workstream' } | { kind: 'task' }>
+type Target = Extract<Node, { kind: 'workstream' } | { kind: 'task' }> | FindingNode
+
+// The workstream and task a write is for: the item's own, or a finding's offer for that write.
+function targetOf(action: Write, node: Target): { ws: string; task?: string } | undefined {
+  if (node.kind === 'finding') return offerOf(node.finding, action)
+  return node.kind === 'workstream' ? { ws: node.row.id } : { ws: node.ws, task: node.task.id }
+}
 
 export const commandOf = (name: Write | Launch) => `workstreams.${name}`
 
 export function registerCommands(cli: Cli, store: Store, reload: () => Promise<void>, rec: Recorder): vscode.Disposable[] {
   const write = async (action: Write, node?: Target) => {
-    if (!node || !node.writes.includes(action)) return rec.say(`${action} isn't offered here.`, true)
-    const ws = node.kind === 'workstream' ? node.row.id : node.ws
-    const task = node.kind === 'task' ? node.task.id : undefined
+    const target = node && node.writes.includes(action) ? targetOf(action, node) : undefined
+    if (!node || !target) return rec.say(`${action} isn't offered here.`, true)
+    const { ws, task } = target
     // Pinned now, from the snapshot the item was drawn with: a reload while the box is open
     // changes the tree, not what this write expects.
     const pinned = node.revisions

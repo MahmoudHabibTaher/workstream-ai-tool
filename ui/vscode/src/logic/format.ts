@@ -41,7 +41,7 @@ export type Row = {
 }
 
 export type Offer = { action: string; workstream: string; task?: string | null }
-export type Finding = { level: string; workstream: string | null; task?: string | null; message?: string; actions?: Offer[] }
+export type Finding = { kind?: string; level: string; workstream: string | null; task?: string | null; message?: string; actions?: Offer[] }
 export type Badge = { text: string; kind: string }
 export type Gate = { ok: boolean; blocking: boolean }
 export type Range = { kind: string; from?: string; to?: string }
