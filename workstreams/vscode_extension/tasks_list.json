@@ -429,7 +429,7 @@
         "test",
         "make test-vscode"
       ],
-      "branch": "",
+      "branch": "task/vs-07",
       "blockedBy": [
         "VS-06"
       ],
@@ -438,10 +438,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-06T11:33:49Z",
+      "baseCommit": "d424d8c2419fb64b5873c86242ad21fb3565e6ad",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
