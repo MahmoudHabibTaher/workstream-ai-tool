@@ -1,6 +1,6 @@
 # Build plan
 
-The approved plan for this tool, kept as written. Why it looks like this: [harness-comparison.md](harness-comparison.md). Decisions made with the owner: Python stdlib core, VS Code before JetBrains, Claude Code and Copilot CLI for v1, private repo for now.
+The approved plan for this tool, kept as written. Why it looks like this: [harness-comparison.md](harness-comparison.md). Decisions made with the owner: Python stdlib core, VS Code before JetBrains, Claude Code and Copilot CLI for v1, private repo for now, and [native IDE UI instead of webviews](decisions/0016-native-ide-ui.md) for M9 and M10.
 
 ## Status
 
@@ -15,7 +15,7 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M6 Pilots and measurement | Done: passed with one measure replaced, in [the gate](decisions/0009-pilot-gate.md). The Kotlin project got an import only, so Copilot has no real-project figures. The gaps it listed are closed |
 | M7 Claude Code pane | Done: `/workstreams` works in any project, as [a plugin in this repo](../ui/mod/README.md), and was seen drawn in the desktop app. See [the decision](decisions/0010-claude-pane.md) |
 | M8 `ws serve` and web UI | Done: `ws serve` works with no Node, from an installed wheel, and a stale write from the page is refused. Seen in one browser, on macOS. See [the guide](../ui/web/README.md) and [the decision](decisions/0011-web-ui.md) |
-| M9 onward | Not started |
+| M9 onward | Not started. M9 and M10 use each IDE's native UI and call the `ws` CLI, not the web UI: see [the decision](decisions/0016-native-ide-ui.md) |
 
 
 ## Design principles
