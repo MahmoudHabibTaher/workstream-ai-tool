@@ -6,3 +6,7 @@ dist/
 .venv/
 .DS_Store
 .workstream/runs/
+ui/vscode/node_modules/
+ui/vscode/out/
+ui/vscode/.vscode-test/
+*.vsix

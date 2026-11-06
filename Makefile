@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help test test-real test-mod audit eval
+.PHONY: help test test-real test-mod test-vscode vsix audit eval
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -13,6 +13,12 @@ test-real: ## Also adopt small real projects with the toolchains installed here
 test-mod: ## Check the Claude Code pane (needs the claude CLI; local only, like eval)
 	claude plugin validate ui/mod
 	claude plugin test ui/mod
+
+test-vscode: ## Build the VS Code extension and run its tests in the installed VS Code (local only, like test-mod)
+	cd ui/vscode && npm run build && npm run test:integration
+
+vsix: ## Package the VS Code extension as ui/vscode/workstreams.vsix
+	cd ui/vscode && npm run build && npm run vsix
 
 audit: ## Check every role's context against its limit
 	PYTHONPATH=src python3 -B -m workstream audit context
