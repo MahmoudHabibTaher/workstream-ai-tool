@@ -175,13 +175,29 @@
         "external-network"
       ],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-06T10:19:39Z",
       "baseCommit": "f6dfc73d93e2a219435f5884bdd82b7d738f1b91",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-06T10:53:25Z",
+      "commit": "cc781443725bc7d90772bb6632953d5dd97701fa",
+      "verification": {
+        "tree": "062c18b594644d295b62e483052a417a8a945051",
+        "at": "2026-11-06T10:34:16Z",
+        "postMerge": "skipped",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-vscode",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {

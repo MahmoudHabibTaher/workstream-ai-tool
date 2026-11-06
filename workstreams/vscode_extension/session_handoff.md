@@ -1,13 +1,18 @@
 # Session handoff
 
-**State:** 2/8 done on `main` at `8443524`, as of 2026-11-06.
+**State:** 3/8 done on `main` at `cc78144`, as of 2026-11-06.
 
-**Just landed:** VS-02 (`8443524666`)
+**Just landed:** VS-03 (`cc78144372`)
 
-**Still in progress:** VS-03 (coordinator)
+**Open decisions:**
+- D009: `--show` is left out of cli.ts until VS-06 (waiting: VS-04, VS-05, VS-06, VS-07, VS-08)
+- D010: `@types/node` is a fifth dev dependency, pinned to Node 20 (waiting: VS-04, VS-05, VS-06, VS-07, VS-08)
 
-**Next:** Nothing is ready: see the blocked tasks below, or anything still in progress.
+**Next:** `ws claim --commit VS-04` (phase 2).
 
 **Gotchas:**
-- VS-02: - The ws-review skill (src/workstream/assets/skills/ws-review/SKILL.md) and README.md don't mention `--show` yet. Both are outside this task's files.
-- `_range_of` already swaps a branch's `from` for merge-base(integration, branch), so `from` is rarely main's tip in practice. `side_rev` still takes merge-base(from, to), which matches the three-dot diff whatever `from` is.
+- VS-03: - `npm install` warns that `@vscode/vsce-sign` has a postinstall script not covered by `allowScripts`. Packaging worked without it.
+- Running the integration tests opens VS Code windows for a few seconds. That's why it stays local, like `test-mod`.
+- `make vsix` writes `ui/vscode/workstreams.vsix`, and `*.vsix` is gitignored.
+
+**Note:** post-merge verify skipped: main checkout lacked ui/vscode/node_modules (worktree setup runs only in task worktrees); coordinator ran make test (1078 OK) and make test-vscode (exit 0) on main+task/vs-03 in a scratch worktree after npm ci

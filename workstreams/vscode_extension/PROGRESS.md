@@ -6,6 +6,10 @@ Created 2026-11-06 from `main` at `fea25e7`.
 
 ---
 
+## 2026-11-06: VS-03: The extension's package, CLI module and test harness
+
+Merged as `cc78144372`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-03.md).
+
 ## 2026-11-06: VS-02: ws review --show gives one side of a diff
 
 Merged as `8443524666`. Verified: test pass. [Evidence](evidence/VS-02.md).
