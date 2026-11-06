@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ws review --show",
+  "description": "One file of a task's diffstat as it stands on one side of its review range. A branch review's old side is the merge base, not the integration branch's tip.",
+  "type": "object",
+  "required": [
+    "path",
+    "side",
+    "rev",
+    "text",
+    "binary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "side": {
+      "enum": [
+        "old",
+        "new"
+      ]
+    },
+    "rev": {
+      "description": "The full hash of the commit this side was read at.",
+      "type": "string"
+    },
+    "text": {
+      "description": "The file's content; null when the file doesn't exist on this side, or is binary.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "binary": {
+      "description": "True for a file with a NUL byte or that isn't UTF-8; text is then null.",
+      "type": "boolean"
+    }
+  }
+}
