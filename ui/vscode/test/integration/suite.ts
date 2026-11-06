@@ -9,6 +9,7 @@ import * as vscode from 'vscode'
 
 import type { Api } from '../../src/extension.ts'
 import type { Node } from '../../src/logic/registry.ts'
+import type { ReviewNode } from '../../src/logic/review.ts'
 
 const BRANCH_CLI = ['python3', '-B', '-m', 'workstream']
 
@@ -39,6 +40,9 @@ export async function run(): Promise<void> {
     await registryTree(api, started.roots[0])
     await writes(api, started.roots[0])
     await launches(api, started.roots[0])
+  } else if (which === 'review') {
+    assert.deepEqual(api.shown, [])
+    await reviewQueue(api, started.roots[0])
   } else if (which === 'plain') {
     assert.deepEqual(api.ran, [[...BRANCH_CLI, 'root']])
     assert.equal(api.shown.length, 1)
@@ -305,4 +309,135 @@ async function launches(api: Api, root: string): Promise<void> {
   assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill to abandon workstream alpha: superseded')
   assert.equal(vscode.window.terminals.length, open)
   console.log(`abandon, no agent: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
+}
+
+type RItem = { node: ReviewNode; item: vscode.TreeItem; children: RItem[] }
+
+// The Review tree, every node opened, as VS Code would draw it.
+async function walkReview(tree: NonNullable<Api['review']>, node?: ReviewNode): Promise<RItem[]> {
+  const found: RItem[] = []
+  for (const child of await tree.getChildren(node)) {
+    const item = tree.getTreeItem(child)
+    const children = item.collapsibleState === vscode.TreeItemCollapsibleState.None ? [] : await walkReview(tree, child)
+    found.push({ node: child, item, children })
+  }
+  return found
+}
+
+const rlabel = (i: RItem) => String(i.item.label)
+const rline = (i: RItem) => `${rlabel(i)} | ${String(i.item.description ?? '')}`
+const byLabel = (items: RItem[], name: string) => {
+  const got = items.find(i => rlabel(i) === name)
+  assert.ok(got, `no ${name} in ${JSON.stringify(items.map(rlabel))}`)
+  return got
+}
+
+type ShowJson = { path: string; side: string; rev: string; text: string | null; binary: boolean }
+
+async function reviewQueue(api: Api, root: string): Promise<void> {
+  const tree = api.review
+  assert.ok(tree)
+  await api.settled()
+  const cli = (...args: string[]) => execFileSync(BRANCH_CLI[0], [...BRANCH_CLI.slice(1), ...args], { cwd: root, encoding: 'utf8' })
+
+  // 2. Branch work first, then landed work.
+  const top = await walkReview(tree)
+  assert.deepEqual(top.map(rlabel), ['On a branch', 'Landed'])
+  assert.deepEqual(top.map(g => g.children.map(rlabel)), [['R-1 On a branch'], ['R-2 Landed']])
+  const queue = JSON.parse(cli('review', '--queue')) as { tasks: { task: string; state: string }[] }
+  assert.deepEqual(queue.tasks.map(t => [t.task, t.state]), [['R-1', 'branch'], ['R-2', 'landed']])
+  console.log(`queue: ${JSON.stringify(top.map(g => [rline(g), g.children.map(rline)]))}`)
+
+  const r1 = top[0].children[0].children
+  console.log(`R-1: ${JSON.stringify(r1.map(i => [rline(i), i.children.map(rline)]))}`)
+  assert.match(rlabel(r1[0]), /^branch: [0-9a-f]{10}\.\.\.task\/r-1$/)
+  assert.match(rlabel(r1[1]), /would stop this landing|Would land|Every check passes/)
+  assert.ok(r1[1].children.length > 0)
+
+  // 5. Each acceptance item shows its proof, or that it has none; the proof stays text.
+  const items = byLabel(r1, 'Acceptance and proof')
+  assert.deepEqual(items.children.map(rline), [
+    '1. the sides match | `diff` printed "same" <b>bold</b> [x](command:workbench.action.quit)',
+    '2. a binary file says so | Nothing quoted.',
+  ])
+  const tip = items.children[0].item.tooltip as vscode.MarkdownString
+  assert.ok(!tip.isTrusted)
+  assert.equal(tip.supportHtml, false)
+  assert.ok(!tip.value.includes('](command:'), tip.value)
+  assert.ok(!tip.value.includes('<b>'), tip.value)
+  console.log(`proof tooltip: ${JSON.stringify(tip.value)}`)
+
+  // 3. A file of a branch task, opened after main moved: the diff editor's sides are
+  // `ws review --show` old and new, and the old side is the merge base, not main's tip.
+  const files = byLabel(r1, 'Files').children
+  assert.deepEqual(files.map(rline), ['added.txt | +1 −0', 'blob.bin | binary', 'shared.txt | +1 −1', 'workstreams/alpha/evidence/R-1.md | +20 −0'])
+  const show = (path: string, side: string) => JSON.parse(cli('review', 'R-1', '-w', 'alpha', '--show', path, '--side', side)) as ShowJson
+  const openDiff = async (file: RItem) => {
+    const command = file.item.command
+    assert.ok(command)
+    await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []))
+    const opened = api.opened.at(-1)
+    assert.ok(opened?.kind === 'diff', JSON.stringify(opened))
+    const tab = await until(`the diff of ${rlabel(file)}`, async () => {
+      const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input
+      return input instanceof vscode.TabInputTextDiff && input.modified.toString() === opened.right.toString() ? input : undefined
+    })
+    const left = (await vscode.workspace.openTextDocument(tab.original)).getText()
+    const right = (await vscode.workspace.openTextDocument(tab.modified)).getText()
+    return { title: opened.title, left, right, tab }
+  }
+  const shared = await openDiff(byLabel(files, 'shared.txt'))
+  const [old, now] = [show('shared.txt', 'old'), show('shared.txt', 'new')]
+  assert.equal(shared.left, old.text)
+  assert.equal(shared.right, now.text)
+  assert.equal(shared.left, 'one\ntwo\nthree\n')
+  assert.equal(shared.right, 'one\nTWO\nthree\n')
+  const mainTip = git(root, 'show', 'main:shared.txt')
+  assert.notEqual(shared.left.trim(), mainTip)
+  assert.equal(old.rev, git(root, 'merge-base', 'main', 'task/r-1'))
+  assert.equal(shared.tab.original.scheme, 'ws-review')
+  console.log(`shared.txt: tab ${JSON.stringify(shared.title)}; left ${JSON.stringify(shared.left)} = --show old ${JSON.stringify(old.text)} at ${old.rev}; right ${JSON.stringify(shared.right)} = --show new ${JSON.stringify(now.text)}; main's tip ${JSON.stringify(mainTip)}`)
+
+  // 4. An added file's old side is empty; a binary file opens no diff and says so.
+  const added = await openDiff(byLabel(files, 'added.txt'))
+  assert.equal(show('added.txt', 'old').text, null)
+  assert.deepEqual([added.left, added.right], ['', 'a new file\n'])
+  console.log(`added.txt: left ${JSON.stringify(added.left)}, right ${JSON.stringify(added.right)}`)
+  const before = vscode.window.tabGroups.all.flatMap(g => g.tabs).length
+  const blob = byLabel(files, 'blob.bin').item.command
+  assert.ok(blob)
+  await vscode.commands.executeCommand(blob.command, ...(blob.arguments ?? []))
+  assert.deepEqual(api.opened.at(-1), { kind: 'binary', text: 'blob.bin is binary, so no diff opens.' })
+  assert.equal(api.shown.at(-1), 'blob.bin is binary, so no diff opens.')
+  assert.equal(vscode.window.tabGroups.all.flatMap(g => g.tabs).length, before)
+  assert.equal(show('blob.bin', 'new').binary, true)
+  console.log(`blob.bin: shown ${JSON.stringify(api.shown.at(-1))}; tabs ${before} before and after`)
+
+  // 5. The evidence opens in the editor: a branch's from the branch, read-only; a landed one's
+  // as the file itself.
+  const openEvidence = async (item: RItem) => {
+    const command = item.item.command
+    assert.ok(command)
+    await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []))
+    const opened = api.opened.at(-1)
+    assert.ok(opened?.kind === 'evidence', JSON.stringify(opened))
+    const editor = await until('the evidence in an editor', async () => {
+      const active = vscode.window.activeTextEditor
+      return active?.document.uri.toString() === opened.uri.toString() ? active : undefined
+    })
+    return editor.document
+  }
+  const branchEvidence = await openEvidence(byLabel(r1, 'Evidence'))
+  assert.equal(branchEvidence.uri.scheme, 'ws-review')
+  assert.equal(branchEvidence.getText(), git(root, 'show', 'task/r-1:workstreams/alpha/evidence/R-1.md') + '\n')
+  console.log(`R-1 evidence: ${branchEvidence.uri.toString()} (${branchEvidence.languageId}), ${branchEvidence.getText().length} chars, same as the branch's file`)
+
+  const r2 = top[1].children[0].children
+  console.log(`R-2: ${JSON.stringify(r2.map(i => [rline(i), i.children.map(rline)]))}`)
+  assert.match(rlabel(r2[1]), /^Landed as [0-9a-f]{10}\. Its gates ran when it landed\.$/)
+  assert.deepEqual(byLabel(r2, 'Acceptance and proof').children.map(rline), ['1. it landed | `git log` shows it'])
+  const landedEvidence = await openEvidence(byLabel(r2, 'Evidence'))
+  assert.equal(landedEvidence.uri.scheme, 'file')
+  assert.equal(realpathSync(landedEvidence.uri.fsPath), realpathSync(join(root, 'workstreams', 'alpha', 'evidence', 'R-2.md')))
+  console.log(`R-2 evidence: ${landedEvidence.uri.fsPath}`)
 }

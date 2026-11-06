@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { execRun, loadBudget, loadQueue, loadReview, loadSnapshot, makeCli, type Ran, resolveRoots, runAct, SETTING } from '../../src/cli.ts'
+import { execRun, loadBudget, loadQueue, loadReview, loadShow, loadSnapshot, makeCli, type Ran, resolveRoots, runAct, SETTING } from '../../src/cli.ts'
 import { start } from '../../src/logic/start.ts'
 
 type Call = { argv: string[]; cwd: string }
@@ -83,12 +83,14 @@ test('review, queue and budget argv', async () => {
   await loadReview(cli, '/p', 'alpha', 'T1')
   await loadReview(cli, '/p', 'alpha', 'T1', { checks: true })
   await loadReview(cli, '/p', 'alpha', 'T1', { file: 'a b.txt' })
+  await loadShow(cli, '/p', 'alpha', 'T1', 'a b.txt', 'old')
   await loadQueue(cli, '/p')
   await loadBudget(cli, '/p')
   assert.deepEqual(calls.map(c => c.argv), [
     ['ws', 'review', 'T1', '-w', 'alpha'],
     ['ws', 'review', 'T1', '-w', 'alpha', '--checks'],
     ['ws', 'review', 'T1', '-w', 'alpha', '--file', 'a b.txt'],
+    ['ws', 'review', 'T1', '-w', 'alpha', '--show', 'a b.txt', '--side', 'old'],
     ['ws', 'review', '--queue'],
     ['ws', 'audit', 'context', '--json'],
   ])

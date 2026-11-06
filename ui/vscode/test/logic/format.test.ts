@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
-  ageOf, badgesOf, blockedLine, errorCount, gateSummary, lanes, rangeLine, splitRows, type Task, waveLine,
+  ageOf, badgesOf, blockedLine, errorCount, gateSummary, lanes, rangeLine, splitRows, statLine, type Task, waveLine,
 } from '../../src/logic/format.ts'
 
 const task = (id: string, fields: Partial<Task> = {}): Task => ({ id, phase: 1, priority: 10, status: 'todo', blockedBy: [], mode: 'background', ...fields })
@@ -64,9 +64,11 @@ test('gates add up to one line', () => {
   assert.deepEqual(gateSummary([gate(false, true), gate(false, true), gate(false, false)]), { kind: 'bad', text: '2 checks would stop this landing' })
 })
 
-test('range lines read plainly', () => {
+test('range and stat lines read plainly', () => {
   const sha = 'a'.repeat(40)
   assert.equal(rangeLine({ kind: 'none' }), 'No diff: this task has no commit or branch yet.')
   assert.equal(rangeLine({ kind: 'branch', from: sha, to: 'task/x' }), `branch: ${'a'.repeat(10)}...task/x`)
   assert.equal(rangeLine({ kind: 'merge', from: `${sha}^1`, to: sha }), `merge: ${'a'.repeat(10)}^1..${'a'.repeat(10)}`)
+  assert.equal(statLine({ added: 2, removed: 1 }), '+2 −1')
+  assert.equal(statLine({ added: null, removed: null }), 'binary')
 })

@@ -62,6 +62,10 @@
         {
           "id": "workstreams.registry",
           "name": "Registry"
+        },
+        {
+          "id": "workstreams.review",
+          "name": "Review"
         }
       ]
     },
@@ -134,6 +138,16 @@
         "command": "workstreams.abandon",
         "title": "Abandon…",
         "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.openReviewFile",
+        "title": "Open Diff",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.openEvidence",
+        "title": "Open Evidence",
+        "category": "Workstreams"
       }
     ],
     "menus": {
@@ -141,6 +155,11 @@
         {
           "command": "workstreams.refresh",
           "when": "view == workstreams.registry",
+          "group": "navigation@1"
+        },
+        {
+          "command": "workstreams.refresh",
+          "when": "view == workstreams.review",
           "group": "navigation@1"
         },
         {
@@ -197,6 +216,14 @@
         },
         {
           "command": "workstreams.abandon",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.openReviewFile",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.openEvidence",
           "when": "false"
         }
       ],

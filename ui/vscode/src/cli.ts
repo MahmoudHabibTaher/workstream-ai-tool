@@ -103,6 +103,16 @@ export async function loadReview(cli: Cli, root: string, wsId: string, task: str
   return parsed('review', await ws(cli, args, root), cli.command)
 }
 
+export type Side = 'old' | 'new'
+// One file of a task's diffstat on one side: `text` is null when the file isn't on that side, or
+// when `binary` is true. A branch's old side is its merge base, which the CLI works out.
+export type Shown = { path: string; side: Side; rev: string; text: string | null; binary: boolean }
+
+export async function loadShow(cli: Cli, root: string, wsId: string, task: string, path: string, side: Side): Promise<Loaded<Shown>> {
+  const args = ['review', task, '-w', wsId, '--show', path, '--side', side]
+  return parsed('review --show', await ws(cli, args, root), cli.command)
+}
+
 // What can be reviewed across the open workstreams.
 export async function loadQueue(cli: Cli, root: string): Promise<Loaded<unknown>> {
   return parsed('review queue', await ws(cli, ['review', '--queue'], root), cli.command)

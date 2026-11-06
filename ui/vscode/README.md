@@ -13,7 +13,7 @@ The extension runs only in trusted workspaces, and not in virtual ones.
 
 ## What it shows
 
-The **Workstreams** view container holds the **Registry** tree.
+The **Workstreams** view container holds the **Registry** and **Review** trees.
 
 - Each open workstream shows its status, `done/total` and its count of health errors. It opens to its wave line, then its phases in order, then each phase's tasks by priority, with badges such as `★ ready`, `waits on …` and `claimed 1h`. Last comes **Documents**.
 - A task's tooltip holds its summary, acceptance items and verify commands. Repo text is shown as plain text, never as markup.
@@ -21,6 +21,15 @@ The **Workstreams** view container holds the **Registry** tree.
 - Under **Documents**, Plan, Progress, Decisions and Handoff each open in Markdown preview.
 - The status bar shows the active workstream's wave line and error count. Clicking it focuses the view.
 - The view stays current without Refresh. The extension watches every path in the snapshot's `refresh` list, waits until changes stop for 300 ms, and then reads one snapshot per burst. A claim, a commit or a new evidence file made from a shell shows up on its own.
+
+### Review
+
+The **Review** tree is `ws review --queue`: **On a branch** first, then **Landed**. Each task opens to what `ws review --checks` says about it.
+
+- Its range, then its gate summary with each gate under it. A landed task says its gates ran when it landed.
+- **Acceptance and proof**: each item with the proof its evidence quotes, or `Nothing quoted.`
+- **Evidence** opens the evidence file in the editor. A landed task's opens as the file; a branch's opens read-only from the branch.
+- **Files** lists the diffstat. A file opens in the diff editor, each side read through `ws review --show`, so a branch's old side is its merge base and not main's tip. A file the side doesn't have is empty there. A binary file opens nothing and says so.
 
 ## What it does
 

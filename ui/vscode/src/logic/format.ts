@@ -102,6 +102,11 @@ export function rangeLine(range: Range): string {
   return `${range.kind}: ${short(range.from)}${range.kind === 'branch' ? '...' : '..'}${short(range.to)}`
 }
 
+export function statLine(file: { added: number | null; removed: number | null }): string {
+  if (file.added === null || file.removed === null) return 'binary'
+  return `+${file.added} −${file.removed}`
+}
+
 // What the gates add up to, in a line. settle decides; this says what it would say.
 export function gateSummary(gates: Gate[]): Badge {
   const stopping = gates.filter(g => !g.ok && g.blocking).length
