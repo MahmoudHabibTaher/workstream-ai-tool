@@ -6,6 +6,10 @@ Created 2026-11-06 from `main` at `fea25e7`.
 
 ---
 
+## 2026-11-06: VS-08: Prove it in VS Code, and write down what's true
+
+Merged as `d24def5b16`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-08.md).
+
 ## 2026-11-06: VS-07: Health in the Problems panel, and the budget
 
 Merged as `69c422e0d5`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-07.md).

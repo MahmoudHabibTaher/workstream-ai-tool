@@ -144,3 +144,7 @@ The write menus' `when` is now `view =~ /^workstreams\.(registry|health)$/`, key
 ## D032 (2026-11-06, VS-07): the Health tree leaves out the web UI's "Progress out of date" rows
 
 `health.js` also lists rows with `progressStale` and a Sync button. The Registry tree already offers Sync on those rows through the row's `actions`, and acceptance covers findings. Rejected: copying that section now. **Closed.**
+
+## D033 (2026-11-06, VS-08): the hand check of Run used a stand-in agent command
+
+The sample's `workstreams.agentCommand` was `["/bin/sh", "-c", "printf ... \"$0\"; exec /bin/zsh -i"]`, which shows the argument it got, instead of `claude`, so the check didn't start a real agent on the sample. `/bin/echo` was tried first and exited before the terminal drew anything. 0017 lists a real agent under Not proven. Rejected: `claude`, which would have started a billed session working on a throwaway project. **Closed.**
