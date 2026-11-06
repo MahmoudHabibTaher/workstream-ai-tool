@@ -100,6 +100,48 @@ class PackageTests(unittest.TestCase):
         for key in ("erasableSyntaxOnly", "allowImportingTsExtensions", "rewriteRelativeImportExtensions"):
             self.assertIs(options[key], True, key)
 
+    def test_writes_and_launches_show_only_where_offered(self) -> None:
+        """Plan D-ACTIONS: a write's menu entry keys on the `act:<write>` word the tree item's
+        contextValue carries from the snapshot's offers; a launch keys on `launch`. None of them
+        is in the command palette, where no tree item says what is offered."""
+        contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
+        setting = contributes["configuration"]["properties"]["workstreams.agentCommand"]
+        self.assertEqual((setting["type"], setting["default"]), ("array", []))
+        commands = {c["command"] for c in contributes["commands"]}
+        menu = {m["command"]: m["when"] for m in contributes["menus"]["view/item/context"]}
+        hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
+        for word, names in (("act:{}", ("pause", "resume", "sync", "unclaim")),
+                            ("launch", ("run", "coordinate", "close", "abandon"))):
+            for name in names:
+                command = f"workstreams.{name}"
+                self.assertIn(command, commands)
+                self.assertIn(command, hidden)
+                self.assertEqual(menu[command], "view == workstreams.registry && viewItem =~ "
+                                 f"/(^| ){word.format(name)}( |$)/")
+        self.assertIn("contextValue(node.kind, node.writes", (SRC / "views" / "registry.ts").read_text())
+
+    def test_one_prompt_table_with_the_web_uis_text(self) -> None:
+        logic = (REPO / "src" / "workstream" / "assets" / "web" / "logic.js").read_text()
+        body = logic[logic.index("export function promptText"):]
+        body = body[:body.index("\n}\n")]
+        web = re.findall(r"`([^`]*)`", body)
+        self.assertEqual(len(web), 4)
+        ours = (SRC / "logic" / "launch.ts").read_text()
+        for text in web:
+            self.assertIn(f"`{text}`", ours)
+        self.assertEqual([p.name for p in sources() if "Use the ws-" in p.read_text()], ["launch.ts"])
+
+    def test_launch_targets_live_in_one_module(self) -> None:
+        """Plan D-ACTIONS: launch.ts holds every target; a caller only calls `launch`."""
+        for path in sources():
+            text = path.read_text()
+            for sink in ("createTerminal", "clipboard.writeText", "sendText"):
+                if sink in text:
+                    self.assertEqual(path.relative_to(SRC).as_posix(), "launch.ts", sink)
+        self.assertNotIn("sendText", (SRC / "launch.ts").read_text())
+        self.assertIn("export const TARGETS: Target[] = [terminal, clipboard]", (SRC / "launch.ts").read_text())
+        self.assertIn("await launch({", (SRC / "commands.ts").read_text())
+
     def test_a_worktree_installs_the_locked_dependencies(self) -> None:
         self.assertIn("cd ui/vscode && npm ci", load_config(REPO / ".workstream" / "config.toml").worktree_setup)
 

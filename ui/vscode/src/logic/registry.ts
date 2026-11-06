@@ -1,6 +1,7 @@
 // The Registry tree as plain data: which nodes sit under which, and the text each one shows. The
 // view turns these into TreeItems; nothing here imports `vscode`, so `node --test` covers it.
-import type { Snapshot } from '../cli.ts'
+import type { Revisions, Snapshot } from '../cli.ts'
+import { launches, rowWrites, taskWrites, type Write } from './actions.ts'
 import {
   badgesOf, blockedLine, DOC_NAMES, type DocName, errorCount, type Finding, lanes, type Row, splitRows, type Task,
   type Wave, waveLine,
@@ -9,16 +10,19 @@ import {
 // A workstream's own snapshot (`ws snapshot -w <id>`) adds its tasks, wave and file paths.
 export type WsSnapshot = Snapshot & { tasks?: Task[]; wave?: Wave; paths?: Record<string, unknown> }
 
+// Workstream and task nodes keep the revisions of the snapshot they were drawn from, which a
+// write pins (plan T7), and the writes the snapshot offers on them.
+
 // A tooltip as sections: each heading is the extension's own constant, each line is repo text,
 // which the view appends as text, never as markup.
 export type Tip = { heading?: string; lines: string[] }[]
 
 export type Node =
   | { kind: 'root'; id: string; root: string }
-  | { kind: 'workstream'; id: string; root: string; row: Row; errors: number }
+  | { kind: 'workstream'; id: string; root: string; row: Row; errors: number; revisions: Revisions; writes: Write[]; launch: boolean }
   | { kind: 'wave'; id: string; text: string }
-  | { kind: 'phase'; id: string; root: string; ws: string; phase: number; tasks: Task[]; all: Task[]; wave?: Wave }
-  | { kind: 'task'; id: string; root: string; ws: string; task: Task; badges: string[] }
+  | { kind: 'phase'; id: string; root: string; ws: string; phase: number; tasks: Task[]; all: Task[]; wave?: Wave; revisions: Revisions; health: Finding[] }
+  | { kind: 'task'; id: string; root: string; ws: string; task: Task; badges: string[]; revisions: Revisions; writes: Write[] }
   | { kind: 'documents'; id: string; root: string; ws: string; docs: { name: DocName; path: string }[] }
   | { kind: 'document'; id: string; root: string; ws: string; name: DocName; path: string }
   | { kind: 'message'; id: string; text: string; error: boolean }
@@ -39,7 +43,11 @@ function health(snapshot: Snapshot): Finding[] {
 export function workstreams(root: string, snapshot: Snapshot, showDone: boolean): Node[] {
   const { open, closed } = splitRows(rows(snapshot))
   const shown = showDone ? [...open, ...closed] : open
-  return shown.map(row => ({ kind: 'workstream', id: key(root, row.id), root, row, errors: errorCount(health(snapshot), row.id) }))
+  const found = health(snapshot)
+  return shown.map(row => ({
+    kind: 'workstream', id: key(root, row.id), root, row, errors: errorCount(found, row.id), revisions: snapshot.revisions,
+    writes: rowWrites(row, found), launch: launches(row),
+  }))
 }
 
 // Under a workstream: its wave line, its phases in order, then its documents.
@@ -49,7 +57,7 @@ export function workstreamChildren(root: string, ws: string, snapshot: WsSnapsho
   const line = waveLine(snapshot.wave)
   if (line) found.push({ kind: 'wave', id: key(root, ws, 'wave'), text: line })
   for (const lane of lanes(tasks)) {
-    found.push({ kind: 'phase', id: key(root, ws, 'phase', lane.phase), root, ws, phase: lane.phase, tasks: lane.tasks, all: tasks, wave: snapshot.wave })
+    found.push({ kind: 'phase', id: key(root, ws, 'phase', lane.phase), root, ws, phase: lane.phase, tasks: lane.tasks, all: tasks, wave: snapshot.wave, revisions: snapshot.revisions, health: health(snapshot) })
   }
   const paths = snapshot.paths ?? {}
   const docs = DOC_NAMES.filter(name => typeof paths[name] === 'string').map(name => ({ name, path: paths[name] as string }))
@@ -61,7 +69,7 @@ export function workstreamChildren(root: string, ws: string, snapshot: WsSnapsho
 export function phaseChildren(node: Extract<Node, { kind: 'phase' }>, now: number): Node[] {
   return node.tasks.map(task => ({
     kind: 'task', id: key(node.root, node.ws, 'task', task.id), root: node.root, ws: node.ws, task,
-    badges: badgesOf(task, node.all, node.wave, now).map(b => b.text),
+    badges: badgesOf(task, node.all, node.wave, now).map(b => b.text), revisions: node.revisions, writes: taskWrites(node.health, node.ws, task.id),
   }))
 }
 

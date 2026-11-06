@@ -2,8 +2,8 @@
 // which @vscode/test-electron reports as a failed run.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { realpathSync } from 'node:fs'
-import { sep } from 'node:path'
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { join, sep } from 'node:path'
 
 import * as vscode from 'vscode'
 
@@ -37,6 +37,8 @@ export async function run(): Promise<void> {
     assert.deepEqual(registry.map(row => row.id), ['alpha', 'beta'])
     assert.match(snapshot.revisions.registry, /^[0-9a-f]{64}$/)
     await registryTree(api, started.roots[0])
+    await writes(api, started.roots[0])
+    await launches(api, started.roots[0])
   } else if (which === 'plain') {
     assert.deepEqual(api.ran, [[...BRANCH_CLI, 'root']])
     assert.equal(api.shown.length, 1)
@@ -143,4 +145,164 @@ async function registryTree(api: Api, root: string): Promise<void> {
   assert.ok(api.reloads.length > before)
   assert.ok(api.reloads.slice(before).every(why => why === 'watch'), JSON.stringify(api.reloads))
   console.log(`after the claim: ${claimed}; reloads ${JSON.stringify(api.reloads.slice(before))}; status bar ${api.statusBar?.text}`)
+}
+
+const git = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
+const context = (i: Item | undefined) => String(i?.item.contextValue ?? '')
+
+// The alpha row, its first phase's tasks, and every row with Show done on, as drawn now.
+async function drawn(tree: Tree) {
+  const top = await walk(tree)
+  return { alpha: top[0], tasks: top[0]?.children[1]?.children ?? [] }
+}
+
+async function writes(api: Api, root: string): Promise<void> {
+  const tree = api.tree
+  assert.ok(tree)
+  // The claim left the queue dirty, which act refuses; commit it as an orchestrator would.
+  git(root, 'commit', '-qam', 'claim A-1')
+  await vscode.commands.executeCommand('workstreams.refresh')
+  await api.settled()
+
+  // Commands follow the snapshot's offers: alpha (active) offers pause and the launches, a fresh
+  // claim offers no unclaim, and a closed row offers nothing.
+  let now = await drawn(tree)
+  assert.match(context(now.alpha), /^workstream act:pause( act:sync)? launch$/)
+  assert.deepEqual(now.tasks.map(context), ['task', 'task'])
+  await vscode.commands.executeCommand('workstreams.showDone')
+  const beta = (await walk(tree))[1]
+  assert.equal(context(beta), 'workstream')
+  await vscode.commands.executeCommand('workstreams.hideDone')
+  console.log(`offers: alpha ${JSON.stringify(context(now.alpha))}, tasks ${JSON.stringify(now.tasks.map(context))}, beta ${JSON.stringify(context(beta))}`)
+
+  // A claim two days old with no worktree is stale, and its finding offers unclaim on that task only.
+  const queue = join(root, 'workstreams', 'alpha', 'tasks_list.json')
+  const data = JSON.parse(readFileSync(queue, 'utf8')) as { tasks: { id: string; startedAt?: string }[] }
+  const a1 = data.tasks.find(t => t.id === 'A-1')
+  assert.ok(a1?.startedAt)
+  a1.startedAt = new Date(Date.now() - 48 * 3600_000).toISOString().replace(/\.\d+Z$/, 'Z')
+  writeFileSync(queue, JSON.stringify(data, null, 2) + '\n')
+  git(root, 'commit', '-qam', 'an old claim')
+  now = await until('unclaim offered on A-1', async () => {
+    const got = await drawn(tree)
+    return context(got.tasks[0]) === 'task act:unclaim' ? got : undefined
+  })
+  assert.deepEqual(now.tasks.map(context), ['task act:unclaim', 'task'])
+  console.log(`after the claim went stale: tasks ${JSON.stringify(now.tasks.map(line))} offer ${JSON.stringify(now.tasks.map(context))}`)
+
+  // 1. A confirmed pause commits through ws act, and the tree shows paused.
+  const asked: string[] = []
+  api.ui = { confirm: async text => { asked.push(`${text.message} | ${text.detail}`); return true }, reason: async () => undefined }
+  const before = git(root, 'rev-parse', 'HEAD')
+  const ranBefore = api.ran.length
+  await vscode.commands.executeCommand('workstreams.pause', now.alpha.node)
+  assert.deepEqual(asked, ['Pause alpha? | This commits "alpha: pause" on main.'])
+  const act = api.ran.slice(ranBefore).find(argv => argv.includes('act'))
+  assert.ok(act)
+  assert.deepEqual(act.slice(BRANCH_CLI.length, BRANCH_CLI.length + 4), ['act', 'pause', '-w', 'alpha'])
+  const pinned = (now.alpha.node as Extract<Node, { kind: 'workstream' }>).revisions
+  assert.deepEqual(act.slice(BRANCH_CLI.length + 4), ['--expect-registry', pinned.registry, '--expect-tasks', pinned.tasks.alpha])
+  assert.equal(git(root, 'rev-parse', 'HEAD~1'), before)
+  assert.equal(git(root, 'log', '-1', '--format=%s'), 'alpha: pause (ws act)')
+  assert.equal(git(root, 'status', '--porcelain'), '')
+  const paused = await until('alpha paused in the tree', async () => {
+    const got = await drawn(tree)
+    return /^paused · /.test(String(got.alpha?.item.description)) ? got : undefined
+  })
+  assert.match(context(paused.alpha), /^workstream act:resume( act:sync)? launch$/)
+  console.log(`pause: ran ${JSON.stringify(act)}; HEAD ${git(root, 'log', '-1', '--format=%h %s')}; shown ${JSON.stringify(api.shown.at(-1))}; tree ${line(paused.alpha)} ${JSON.stringify(context(paused.alpha))}`)
+
+  // 2. A commit from a shell while the box is open: confirming shows act's stale-view refusal,
+  // and neither HEAD, the working tree nor the Registry tree moves.
+  const registryFile = join(root, 'workstreams', 'workstreams.json')
+  let head = ''
+  let status = ''
+  api.ui = {
+    confirm: async text => {
+      asked.push(`${text.message} | ${text.detail}`)
+      const reg = JSON.parse(readFileSync(registryFile, 'utf8')) as { workstreams: { id: string; summary?: string }[] }
+      const alpha = reg.workstreams.find(w => w.id === 'alpha')
+      assert.ok(alpha)
+      alpha.summary = 'edited from a shell'
+      writeFileSync(registryFile, JSON.stringify(reg, null, 2) + '\n')
+      git(root, 'commit', '-qam', 'from a shell')
+      head = git(root, 'rev-parse', 'HEAD')
+      status = git(root, 'status', '--porcelain')
+      return true
+    },
+    reason: async () => undefined,
+  }
+  await vscode.commands.executeCommand('workstreams.resume', paused.alpha.node)
+  assert.equal(asked.at(-1), 'Resume alpha? | This commits "alpha: resume" on main.')
+  assert.match(api.shown.at(-1) ?? '', /^refused: stale view: the registry changed since it was drawn/)
+  assert.equal(git(root, 'rev-parse', 'HEAD'), head)
+  assert.equal(git(root, 'log', '-1', '--format=%s'), 'from a shell')
+  assert.equal(git(root, 'status', '--porcelain'), status)
+  await api.settled()
+  const after = await drawn(tree)
+  assert.match(String(after.alpha.item.description), /^paused · /)
+  console.log(`stale: shown ${JSON.stringify(api.shown.at(-1))}; HEAD ${git(root, 'log', '-1', '--format=%h %s')} unchanged; status ${JSON.stringify(status)}; tree ${line(after.alpha)}`)
+
+  // A box opened on a row drawn before the latest reload says the write will be refused.
+  api.ui = { confirm: async text => { asked.push(`${text.message} | ${text.detail}`); return true }, reason: async () => undefined }
+  await vscode.commands.executeCommand('workstreams.resume', paused.alpha.node)
+  assert.match(asked.at(-1) ?? '', /This has changed since the tree drew it, so the write will be refused\./)
+  assert.match(api.shown.at(-1) ?? '', /^refused: stale view/)
+  assert.equal(git(root, 'rev-parse', 'HEAD'), head)
+}
+
+async function launches(api: Api, root: string): Promise<void> {
+  const tree = api.tree
+  assert.ok(tree)
+  await api.settled()
+  const alpha = (await drawn(tree)).alpha.node
+  const config = vscode.workspace.getConfiguration('workstreams')
+  const reasons: string[] = []
+  let answer: string | undefined
+  api.ui = { confirm: async () => false, reason: async id => { reasons.push(id); return answer } }
+
+  // 4. With an agent command, Run starts it as the terminal's process: the prompt is one argument.
+  await config.update('agentCommand', ['/bin/echo', 'agent:'], vscode.ConfigurationTarget.Global)
+  const terminals = vscode.window.terminals.length
+  await vscode.commands.executeCommand('workstreams.run', alpha)
+  const run = api.launched.at(-1)
+  assert.equal(run?.target, 'terminal')
+  assert.ok(run?.terminal)
+  assert.equal(vscode.window.terminals.length, terminals + 1)
+  const options = run.terminal.creationOptions as vscode.TerminalOptions
+  assert.equal(options.shellPath, '/bin/echo')
+  assert.deepEqual(options.shellArgs, ['agent:', 'Use the ws-run skill to run workstream alpha.'])
+  assert.equal(realpathSync(String(options.cwd)), realpathSync(root))
+  console.log(`run: terminal ${JSON.stringify(run.terminal.name)} shellPath ${options.shellPath} shellArgs ${JSON.stringify(options.shellArgs)} cwd ${String(options.cwd)}`)
+
+  // Abandon asks for the reason first, and the reason rides in the same one argument.
+  answer = 'it\'s "done" elsewhere; $(nothing runs)'
+  await vscode.commands.executeCommand('workstreams.abandon', alpha)
+  assert.deepEqual(reasons, ['alpha'])
+  const abandon = api.launched.at(-1)?.terminal?.creationOptions as vscode.TerminalOptions
+  assert.deepEqual(abandon.shellArgs, ['agent:', `Use the ws-coordinate skill to abandon workstream alpha: ${answer}`])
+  console.log(`abandon: shellArgs ${JSON.stringify(abandon.shellArgs)}`)
+
+  // 5. With no agent command, Run copies the prompt and starts nothing.
+  await config.update('agentCommand', undefined, vscode.ConfigurationTarget.Global)
+  const launched = api.launched.length
+  const open = vscode.window.terminals.length
+  await vscode.commands.executeCommand('workstreams.run', alpha)
+  assert.equal(api.launched.at(-1)?.target, 'clipboard')
+  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-run skill to run workstream alpha.')
+  assert.equal(vscode.window.terminals.length, open)
+  console.log(`run, no agent: shown ${JSON.stringify(api.shown.at(-1))}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
+
+  // Abandon asks first: no reason, nothing copied; a reason, its prompt copied.
+  answer = undefined
+  await vscode.commands.executeCommand('workstreams.abandon', alpha)
+  assert.deepEqual(reasons, ['alpha', 'alpha'])
+  assert.equal(api.launched.length, launched + 1)
+  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-run skill to run workstream alpha.')
+  answer = 'superseded'
+  await vscode.commands.executeCommand('workstreams.abandon', alpha)
+  assert.equal(api.launched.at(-1)?.target, 'clipboard')
+  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill to abandon workstream alpha: superseded')
+  assert.equal(vscode.window.terminals.length, open)
+  console.log(`abandon, no agent: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
 }
