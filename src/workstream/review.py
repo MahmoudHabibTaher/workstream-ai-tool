@@ -7,7 +7,8 @@
 `--checks` adds what a person judging the task needs and a UI can't work out: the gates settling
 would run, each acceptance item beside its quoted proof, and the evidence, read from the task's
 branch while it's still there. `ws review --queue` lists what can be reviewed across the open
-workstreams.
+workstreams. `ws review <TASK> --show <path> --side old|new` prints one file of the diffstat as
+it stands on one side, `{path, side, rev, text, binary}`, for a diff editor.
 
 - review_range(task, parents_of, branch_exists): pure. A task's `commit` is usually a
   `--no-ff` merge, whose `git show` is an empty combined diff, so a merge is reviewed
@@ -15,6 +16,8 @@ workstreams.
   parent (`<commit>^..<commit>`). An in-progress task with no commit but an existing branch
   is reviewed before merge from where it left the integration branch, which leaves out the
   commit that claimed it. Anything else is `none`.
+- side_rev(range, side, merge_base): pure. A branch's old side is the merge base its
+  three-dot diff starts at, never the integration branch's tip.
 - parse_numstat(text) and cap_hunks(text, max_lines): pure. The hunks are cut at the last
   whole hunk that fits under the cap, since a hunk cut mid-way does not parse as a diff.
 - The git calls sit at the edge, in build_review. They only read, and a git failure comes
@@ -23,6 +26,7 @@ workstreams.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -70,6 +74,32 @@ def diff_spec(rng: dict) -> str | None:
     return f"{rng['from']}{dots}{rng['to']}"
 
 
+def side_rev(rng: dict, side: str, merge_base) -> str | None:
+    """The revision one side of a range's diff reads a file at, matching diff_spec: a branch's
+    three-dot diff starts at merge_base(from, to), not at `from`, whose tip may hold work landed
+    since the claim; a commit or merge's old side is `from`. None for `none`. Pure:
+    merge_base(a, b) returns a commit, or None when git can't find one."""
+    if rng["kind"] == "none":
+        return None
+    if side == "new":
+        return rng["to"]
+    if rng["kind"] == "branch":
+        return merge_base(rng["from"], rng["to"])
+    return rng["from"]
+
+
+def is_binary(data: bytes) -> bool:
+    """Git's own test, a NUL in the first 8000 bytes, plus anything that isn't UTF-8, since
+    JSON text can't carry it."""
+    if b"\0" in data[:8000]:
+        return True
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
 def parse_numstat(text: str) -> list[dict]:
     """`git diff --numstat` lines as [{path, added, removed}]; a binary file's counts are
     None (git prints `-`)."""
@@ -108,7 +138,10 @@ def cap_hunks(text: str, max_lines: int) -> tuple[str, bool]:
 
 
 def _git(repo_root: Path, *argv: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *argv], cwd=repo_root, capture_output=True, text=True)
+    """git, reading only, with no optional locks: a review is asked for often, from editors and
+    the web UI, and a read shouldn't take the index lock under someone's own git."""
+    return subprocess.run(["git", *argv], cwd=repo_root, capture_output=True, text=True,
+                          env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"})
 
 
 def _git_error(proc: subprocess.CompletedProcess, argv: tuple[str, ...]) -> str:
@@ -211,6 +244,55 @@ def build_review(project: Project, ws_id: str, task_id: str, file: str | None = 
         text, truncated = cap_hunks(proc.stdout, max_lines)
         out["hunks"] = {"path": file, "text": text, "truncated": truncated}
     return out
+
+
+# --- one side of one file -----------------------------------------------------------------
+
+SIDES = ("old", "new")
+
+
+def _git_read(repo_root: Path, *argv: str) -> subprocess.CompletedProcess:
+    """_git with bytes out, since a file's content may not be text."""
+    return subprocess.run(["git", *argv], cwd=repo_root, capture_output=True,
+                          env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"})
+
+
+def build_show(project: Project, ws_id: str, task_id: str, path: str, side: str) -> dict:
+    """{path, side, rev, text, binary}: one file of a task's diffstat as it stands on one side
+    of the review range. `text` is None when the file doesn't exist on that side, and a binary
+    file has `binary` true and no text. Reads only. Raises WsError for a path outside the
+    diffstat, as there's nothing to compare it in, and for a git failure."""
+    if side not in SIDES:
+        raise WsError(f"--side is old or new, not {side!r}")
+    data = build_review(project, ws_id, task_id)
+    if "error" in data:
+        raise WsError(data["error"])
+    if path not in {f["path"] for f in data["files"]}:
+        raise WsError(f"{path} is not in {task_id}'s diffstat")
+    root = project.root
+
+    def merge_base(a: str, b: str) -> str | None:
+        proc = _git_read(root, "merge-base", a, b)
+        if proc.returncode != 0:
+            return None
+        return proc.stdout.decode().strip() or None
+
+    named = side_rev(data["range"], side, merge_base)
+    proc = _git_read(root, "rev-parse", "--verify", "--quiet", f"{named}^{{commit}}") \
+        if named else None
+    if proc is None or proc.returncode != 0:
+        raise WsError(f"{task_id}'s {side} side has no commit git can read")
+    rev = proc.stdout.decode().strip()
+    out = {"path": path, "side": side, "rev": rev, "text": None, "binary": False}
+    if _git_read(root, "cat-file", "-e", f"{rev}:{path}").returncode != 0:
+        return out
+    argv = ("cat-file", "blob", f"{rev}:{path}")
+    proc = _git_read(root, *argv)
+    if proc.returncode != 0:
+        raise WsError(f"git {' '.join(argv)}: {proc.stderr.decode(errors='replace').strip()}")
+    if is_binary(proc.stdout):
+        return {**out, "binary": True}
+    return {**out, "text": proc.stdout.decode("utf-8")}
 
 
 # --- the queue ----------------------------------------------------------------------------

@@ -3,7 +3,9 @@
 What is proven: a `--no-ff` merge yields its first-parent numstat, not git show's empty
 combined diff; an in-progress branch yields base...branch, leaving out what landed since;
 --checks reads a branch's evidence from the branch; --queue puts branch work first; --file cuts
-at a hunk boundary and sets truncated; `review` writes nothing.
+at a hunk boundary and sets truncated; `review` writes nothing. --show gives one side of one
+file: a branch's old side at the merge base even after trunk moved, null text for an added or
+deleted file, binary with no text, and a path outside the diffstat refused.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ import unittest
 from unittest import mock
 
 from tests.helpers import WsTestCase, task
+from tests.test_schema import load_schema, problems
 from workstream import review
 
 WS_ID = "flow"
@@ -56,6 +59,32 @@ class ReviewRangeTests(unittest.TestCase):
             with self.subTest(task=t):
                 self.assertEqual(self.range_of(t, parents, branches), none)
                 self.assertIsNone(review.diff_spec(none))
+
+
+class SideRevTests(unittest.TestCase):
+    def test_a_branchs_old_side_is_the_merge_base_not_from(self) -> None:
+        rng = {"from": "trunk-tip", "to": "task/x", "kind": "branch"}
+        asked = []
+        base = lambda a, b: asked.append((a, b)) or "fork"  # noqa: E731
+        self.assertEqual(review.side_rev(rng, "old", base), "fork")
+        self.assertEqual(asked, [("trunk-tip", "task/x")])
+        self.assertEqual(review.side_rev(rng, "new", base), "task/x")
+
+    def test_a_commit_or_merges_old_side_is_from(self) -> None:
+        never = lambda a, b: self.fail("no merge base for a commit")  # noqa: E731
+        for kind, start in (("merge", "abc^1"), ("commit", "abc^")):
+            rng = {"from": start, "to": "abc", "kind": kind}
+            self.assertEqual(review.side_rev(rng, "old", never), start)
+            self.assertEqual(review.side_rev(rng, "new", never), "abc")
+
+    def test_none_has_no_side(self) -> None:
+        rng = {"from": None, "to": None, "kind": "none"}
+        self.assertIsNone(review.side_rev(rng, "old", lambda a, b: "x"))
+
+    def test_binary_is_a_nul_or_not_utf8(self) -> None:
+        self.assertFalse(review.is_binary("café\n".encode()))
+        self.assertTrue(review.is_binary(b"\x89PNG\r\n\x1a\n\0\0"))
+        self.assertTrue(review.is_binary(b"\xff\xfe latin junk"))
 
 
 class ParseTests(unittest.TestCase):
@@ -247,6 +276,96 @@ class ReviewRepoTests(WsTestCase):
 
     def test_plain_review_has_no_checks(self) -> None:
         self.assertNotIn("checks", self.review("FL-02"))
+
+    # --- --show -----------------------------------------------------------------------------
+
+    def show(self, t: str, path: str, side: str) -> dict:
+        data = self.review(t, "--show", path, "--side", side)
+        schema = load_schema("review-show")
+        self.assertEqual(problems(data, schema, schema), [])
+        return data
+
+    def more_branch_work(self) -> None:
+        """FL-02's branch edits src/other.txt, which trunk also changed after the claim, deletes
+        src/merged.txt and adds a binary file."""
+        self.git("switch", "-q", "task/two")
+        self.write("src/other.txt", "branch edit\n")
+        (self.root / "src/merged.txt").unlink()
+        (self.root / "src/img.bin").write_bytes(b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR")
+        self.commit_all("more work")
+        self.git("switch", "-q", "trunk")
+
+    def test_a_branchs_old_side_is_the_merge_base_not_mains_tip(self) -> None:
+        self.more_branch_work()
+        self.assertEqual(self.git("show", "trunk:src/other.txt"), "trunk moved on\n")
+        old = self.show("FL-02", "src/other.txt", "old")
+        fork = self.git("merge-base", "trunk", "task/two").strip()
+        self.assertEqual(old, {"path": "src/other.txt", "side": "old", "rev": fork,
+                               "text": "other\n", "binary": False})
+        new = self.show("FL-02", "src/other.txt", "new")
+        self.assertEqual((new["rev"], new["text"]),
+                         (self.git("rev-parse", "task/two").strip(), "branch edit\n"))
+
+    def test_an_added_file_has_no_old_text(self) -> None:
+        self.assertEqual(self.show("FL-01", "src/added.txt", "old")["text"], None)
+        new = self.show("FL-01", "src/added.txt", "new")
+        self.assertEqual((new["text"], new["binary"]), ("new\n", False))
+        self.assertEqual(new["rev"], self.git("rev-parse", self.merge).strip())
+
+    def test_a_deleted_file_has_no_new_text(self) -> None:
+        self.more_branch_work()
+        # FL-02 was claimed after FL-01 landed, so the old side holds FL-01's edits.
+        self.assertEqual(self.show("FL-02", "src/merged.txt", "old")["text"],
+                         numbered(60, {2, 30, 58}))
+        new = self.show("FL-02", "src/merged.txt", "new")
+        self.assertEqual((new["text"], new["binary"]), (None, False))
+
+    def test_a_modified_file_has_both_sides_of_a_merge(self) -> None:
+        old = self.show("FL-01", "src/merged.txt", "old")
+        self.assertEqual((old["rev"], old["text"]),
+                         (self.git("rev-parse", f"{self.merge}^1").strip(), numbered(60)))
+        new = self.show("FL-01", "src/merged.txt", "new")
+        self.assertEqual(new["text"], numbered(60, {2, 30, 58}))
+
+    def test_a_binary_file_says_so_and_has_no_text(self) -> None:
+        self.more_branch_work()
+        new = self.show("FL-02", "src/img.bin", "new")
+        self.assertEqual((new["binary"], new["text"]), (True, None))
+        old = self.show("FL-02", "src/img.bin", "old")
+        self.assertEqual((old["binary"], old["text"]), (False, None))
+
+    def test_a_path_outside_the_diffstat_is_refused(self) -> None:
+        for t, path in (("FL-02", "src/other.txt"), ("FL-02", "nope.txt"), ("FL-03", "x")):
+            with self.subTest(task=t, path=path):
+                self.assertIn("not in", self.fails("review", "-w", WS_ID, t, "--show", path,
+                                                   "--side", "old"))
+
+    def test_show_and_side_go_together_and_alone(self) -> None:
+        self.assertIn("go together", self.fails("review", "-w", WS_ID, "FL-01", "--show",
+                                                "src/added.txt"))
+        self.assertIn("go together", self.fails("review", "-w", WS_ID, "FL-01", "--side", "old"))
+        self.assertIn("no --file", self.fails("review", "-w", WS_ID, "FL-01", "--show",
+                                              "src/added.txt", "--side", "old", "--checks"))
+        self.assertIn("takes no task", self.fails("review", "--queue", "--show", "x"))
+
+    def test_show_runs_git_without_optional_locks(self) -> None:
+        seen = []
+        real = review.subprocess.run
+
+        def spy(argv, **kw):
+            seen.append(kw.get("env", {}).get("GIT_OPTIONAL_LOCKS"))
+            return real(argv, **kw)
+
+        with mock.patch.object(review.subprocess, "run", side_effect=spy):
+            review.build_show(self.project(), WS_ID, "FL-01", "src/merged.txt", "old")
+        self.assertTrue(seen)
+        self.assertEqual(set(seen), {"0"})
+
+    def test_plain_review_is_unchanged_by_show(self) -> None:
+        data = self.review("FL-01")
+        self.assertEqual(set(data), {"task", "evidence", "range", "files"})
+        schema = load_schema("review")
+        self.assertEqual(problems(data, schema, schema), [])
 
     # --- --queue ----------------------------------------------------------------------------
 

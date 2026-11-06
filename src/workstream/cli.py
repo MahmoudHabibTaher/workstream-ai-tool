@@ -1056,12 +1056,22 @@ def cmd_act(args: argparse.Namespace) -> int:
 def cmd_review(args: argparse.Namespace) -> int:
     project = _project(args)
     if args.queue:
-        if args.task or args.file or args.checks:
-            raise WsError("--queue lists every task, so it takes no task, --file or --checks")
+        if args.task or args.file or args.checks or args.show or args.side:
+            raise WsError("--queue lists every task, so it takes no task, --file, --checks "
+                          "or --show")
         print(json.dumps(review.build_queue(project), indent=2))
         return 0
     if not args.task:
         raise WsError("review needs a task id, or --queue")
+    if (args.show is None) != (args.side is None):
+        raise WsError("--show and --side go together: a path, and old or new")
+    if args.show is not None:
+        if args.file or args.checks:
+            raise WsError("--show prints one side of one file, so it takes no --file or --checks")
+        ws = _resolve_ws(project, args)
+        print(json.dumps(review.build_show(project, ws["id"], args.task, args.show, args.side),
+                         indent=2))
+        return 0
     if args.max_lines < 1:
         raise WsError("--max-lines must be at least 1")
     ws = _resolve_ws(project, args)
@@ -1347,6 +1357,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "proof, and the evidence, from the task's branch while it has one")
     p.add_argument("--queue", action="store_true",
                    help="instead, what can be reviewed across the open workstreams")
+    p.add_argument("--show", metavar="PATH",
+                   help="instead, a path from the diffstat as it stands on one --side, as JSON "
+                        "{path, side, rev, text, binary}; a branch's old side is its merge base")
+    p.add_argument("--side", choices=review.SIDES, help="with --show: old or new")
     p.add_argument("--max-lines", type=int, default=review.DEFAULT_MAX_LINES,
                    help="cap on the hunks' lines; whole hunks only, `truncated` when cut")
 
