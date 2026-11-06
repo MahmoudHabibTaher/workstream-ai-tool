@@ -108,3 +108,23 @@ Run, Coordinate, Close and Abandon have no `actions` in the snapshot. Like `lane
 ## D023 (2026-11-06, VS-05): the modal shows the web UI's commit line, without act's ` (ws act)` suffix
 
 The modal names `alpha: pause` on `main`, as `commitLine` does in `logic.js`. act's full subject is `alpha: pause (ws act)`. Rejected: copying act's message format into TypeScript, which would be a second copy of a CLI rule. **Closed.**
+
+## D024 (2026-11-06, VS-06): a branch task's evidence opens read-only from `--checks`; a landed task's opens as the file
+
+The integration checkout has no evidence file yet for work still on a branch (`review` gives `evidence: null`), so a branch's evidence opens as a `ws-review:` document. It serves `checks.evidenceText`, which is the same text the gates judged: the branch's copy first, then main's. A landed task's opens as the real file at the `evidence` path. Rejected: always opening the on-disk path, which is missing or stale for branch work. Also rejected: `--show` on the evidence path, which needs the workstream folder's relative path and isn't there when the evidence isn't in the diffstat. **Closed.**
+
+## D025 (2026-11-06, VS-06): D009 is settled by this task
+
+`loadShow` builds `['review', task, '-w', wsId, '--show', path, '--side', side]`. That line is in `test_every_argv_cli_ts_builds`, and the real CLI accepts it for both sides. D009 can close. Rejected: keeping `--show` out of cli.ts and calling it from the view, which would put a second process call outside cli.ts. **Closed.**
+
+## D026 (2026-11-06, VS-06): a file loads both sides before the diff opens, and each `ws-review:` URI names its revision
+
+The extension needs both sides first to tell whether either is binary, which opens nothing. It hands the texts to the content provider and opens `vscode.diff` on URIs whose query carries root, workstream, task, side and the rev `--show` returned. A cached text therefore never stands for a later revision. Rejected: letting the provider fetch lazily, which can't stop a binary diff from opening. **Closed.**
+
+## D027 (2026-11-06, VS-06): activate's test API grew `review` and `opened`
+
+On top of D021: `review` is the Review tree, and `opened` records what each file or evidence click opened (`diff`, `binary`, `failed` or `evidence`). Rejected: reading only the tab groups, which can't show that a binary click opened nothing on purpose. **Closed.**
+
+## D028 (2026-11-06, VS-06): the Review tree groups by `state`, even though the CLI already sorts that way
+
+`queueNodes` splits the queue into **On a branch** and **Landed**, keeping the CLI's order inside each. It leaves out an empty group and says "Nothing to review." when the queue is empty. This is a display arrangement: the order within each group is still the CLI's. Rejected: a flat list, which doesn't show where branch work ends. **Closed.**

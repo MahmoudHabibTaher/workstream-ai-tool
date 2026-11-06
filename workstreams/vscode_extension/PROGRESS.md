@@ -6,6 +6,10 @@ Created 2026-11-06 from `main` at `fea25e7`.
 
 ---
 
+## 2026-11-06: VS-06: The review queue and diffs in the diff editor
+
+Merged as `71d4572b89`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-06.md).
+
 ## 2026-11-06: VS-05: Writes through ws act, and launching in a terminal
 
 Merged as `208aa0beec`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VS-05.md).
