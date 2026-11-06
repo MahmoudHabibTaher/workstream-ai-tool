@@ -114,3 +114,8 @@ test('execRun reports a missing program, an exit code, and never uses a shell', 
   const literal = await execRun([process.execPath, '-e', 'console.log(process.argv[1])', '$(echo hi); `x`'], '/')
   assert.equal(literal.stdout.trim(), '$(echo hi); `x`')
 })
+
+test('execRun turns off git optional locks, so a read never rewrites the index', async () => {
+  const ran = await execRun([process.execPath, '-e', 'console.log(process.env.GIT_OPTIONAL_LOCKS)'], '/')
+  assert.equal(ran.stdout.trim(), '0')
+})

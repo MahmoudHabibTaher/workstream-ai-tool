@@ -48,6 +48,31 @@ class NamesNoProjectTests(unittest.TestCase):
                  for n, line in enumerate(p.read_text().splitlines(), 1) if MARKUP.search(line)]
         self.assertEqual(found, [])
 
+    def test_every_markdown_string_takes_repo_text_as_text(self) -> None:
+        """Plan T6: one module builds MarkdownStrings, starts each empty with trust and HTML off,
+        and appends markup only as literals; repo text goes in through appendText."""
+        markdown = SRC / "markdown.ts"
+        built = {p.name for p in sources() if "MarkdownString" in p.read_text()}
+        self.assertEqual(built, {"markdown.ts"})
+        text = markdown.read_text()
+        constructed = re.findall(r"new vscode\.MarkdownString\((.*?)\)", text)
+        self.assertEqual(constructed, [""])
+        self.assertIn("md.isTrusted = false", text)
+        self.assertIn("md.supportHtml = false", text)
+        self.assertNotRegex(text, r"\.value\s*=|appendCodeblock")
+        calls = re.findall(r"appendMarkdown\(([^)]*)\)", text)
+        self.assertTrue(calls)
+        for arg in calls:
+            self.assertRegex(arg, r"^'[^'`$\\]*(\\n)*'$", "appendMarkdown takes only a literal")
+        self.assertIn("md.appendText(section.heading)", text)
+        self.assertIn("md.appendText(line)", text)
+        for path in sources():
+            for n, line in enumerate(path.read_text().splitlines(), 1):
+                if path != markdown:
+                    self.assertNotIn("appendMarkdown", line, f"{path.name}:{n}")
+                if re.search(r"\.tooltip\s*=", line):
+                    self.assertRegex(line, r"\.tooltip\s*=\s*(tooltip\(|')", f"{path.name}:{n}")
+
     def test_only_cli_ts_runs_processes_and_logic_never_imports_vscode(self) -> None:
         for path in sources():
             text = path.read_text()

@@ -39,6 +39,87 @@
           "markdownDescription": "The argv that runs the `ws` CLI; the extension appends each command's arguments. No shell parses it. For example `[\"python3\", \"-B\", \"-m\", \"workstream\"]` runs a checkout's own CLI."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "workstreams",
+          "title": "Workstreams",
+          "icon": "media/workstreams.svg"
+        }
+      ]
+    },
+    "views": {
+      "workstreams": [
+        {
+          "id": "workstreams.registry",
+          "name": "Registry"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "workstreams.registry",
+        "contents": "No workstream project is open in this window. `ws init` sets one up.\n[Refresh](command:workstreams.refresh)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "workstreams.refresh",
+        "title": "Refresh",
+        "category": "Workstreams",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "workstreams.showDone",
+        "title": "Show Done",
+        "category": "Workstreams",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "workstreams.hideDone",
+        "title": "Hide Done",
+        "category": "Workstreams",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "workstreams.openDocument",
+        "title": "Open in Markdown Preview",
+        "category": "Workstreams"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "workstreams.refresh",
+          "when": "view == workstreams.registry",
+          "group": "navigation@1"
+        },
+        {
+          "command": "workstreams.showDone",
+          "when": "view == workstreams.registry && !workstreams.showDone",
+          "group": "navigation@2"
+        },
+        {
+          "command": "workstreams.hideDone",
+          "when": "view == workstreams.registry && workstreams.showDone",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "workstreams.openDocument",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.showDone",
+          "when": "!workstreams.showDone"
+        },
+        {
+          "command": "workstreams.hideDone",
+          "when": "workstreams.showDone"
+        }
+      ]
     }
   },
   "scripts": {

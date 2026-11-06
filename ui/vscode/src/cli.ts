@@ -8,7 +8,8 @@ const TIMEOUT_MS = 60_000
 const MAX_BUFFER = 64 * 1024 * 1024
 
 export type Ran = { exitCode: number; stdout: string; stderr: string; missing?: boolean }
-// Runs `argv` (the whole command, `wsCommand` first) in `cwd`. Never through a shell.
+// Runs `argv` (the whole command, `wsCommand` first) in `cwd`. Never through a shell, and with git's
+// optional locks off, as `ws serve` runs: a read must not touch the index the watchers watch.
 export type Run = (argv: string[], cwd: string) => Promise<Ran>
 export type Cli = { command: string[]; run: Run }
 
@@ -27,7 +28,7 @@ export function notAProject(folder: string): string {
 export const execRun: Run = (argv, cwd) =>
   new Promise(resolve => {
     const [file, ...args] = argv
-    execFile(file, args, { cwd, timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, shell: false, encoding: 'utf8' },
+    execFile(file, args, { cwd, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' }, timeout: TIMEOUT_MS, maxBuffer: MAX_BUFFER, shell: false, encoding: 'utf8' },
       (err, stdout, stderr) => {
         if (!err) return resolve({ exitCode: 0, stdout, stderr })
         const code = (err as NodeJS.ErrnoException).code
