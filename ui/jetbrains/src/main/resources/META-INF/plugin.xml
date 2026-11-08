@@ -20,4 +20,33 @@
     <statusBarWidgetFactory id="dev.workstream.jetbrains.status" order="first"
                             implementation="dev.workstream.jetbrains.StatusWidgetFactory"/>
   </extensions>
+
+  <!-- Launch targets, tried in order; the Terminal's registers in workstreams-terminal.xml. -->
+  <extensionPoints>
+    <extensionPoint qualifiedName="dev.workstream.jetbrains.launchTarget" interface="dev.workstream.jetbrains.LaunchTarget"
+                    dynamic="true"/>
+  </extensionPoints>
+
+  <!-- Each is enabled only where the selected node offers it; Find Action lists them too. -->
+  <actions>
+    <group id="Workstreams.Registry.Popup" text="Workstreams">
+      <action id="Workstreams.Pause" class="dev.workstream.jetbrains.PauseAction" text="Workstreams: Pause"
+              description="Pause this workstream through ws act"/>
+      <action id="Workstreams.Resume" class="dev.workstream.jetbrains.ResumeAction" text="Workstreams: Resume"
+              description="Resume this workstream through ws act"/>
+      <action id="Workstreams.Sync" class="dev.workstream.jetbrains.SyncAction" text="Workstreams: Sync Progress"
+              description="Record this workstream's live progress through ws act"/>
+      <action id="Workstreams.Unclaim" class="dev.workstream.jetbrains.UnclaimAction" text="Workstreams: Unclaim"
+              description="Release this task's stale claim through ws act"/>
+      <separator/>
+      <action id="Workstreams.Run" class="dev.workstream.jetbrains.RunAction" text="Workstreams: Run"
+              description="Start the agent on this workstream's run prompt"/>
+      <action id="Workstreams.Coordinate" class="dev.workstream.jetbrains.CoordinateAction" text="Workstreams: Coordinate"
+              description="Start the agent on this workstream's coordinate prompt"/>
+      <action id="Workstreams.Close" class="dev.workstream.jetbrains.CloseAction" text="Workstreams: Close"
+              description="Start the agent on this workstream's close prompt"/>
+      <action id="Workstreams.Abandon" class="dev.workstream.jetbrains.AbandonAction" text="Workstreams: Abandon"
+              description="Ask why, then start the agent on this workstream's abandon prompt"/>
+    </group>
+  </actions>
 </idea-plugin>
