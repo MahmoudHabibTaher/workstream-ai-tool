@@ -1,0 +1,379 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/jetbrains_plugin/PLAN.md",
+  "updated": "2026-11-08",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "JB-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "The snapshot offers each open row's launches",
+      "kind": "behaviour",
+      "findings": [
+        "T6",
+        "D-LAUNCHES"
+      ],
+      "summary": "Each open registry row in ws snapshot gains launches: run, coordinate, close and abandon, each with its prompt, abandon asking for a reason; closed rows get none.",
+      "files": [
+        "src/workstream/snapshot.py",
+        "schema/snapshot.schema.json",
+        "tests/test_snapshot.py",
+        "tests/test_schema.py"
+      ],
+      "docs": [
+        "src/workstream/assets/web/logic.js",
+        "ui/vscode/src/logic/launch.ts",
+        "docs/decisions/0016-native-ide-ui.md"
+      ],
+      "acceptance": [
+        "tests/test_snapshot.py shows an active, a paused and a planned row each get four launches in the order run, coordinate, close, abandon, and done and abandoned rows get []",
+        "abandon's launch has ask \"reason\" and a prompt ending in \": \"; the other three prompts equal promptText's in src/workstream/assets/web/logic.js, held by a test that reads that file",
+        "tests/test_schema.py validates a snapshot with launches against schema/snapshot.schema.json, and the schema rejects an unknown launch kind"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JB-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "The plugin's Gradle project, CLI class and test harness",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "T4",
+        "T9",
+        "T10",
+        "T11",
+        "D-PKG",
+        "D-CLI"
+      ],
+      "summary": "ui/jetbrains builds with Gradle against platform 262, loads in a headless platform test that finds a sample project through ws root and reads its snapshot, and has JUnit, source and CLI-argv tests wired into make.",
+      "files": [
+        "ui/jetbrains/**",
+        "Makefile",
+        ".gitignore",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [
+        "docs/decisions/0016-native-ide-ui.md",
+        "docs/decisions/0017-vscode-extension.md",
+        "ui/vscode/src/cli.ts",
+        "tests/test_vscode_files.py"
+      ],
+      "acceptance": [
+        "make test-jetbrains runs ./gradlew test, in which a headless platform test opens a sample project built by the branch's CLI, resolves its root and loads its snapshot through the wsCommand setting, not the ws on PATH",
+        "a folder that isn't a project and a missing ws each give their one notification, and nothing else runs",
+        "make jetbrains-zip writes a zip under ui/jetbrains/build/distributions whose plugin.xml has since-build 262, depends on com.intellij.modules.platform, and has the terminal dependency optional",
+        "make verify-jetbrains runs verifyPlugin against the local IntelliJ IDEA 2026.3 and Android Studio 2026.2 and reports both compatible",
+        "tests/test_jetbrains_files.py finds no project or agent literal and no unescaped markup sink in ui/jetbrains/src, and shows the real CLI accepts each argv Cli.kt builds",
+        "git status after a build shows nothing under ui/jetbrains/build, .gradle or .intellijPlatform"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "The first build downloads the 262 platform into ~/.gradle; later worktrees reuse it.",
+      "mode": "background",
+      "requires": [
+        "external-network"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JB-03",
+      "phase": 2,
+      "priority": 30,
+      "title": "Registry, documents, status bar and live refresh",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "T5",
+        "D-VIEWS"
+      ],
+      "summary": "The Workstreams tool window's Registry tab draws workstreams, wave lines, phases, tasks and Documents from the snapshot, a status bar widget shows the active workstream, and outside changes reload it on their own.",
+      "files": [
+        "ui/jetbrains/**",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [
+        "ui/vscode/src/logic/registry.ts",
+        "ui/vscode/src/views/registry.ts",
+        "ui/vscode/test/logic"
+      ],
+      "acceptance": [
+        "JUnit tests for the logic ports (waveLine, badgesOf, lanes, splitRows) pass with the same cases as ui/vscode/test/logic",
+        "a headless platform test shows the Registry tree's nodes for a sample project, Show done adding a closed workstream, and a Documents node opening the plan in the editor",
+        "a platform test shows a commit made outside the IDE under a refresh path reloads the snapshot once per burst",
+        "a title holding <html><b>x</b> is drawn and tooltipped as text, shown by a test and by test_jetbrains_files.py's sink scan"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JB-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JB-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "Writes through ws act, and launching in the Terminal",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "T7",
+        "T8",
+        "D-ACTIONS",
+        "D-LAUNCHES"
+      ],
+      "summary": "Pause, Resume, Sync and Unclaim show only where the snapshot offers them and go through a confirm with pinned revisions; Run, Coordinate, Close and Abandon come from the row's launches and start the agent in a Terminal tab, or copy the prompt.",
+      "files": [
+        "ui/jetbrains/**",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [
+        "ui/vscode/src/launch.ts",
+        "ui/vscode/src/logic/launch.ts",
+        "docs/decisions/0011-web-ui.md"
+      ],
+      "acceptance": [
+        "a platform test confirms a pause and sees the ws act commit, and confirms a pause after an outside registry change and sees the refusal shown with HEAD unchanged",
+        "actions are disabled on nodes whose row or finding doesn't offer them, shown by a test",
+        "a test shows Run builds the Terminal argv as agentCommand plus the row's launch prompt, Abandon appends the reason, and with no agentCommand the prompt goes to the clipboard with a message naming the setting",
+        "test_jetbrains_files.py shows no Kotlin file holds a prompt text, and only Cli.kt and Launch.kt start processes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JB-01",
+        "JB-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JB-05",
+      "phase": 3,
+      "priority": 50,
+      "title": "The review queue and diffs in the diff viewer",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-REVIEW-UI"
+      ],
+      "summary": "The Review tab shows the queue, branch work first, and each task's range, gates, acceptance with proof, evidence and files; a file opens in the platform diff viewer with both sides from ws review --show.",
+      "files": [
+        "ui/jetbrains/**",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [
+        "ui/vscode/src/views/review.ts",
+        "ui/vscode/src/logic/review.ts"
+      ],
+      "acceptance": [
+        "JUnit tests for gateSummary and rangeLine pass with ui/vscode's cases",
+        "a platform test on a branch task after main moved builds a diff request whose old side is the --show merge-base text and whose titles carry each side's rev",
+        "a binary file opens no diff and says so; a branch task's evidence opens read-only and a landed task's opens as its file, shown by tests"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JB-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JB-06",
+      "phase": 3,
+      "priority": 60,
+      "title": "Health, notifications and the budget",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "T12",
+        "D-REVIEW-UI"
+      ],
+      "summary": "The Health tab lists findings with their actions, a new error finding raises one notification per session, and the Budget tab shows ws audit context when first selected and on Refresh.",
+      "files": [
+        "ui/jetbrains/**",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [
+        "ui/vscode/src/views/health.ts",
+        "ui/vscode/src/logic/health.ts"
+      ],
+      "acceptance": [
+        "a platform test shows a stale claim listed with Unclaim, and that Unclaim going through the same confirm lands",
+        "a test shows a new error finding notifies once and a reload with the same finding doesn't notify again, with the notification body escaped",
+        "a test shows Budget runs ws audit context --json on first selection and on Refresh, and not on a file-change reload"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JB-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JB-07",
+      "phase": 4,
+      "priority": 70,
+      "title": "Prove it in IntelliJ and Android Studio, and write down what's true",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "The built zip installed in IntelliJ IDEA 2026.3 and Android Studio 2026.2, every tab and write checked by hand on a sample project and read-only on this repo, then the guide, the decision record and the plan's status.",
+      "files": [
+        "ui/jetbrains/README.md",
+        "docs/decisions/0018-jetbrains-plugin.md",
+        "docs/plan.md",
+        "README.md"
+      ],
+      "docs": [
+        "docs/decisions/0016-native-ide-ui.md",
+        "docs/decisions/0017-vscode-extension.md"
+      ],
+      "acceptance": [
+        "evidence records make jetbrains-zip, make verify-jetbrains reporting both IDEs compatible, and the plugin installed from disk and loaded in IntelliJ IDEA 2026.3 and Android Studio 2026.2",
+        "evidence records, in IntelliJ on a sample project built from an installed wheel: every tab and the status bar drawn, a pause landing, a stale pause refused with HEAD unchanged, a branch diff after main moved, a notified finding's unclaim, and Run in a Terminal tab",
+        "evidence records Android Studio drawing the tool window on the sample and one write landing",
+        "evidence records this repo viewed in IntelliJ with HEAD, status and refs unchanged afterwards",
+        {
+          "text": "The owner sees the plugin drawn in IntelliJ and in Android Studio",
+          "kind": "manual"
+        },
+        "docs/decisions/0018-jetbrains-plugin.md has what was shown and what is not proven, docs/plan.md's M10 status row links it, and README.md names the plugin"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JB-06"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the JetBrains plugin in ui/jetbrains",
+      "the snapshot's per-row launches",
+      "make test-jetbrains, make jetbrains-zip and make verify-jetbrains",
+      "tests/test_jetbrains_files.py"
+    ],
+    "outOfScope": [
+      "PyCharm and other JetBrains IDEs",
+      "platform builds older than 262",
+      "JetBrains Marketplace publishing",
+      "chat or AI Assistant as a launch target",
+      "new kinds of write",
+      "moving the web UI, the pane or the VS Code extension onto launches",
+      "untrusted projects, remote development and Gateway"
+    ],
+    "rule": "Every fact and every write comes from the ws CLI; the plugin arranges what it returns, shows repo text as text, and asks before act."
+  }
+}
