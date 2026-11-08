@@ -92,3 +92,19 @@ Examples are `old de11afcd43` and `new 388682b46b`, with the request titled `sha
 ## D021 (2026-11-08, JB-05): a branch task's evidence opens the `evidenceText` that the `--checks` review drew the node from
 
 `EvidenceNode` carries the text, so opening it runs no second `ws` call. The `LightVirtualFile` is named `<task>.md` and is not writable. Rejected: re-reading `--checks` on open, as VS Code's content provider does. Here the file is built in one step, and no document provider has to serve it again later. **Closed.**
+
+## D022 (2026-11-08, JB-06): a reload's new error findings raise one notification, not one per finding
+
+With several new errors the body is `N new workstream errors. The first: <message>`. With one it is `Workstreams error: <message>`. The keys of all of them are marked notified at once (kind, workstream, task, message, per plan T12). A fresh sample has nine placeholder errors, and nine balloons would bury the IDE, which T12 is there to prevent. Rejected: one notification per new error finding. **Closed.**
+
+## D023 (2026-11-08, JB-06): Refresh drops the held budget, and a hidden Budget tab doesn't read it until it is selected again
+
+Refresh with the tab hidden runs no audit. The tab reads the budget when next shown. A file-change reload keeps the held rows. Rejected: running audit on Refresh even when the tab is hidden, which spends a `ws` run nobody looks at. **Closed.**
+
+## D024 (2026-11-08, JB-06): `WS_NODE` and the Registry's action helpers take `Any?`, so a Health `FindingNode` drives the same Pause/Resume/Sync/Unclaim actions
+
+`targetOf` maps a finding to its offer's workstream and task, and `pinnedOf` to the snapshot revisions it was drawn with. The confirm and `ws act` path are therefore the Registry's own. Rejected: a second set of Health-only actions. **Closed.**
+
+## D025 (2026-11-08, JB-06): the health notification carries display id `workstreams.health`
+
+The test harness (`SampleTestCase`) uses it to keep health notices apart from act notices. Rejected: matching on the notification's text. **Closed.**

@@ -6,6 +6,10 @@ Created 2026-11-08 from `main` at `045b529`.
 
 ---
 
+## 2026-11-08: JB-06: Health, notifications and the budget
+
+Merged as `1406479ac0`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-06.md).
+
 ## 2026-11-08: JB-05: The review queue and diffs in the diff viewer
 
 Merged as `a5e82d8f01`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-05.md).
