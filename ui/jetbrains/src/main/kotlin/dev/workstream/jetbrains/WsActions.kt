@@ -1,6 +1,7 @@
-// The Registry's writes and launches (D-ACTIONS), in the tree's popup menu and in Find Action.
+// The Registry's writes and launches (D-ACTIONS), in the trees' popup menu and in Find Action.
 // Pause, Resume, Sync and Unclaim are enabled only where the node's row or finding offers them,
-// ask first, then write through `ws act` against the revisions the node was drawn with (plan T8).
+// in the Registry or the Health tab, ask first, then write through `ws act` against the revisions
+// the node was drawn with (plan T8).
 // Run, Coordinate, Close and Abandon come only from the row's `launches` and go to Launcher.
 package dev.workstream.jetbrains
 
@@ -10,7 +11,6 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.project.DumbAware
-import dev.workstream.jetbrains.logic.Node
 import dev.workstream.jetbrains.logic.WorkstreamNode
 import dev.workstream.jetbrains.logic.askLine
 import dev.workstream.jetbrains.logic.confirmText
@@ -21,13 +21,13 @@ import dev.workstream.jetbrains.logic.pinnedOf
 import dev.workstream.jetbrains.logic.promptOf
 import dev.workstream.jetbrains.logic.targetOf
 
-/** The Registry node an action is for: the tree's selection, as the panel provides it. */
-val WS_NODE: DataKey<Node> = DataKey.create("dev.workstream.jetbrains.node")
+/** The Registry or Health node an action is for: the tree's selection, as the panel provides it. */
+val WS_NODE: DataKey<Any> = DataKey.create("dev.workstream.jetbrains.node")
 
 abstract class NodeAction : AnAction(), DumbAware {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
-    protected abstract fun offered(node: Node?): Boolean
+    protected abstract fun offered(node: Any?): Boolean
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.project != null && offered(e.getData(WS_NODE))
@@ -36,7 +36,7 @@ abstract class NodeAction : AnAction(), DumbAware {
 
 /** One write. The handler checks the node again, so a write the snapshot didn't offer never reaches act. */
 abstract class ActAction(private val action: String) : NodeAction() {
-    override fun offered(node: Node?): Boolean = targetOf(node, action) != null
+    override fun offered(node: Any?): Boolean = targetOf(node, action) != null
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
@@ -63,7 +63,7 @@ class UnclaimAction : ActAction("unclaim")
 
 /** One launch, from the row's `launches`; one that asks something asks it first. */
 abstract class LaunchAction(private val kind: String) : NodeAction() {
-    override fun offered(node: Node?): Boolean = launchOf(node, kind) != null
+    override fun offered(node: Any?): Boolean = launchOf(node, kind) != null
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return

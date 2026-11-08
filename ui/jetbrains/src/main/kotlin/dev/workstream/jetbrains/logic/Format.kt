@@ -55,6 +55,8 @@ data class Finding(
     val message: String? = null,
     /** The writes this finding offers, each naming the workstream and task it is for. */
     val actions: List<Offer> = listOf(),
+    /** The CLI's name for what was found, such as `stale-claim`. */
+    val kind: String? = null,
 )
 
 data class Badge(val text: String, val kind: String)

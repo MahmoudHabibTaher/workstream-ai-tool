@@ -5,6 +5,7 @@ package dev.workstream.jetbrains
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
@@ -61,9 +62,16 @@ object Text {
             override fun canClose(inputString: String?): Boolean = checkInput(inputString)
         })
 
-    fun notify(project: Project, text: String, type: NotificationType = NotificationType.WARNING) {
+    /**
+     * One notification, its body `text` escaped. `actions` are the plugin's own, titled by its
+     * constants, and `id` marks the kind of notification, as the health one is marked.
+     */
+    fun notify(project: Project, text: String, type: NotificationType = NotificationType.WARNING,
+               id: String? = null, actions: List<AnAction> = listOf()) {
         NotificationGroupManager.getInstance().getNotificationGroup(GROUP)
             .createNotification(escaped(text), type)
+            .apply { if (id != null) setDisplayId(id) }
+            .addActions(actions)
             .notify(project)
     }
 }

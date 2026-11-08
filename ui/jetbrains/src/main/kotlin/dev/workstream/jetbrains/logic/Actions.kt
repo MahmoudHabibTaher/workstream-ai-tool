@@ -25,30 +25,33 @@ fun rowWrites(row: Row, health: List<Finding>): List<String> =
 fun taskWrites(health: List<Finding>, ws: String, task: String): List<String> =
     offered(health.flatMap { it.actions }.filter { it.workstream == ws && it.task == task }.map { it.action })
 
-/** The writes a node offers; only workstream and task nodes offer any. */
-fun writesOf(node: Node?): List<String> = when (node) {
+/** The writes a node offers; only workstream, task and finding nodes offer any. */
+fun writesOf(node: Any?): List<String> = when (node) {
     is WorkstreamNode -> node.writes
     is TaskNode -> node.writes
+    is FindingNode -> node.writes
     else -> listOf()
 }
 
 /** The launch of `kind` a node offers: only a workstream's row offers launches. */
-fun launchOf(node: Node?, kind: String): LaunchOffer? = (node as? WorkstreamNode)?.row?.launches?.firstOrNull { it.kind == kind }
+fun launchOf(node: Any?, kind: String): LaunchOffer? = (node as? WorkstreamNode)?.row?.launches?.firstOrNull { it.kind == kind }
 
 /** The workstream a write on this node is for, and the confirm it sends; null where none is offered. */
-fun targetOf(node: Node?, action: String): Pair<String, Confirm>? {
+fun targetOf(node: Any?, action: String): Pair<String, Confirm>? {
     if (action !in writesOf(node)) return null
     return when (node) {
         is WorkstreamNode -> node.row.id to Confirm(action)
         is TaskNode -> node.ws to Confirm(action, node.task.id)
+        is FindingNode -> offerOf(node.finding, action)?.let { it.workstream to Confirm(action, it.task) }
         else -> null
     }
 }
 
 /** The revisions of the snapshot a node was drawn from: what its write expects. */
-fun pinnedOf(node: Node?): Revisions? = when (node) {
+fun pinnedOf(node: Any?): Revisions? = when (node) {
     is WorkstreamNode -> node.revisions
     is TaskNode -> node.revisions
+    is FindingNode -> node.revisions
     else -> null
 }
 

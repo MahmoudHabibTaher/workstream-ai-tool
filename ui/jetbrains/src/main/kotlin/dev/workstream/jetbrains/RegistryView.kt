@@ -30,7 +30,10 @@ import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
+import com.intellij.ui.content.ContentManagerEvent
+import com.intellij.ui.content.ContentManagerListener
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.ui.tree.StructureTreeModel
 import com.intellij.ui.treeStructure.Tree
@@ -206,6 +209,7 @@ class ShowDoneAction : ToggleAction("Show Done", "Also show the done and abandon
     }
 }
 
+/** Reads the snapshot again, and drops the budget, which the Budget tab then reads again. */
 class RefreshAction : AnAction("Refresh", "Read the snapshot again", AllIcons.Actions.Refresh), DumbAware {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
     override fun update(e: AnActionEvent) {
@@ -216,18 +220,32 @@ class RefreshAction : AnAction("Refresh", "Read the snapshot again", AllIcons.Ac
     }
 }
 
-/** One tool window, Workstreams: its Registry and Review tabs. */
+/** One tool window, Workstreams: its Registry, Review, Health and Budget tabs. */
 class WorkstreamsToolWindow : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val registry = Disposer.newDisposable(toolWindow.disposable, "Workstreams Registry")
         addTab(toolWindow, RegistryPanel(project, registry), "Registry", registry)
         val review = Disposer.newDisposable(toolWindow.disposable, "Workstreams Review")
         addTab(toolWindow, ReviewPanel(project, review), "Review", review)
+        val health = Disposer.newDisposable(toolWindow.disposable, "Workstreams Health")
+        addTab(toolWindow, HealthPanel(project, health), HEALTH_TAB, health)
+        val budget = Disposer.newDisposable(toolWindow.disposable, "Workstreams Budget")
+        val budgetPanel = BudgetPanel(project, budget)
+        val budgetTab = addTab(toolWindow, budgetPanel, BUDGET_TAB, budget)
+        // The budget is read when its tab is selected, not before (D-REVIEW-UI).
+        val manager = toolWindow.contentManager
+        manager.addContentManagerListener(object : ContentManagerListener {
+            override fun selectionChanged(event: ContentManagerEvent) {
+                budgetPanel.setShowing(manager.isSelected(budgetTab))
+            }
+        })
+        budgetPanel.setShowing(manager.isSelected(budgetTab))
     }
 
-    private fun addTab(toolWindow: ToolWindow, panel: SimpleToolWindowPanel, name: String, disposable: Disposable) {
+    private fun addTab(toolWindow: ToolWindow, panel: SimpleToolWindowPanel, name: String, disposable: Disposable): Content {
         val content = ContentFactory.getInstance().createContent(panel, name, false)
         content.setDisposer(disposable)
         toolWindow.contentManager.addContent(content)
+        return content
     }
 }
