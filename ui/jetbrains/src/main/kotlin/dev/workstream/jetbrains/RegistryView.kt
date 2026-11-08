@@ -216,12 +216,17 @@ class RefreshAction : AnAction("Refresh", "Read the snapshot again", AllIcons.Ac
     }
 }
 
-/** One tool window, Workstreams. This task adds its Registry tab; the others come later. */
+/** One tool window, Workstreams: its Registry and Review tabs. */
 class WorkstreamsToolWindow : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val disposable = Disposer.newDisposable(toolWindow.disposable, "Workstreams Registry")
-        val panel = RegistryPanel(project, disposable)
-        val content = ContentFactory.getInstance().createContent(panel, "Registry", false)
+        val registry = Disposer.newDisposable(toolWindow.disposable, "Workstreams Registry")
+        addTab(toolWindow, RegistryPanel(project, registry), "Registry", registry)
+        val review = Disposer.newDisposable(toolWindow.disposable, "Workstreams Review")
+        addTab(toolWindow, ReviewPanel(project, review), "Review", review)
+    }
+
+    private fun addTab(toolWindow: ToolWindow, panel: SimpleToolWindowPanel, name: String, disposable: Disposable) {
+        val content = ContentFactory.getInstance().createContent(panel, name, false)
         content.setDisposer(disposable)
         toolWindow.contentManager.addContent(content)
     }

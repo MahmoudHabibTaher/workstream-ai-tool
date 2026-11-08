@@ -27,10 +27,14 @@ import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.util.messages.Topic
 import dev.workstream.jetbrains.logic.Confirm
+import dev.workstream.jetbrains.logic.Entry
 import dev.workstream.jetbrains.logic.Loaded
+import dev.workstream.jetbrains.logic.Review
 import dev.workstream.jetbrains.logic.Revisions
 import dev.workstream.jetbrains.logic.Rooted
 import dev.workstream.jetbrains.logic.Run
+import dev.workstream.jetbrains.logic.ShowSide
+import dev.workstream.jetbrains.logic.Side
 import dev.workstream.jetbrains.logic.Watch
 import dev.workstream.jetbrains.logic.WsView
 import dev.workstream.jetbrains.logic.activeWorkstream
@@ -83,6 +87,10 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
         private set
     private var watched: Set<LocalFileSystem.WatchRequest> = setOf()
     private val views = ConcurrentHashMap<String, Loaded<WsView>>()
+    private val reviews = ConcurrentHashMap<String, Loaded<Review>>()
+
+    @Volatile
+    private var queue: Loaded<List<Entry>>? = null
 
     // A poke during a reload waits in the buffer, so it makes exactly one more after it.
     private val pokes = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -157,6 +165,8 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
             is Loaded.Error -> error = got.error
             is Loaded.Value -> {
                 views.clear()
+                reviews.clear()
+                queue = null
                 snapshot = got.value
                 error = null
                 watch(Snapshots.refresh(got.value))
@@ -177,6 +187,27 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
         }
         views[id] = got
         return got
+    }
+
+    /** `ws review --queue`, read once per reload. It runs `ws`, so never on the EDT. */
+    fun reviewQueue(): Loaded<List<Entry>> {
+        queue?.let { return it }
+        val at = root ?: return Loaded.Error("no project is open")
+        return Reviews.queue(cli().loadQueue(at)).also { queue = it }
+    }
+
+    /** One task's `ws review --checks`, read once per reload. Never on the EDT. */
+    fun review(ws: String, task: String): Loaded<Review> {
+        val k = "$ws\u001f$task"
+        reviews[k]?.let { return it }
+        val at = root ?: return Loaded.Error("no project is open")
+        return Reviews.review(cli().loadReview(at, ws, task, checks = true)).also { reviews[k] = it }
+    }
+
+    /** One side of one file, read each time it opens, since the diff shows it as it is now. Never on the EDT. */
+    fun show(ws: String, task: String, path: String, side: Side): Loaded<ShowSide> {
+        val at = root ?: return Loaded.Error("no project is open")
+        return Reviews.show(cli().loadShow(at, ws, task, path, side))
     }
 
     /** The cached view, if this reload has read it: what the status bar draws without waiting. */
@@ -219,6 +250,8 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
         error = null
         watches = listOf()
         views.clear()
+        reviews.clear()
+        queue = null
         showDone = false
     }
 

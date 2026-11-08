@@ -68,4 +68,22 @@ class FormatTest {
         assertEquals(2, errorCount(health, "w"))
         assertEquals(0, errorCount(health, "x"))
     }
+
+    @Test
+    fun gatesAddUpToOneLine() {
+        fun gate(ok: Boolean, blocking: Boolean) = Gate("g", ok, blocking)
+        assertEquals("good", gateSummary(listOf(gate(true, true))).kind)
+        assertEquals(Badge("Would land, with 1 warning", "warn"), gateSummary(listOf(gate(false, false), gate(true, true))))
+        assertEquals(Badge("2 checks would stop this landing", "bad"), gateSummary(listOf(gate(false, true), gate(false, true), gate(false, false))))
+    }
+
+    @Test
+    fun rangeAndStatLinesReadPlainly() {
+        val sha = "a".repeat(40)
+        assertEquals("No diff: this task has no commit or branch yet.", rangeLine(Range("none")))
+        assertEquals("branch: ${"a".repeat(10)}...task/x", rangeLine(Range("branch", sha, "task/x")))
+        assertEquals("merge: ${"a".repeat(10)}^1..${"a".repeat(10)}", rangeLine(Range("merge", "$sha^1", sha)))
+        assertEquals("+2 −1", statLine(2, 1))
+        assertEquals("binary", statLine(null, null))
+    }
 }
