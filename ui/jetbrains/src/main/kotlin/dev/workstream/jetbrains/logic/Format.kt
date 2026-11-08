@@ -104,3 +104,34 @@ fun <T> splitRows(registry: List<T>, status: (T) -> String): Split<T> =
 fun splitRows(registry: List<Row>): Split<Row> = splitRows(registry) { it.status }
 
 fun errorCount(health: List<Finding>, id: String): Int = health.count { it.level == "error" && it.workstream == id }
+
+/** A task's review range, as `ws review` printed it: `none`, `branch`, `commit` or `merge`. */
+data class Range(val kind: String, val from: String? = null, val to: String? = null)
+
+/** One gate `ws review --checks` ran: a failing blocking gate would stop the landing. */
+data class Gate(val name: String, val ok: Boolean, val blocking: Boolean, val detail: String? = null)
+
+private val FULL_SHA = Regex("^[0-9a-f]{40}")
+
+fun rangeLine(range: Range): String {
+    if (range.kind == "none") return "No diff: this task has no commit or branch yet."
+    fun short(rev: String?): String {
+        val r = rev ?: ""
+        return if (FULL_SHA.containsMatchIn(r)) r.take(10) + r.drop(40) else r
+    }
+    return "${range.kind}: ${short(range.from)}${if (range.kind == "branch") "..." else ".."}${short(range.to)}"
+}
+
+fun statLine(added: Int?, removed: Int?): String {
+    if (added == null || removed == null) return "binary"
+    return "+$added −$removed"
+}
+
+/** What the gates add up to, in a line. settle decides; this says what it would say. */
+fun gateSummary(gates: List<Gate>): Badge {
+    val stopping = gates.count { !it.ok && it.blocking }
+    val warnings = gates.count { !it.ok && !it.blocking }
+    if (stopping > 0) return Badge("$stopping check${if (stopping == 1) "" else "s"} would stop this landing", "bad")
+    if (warnings > 0) return Badge("Would land, with $warnings warning${if (warnings == 1) "" else "s"}", "warn")
+    return Badge("Every check passes", "good")
+}

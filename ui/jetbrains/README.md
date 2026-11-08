@@ -50,6 +50,11 @@ configuration's arguments are, and neither goes through a shell.
   and error count. A workstream opens to its wave line, its phases, each phase's tasks with badges,
   then Documents, whose files open in the editor on double-click or Enter. **Show Done** adds the
   done and abandoned workstreams; **Refresh** reads the snapshot again.
+- **Review tab.** The `ws review --queue`: **On a branch**, then **Landed**. A task opens to its
+  range, its gate summary and gates, each acceptance item with its proof, its Evidence, then Files.
+  A file opens in the diff viewer with both sides from `ws review --show`, each titled with its
+  revision, so a branch's old side is its merge base; a binary file opens nothing and says so. A
+  landed task's evidence opens as its file, a branch task's read-only as the branch holds it.
 - **The status bar.** The first active workstream's wave line and error count. Clicking it opens
   the tool window.
 - **Live refresh.** Every path in the snapshot's `refresh` list is watched by the IDE. A change
@@ -61,7 +66,8 @@ configuration's arguments are, and neither goes through a shell.
 - `src/main/kotlin/dev/workstream/jetbrains/`: the platform code. `Cli.kt` is the one class that
   runs `ws`, always off the UI thread. `Text.kt` builds every piece of HTML, escaping repo text.
 - `src/main/kotlin/dev/workstream/jetbrains/logic/`: plain Kotlin that never imports the platform:
-  the ports of the VS Code extension's `waveLine`, `badgesOf`, `lanes`, `splitRows` and its Registry tree.
+  the ports of the VS Code extension's `waveLine`, `badgesOf`, `lanes`, `splitRows`, `gateSummary`,
+  `rangeLine`, `statLine` and its Registry and Review trees.
 - `src/main/resources/META-INF/plugin.xml`, plus `workstreams-terminal.xml`, which loads only when
   the Terminal plugin is there.
 - `src/test/kotlin/`: JUnit tests, and headless `BasePlatformTestCase` tests against a sample

@@ -35,6 +35,7 @@ ESCAPED = re.compile(r"Text\.(html|escaped|tip)\(")
 # The places that draw repo text: a tree label goes through ColoredTreeCellRenderer.append, which
 # never reads markup, and a tooltip through Text.tip.
 REGISTRY = KOTLIN / "RegistryView.kt"
+REVIEW = KOTLIN / "ReviewView.kt"
 STATUS = KOTLIN / "StatusWidget.kt"
 LAUNCH = KOTLIN / "Launch.kt"
 # createNewSession starts the agent as a Terminal tab's process (plan T7).
@@ -56,7 +57,8 @@ class NamesNoProjectTests(unittest.TestCase):
     def test_finds_the_sources(self) -> None:
         found = sources()
         for path in (CLI, TEXT, REGISTRY, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
-                     KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", LAUNCH, KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
+                     KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", KOTLIN / "logic" / "Review.kt",
+                     REVIEW, KOTLIN / "Reviews.kt", LAUNCH, KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
                      SRC / "test" / "kotlin" / "dev" / "workstream" / "jetbrains" / "OpenTest.kt"):
             self.assertIn(path, found)
 
@@ -81,6 +83,20 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertNotRegex(registry, r"\bJLabel\(|\.setText\(|\.text\s*=")
         status = STATUS.read_text()
         self.assertIn("override fun getTooltipText(): String? = active()?.let { Text.tip(shown(it).tip) }", status)
+
+    def test_the_review_draws_repo_text_as_text_and_diffs_only_what_show_printed(self) -> None:
+        review = REVIEW.read_text()
+        self.assertIn("class ReviewRenderer : ColoredTreeCellRenderer()", review)
+        self.assertIn("toolTipText = Text.tip(s.tip)", review)
+        self.assertEqual(re.findall(r"\bappend\(([^,]*),", review), ["s.label", '"  ${s.description}"'])
+        self.assertNotRegex(review, r"\bJLabel\(|\.setText\(|\.text\s*=")
+        # Both sides come from `ws review --show` (Workstreams.show), never from git or the disk.
+        self.assertIn("ws.show(node.ws, node.task, path, Side.OLD), ws.show(node.ws, node.task, path, Side.NEW)", review)
+        self.assertIn("factory.create(project, old.text ?: \"\", type), factory.create(project, new.text ?: \"\", type)", review)
+        self.assertIn("Text.notify(project, got.text,", review)
+        self.assertIn('LightVirtualFile("${node.task}.md", node.text).apply { isWritable = false }', review)
+        self.assertNotRegex(review, r"\"git\"|VcsUtil|GitRepository")
+        self.assertIn('addTab(toolWindow, ReviewPanel(project, review), "Review", review)', REGISTRY.read_text())
 
     def test_text_tip_escapes_every_line(self) -> None:
         text = TEXT.read_text()
