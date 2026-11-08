@@ -1,7 +1,12 @@
 # Session handoff
 
-**State: new.** Created 2026-11-08 from `main` at `045b529`. No task has started.
+**State:** 1/7 done on `main` at `2d2ccd6`, as of 2026-11-08.
 
-**Next:** `ws claim --commit JB-01 JB-02` (phase 1).
+**Just landed:** JB-01 (`2d2ccd6171`)
 
-**Gotchas:** None.
+**Still in progress:** JB-02 (coordinator)
+
+**Next:** Nothing is ready: see the blocked tasks below, or anything still in progress.
+
+**Gotchas:**
+- JB-01: - `ui/mod/types/index.d.ts` references the snapshot schema and may want a `launches` type when a TypeScript consumer reads it; out of this task's files.
