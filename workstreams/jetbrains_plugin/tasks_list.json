@@ -298,7 +298,7 @@
         "test",
         "make test-jetbrains"
       ],
-      "branch": "",
+      "branch": "task/jb-05",
       "blockedBy": [
         "JB-04"
       ],
@@ -307,10 +307,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-08T11:13:27Z",
+      "baseCommit": "faf6d54adb9f0fed1e6acb303258ae42b66bce37",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
