@@ -6,6 +6,10 @@ Created 2026-11-08 from `main` at `045b529`.
 
 ---
 
+## 2026-11-08: JB-02: The plugin's Gradle project, CLI class and test harness
+
+Merged as `390e495518`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-02.md).
+
 ## 2026-11-08: JB-01: The snapshot offers each open row's launches
 
 Merged as `2d2ccd6171`. Verified: test pass. [Evidence](evidence/JB-01.md).

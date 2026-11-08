@@ -112,13 +112,29 @@
         "external-network"
       ],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-08T10:01:27Z",
       "baseCommit": "3c79f2a25f438a0826899dc793f95917af3ebabb",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-08T10:33:18Z",
+      "commit": "390e495518ed936a299951e6cd7e957000d452f5",
+      "verification": {
+        "tree": "d0f94f6abaa12f0a5f09a2847415fb38124be4de",
+        "at": "2026-11-08T10:33:17Z",
+        "postMerge": "ran",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-jetbrains",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {
