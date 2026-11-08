@@ -4,6 +4,10 @@
 //
 // Live refresh (plan T5): every path in the snapshot's `refresh` is watched by the VFS, a change
 // under one of them, or the IDE window regaining focus, reloads the snapshot once per 300 ms burst.
+//
+// A reload's error findings not yet notified this session raise one notification (plan T12).
+// `ws audit context --json` runs only when the Budget tab asks, and Refresh drops its rows, so a
+// file-change reload never runs it (D-REVIEW-UI).
 package dev.workstream.jetbrains
 
 import com.google.gson.JsonObject
@@ -26,8 +30,10 @@ import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.util.messages.Topic
+import dev.workstream.jetbrains.logic.BudgetRow
 import dev.workstream.jetbrains.logic.Confirm
 import dev.workstream.jetbrains.logic.Entry
+import dev.workstream.jetbrains.logic.Finding
 import dev.workstream.jetbrains.logic.Loaded
 import dev.workstream.jetbrains.logic.Review
 import dev.workstream.jetbrains.logic.Revisions
@@ -38,6 +44,9 @@ import dev.workstream.jetbrains.logic.Side
 import dev.workstream.jetbrains.logic.Watch
 import dev.workstream.jetbrains.logic.WsView
 import dev.workstream.jetbrains.logic.activeWorkstream
+import dev.workstream.jetbrains.logic.newErrors
+import dev.workstream.jetbrains.logic.noticeKey
+import dev.workstream.jetbrains.logic.noticeLine
 import dev.workstream.jetbrains.logic.underRefresh
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +101,13 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
     @Volatile
     private var queue: Loaded<List<Entry>>? = null
 
+    /** The last `ws audit context --json`, kept until Refresh; null until the Budget tab asks. */
+    @Volatile
+    private var budgetRows: Loaded<List<BudgetRow>>? = null
+
+    // Each error finding notified this session, by kind, workstream, task and message (plan T12).
+    private val notified = mutableSetOf<List<String?>>()
+
     // A poke during a reload waits in the buffer, so it makes exactly one more after it.
     private val pokes = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
@@ -126,8 +142,12 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
         pokes.tryEmit(Unit)
     }
 
-    /** Reloads now, off the EDT: the Refresh action. */
-    fun refresh(): Job = scope.launch(Dispatchers.IO) { reload() }
+    /** Reloads now, off the EDT: the Refresh action. It also drops the budget, which the Budget tab reads again once shown. */
+    fun refresh(): Job {
+        budgetAsked.incrementAndGet()
+        budgetRows = null
+        return scope.launch(Dispatchers.IO) { reload() }
+    }
 
     /**
      * The confirmed write, off the EDT: `ws act` against the pinned revisions. Its line, or its
@@ -171,11 +191,43 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
                 error = null
                 watch(Snapshots.refresh(got.value))
                 activeWorkstream(Snapshots.rows(got.value), Snapshots.health(got.value))?.let { (row, _) -> view(row.id) }
+                noticeErrors(Snapshots.health(got.value))
             }
         }
         changed()
         return error
     }
+
+    /** One notification for the error findings this session hasn't notified, which opens the Health tab. */
+    private fun noticeErrors(health: List<Finding>) {
+        val fresh = synchronized(notified) { newErrors(health, notified).also { found -> notified += found.map(::noticeKey) } }
+        val line = noticeLine(fresh) ?: return
+        Text.notify(project, line, NotificationType.ERROR, HEALTH_NOTICE, listOf(ShowHealthAction()))
+    }
+
+    /**
+     * `ws audit context --json`, read once until Refresh, and only while `showing` holds: else
+     * what is held, or null. It runs `ws`, so never on the EDT.
+     */
+    fun budget(showing: () -> Boolean = { true }): Loaded<List<BudgetRow>>? {
+        budgetRows?.let { return it }
+        // One run at a time: a second asker waits for the first's rows rather than running it
+        // again, and asks `showing` once it has the lock, since the tab may have gone meanwhile.
+        synchronized(budgetLock) {
+            budgetRows?.let { return it }
+            if (!showing()) return null
+            val at = root ?: return Loaded.Error("no project is open")
+            val asked = budgetAsked.get()
+            // A Refresh during the run drops what it read: the next ask runs it again.
+            return Snapshots.budget(cli().loadBudget(at)).also { if (budgetAsked.get() == asked) budgetRows = it }
+        }
+    }
+
+    private val budgetLock = Any()
+    private val budgetAsked = java.util.concurrent.atomic.AtomicInteger()
+
+    /** The budget this session read, if it has read one since the last Refresh. */
+    fun cachedBudget(): Loaded<List<BudgetRow>>? = budgetRows
 
     /** A workstream's own snapshot, read once per reload. It runs `ws`, so never on the EDT. */
     fun view(id: String): Loaded<WsView> {
@@ -252,6 +304,8 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
         views.clear()
         reviews.clear()
         queue = null
+        budgetRows = null
+        synchronized(notified) { notified.clear() }
         showDone = false
     }
 
@@ -263,6 +317,9 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
     }
 
     companion object {
+        /** The display id of the health notification, so it can be told from the others. */
+        const val HEALTH_NOTICE = "workstreams.health"
+
         @Topic.ProjectLevel
         val CHANGED: Topic<Changed> = Topic(Changed::class.java, Topic.BroadcastDirection.NONE)
 

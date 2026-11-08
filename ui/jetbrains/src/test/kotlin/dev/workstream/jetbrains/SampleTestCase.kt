@@ -25,6 +25,7 @@ abstract class SampleTestCase : BasePlatformTestCase() {
     protected lateinit var tmp: Path
     private lateinit var saved: List<String>
     protected val notes = CopyOnWriteArrayList<Notification>()
+    protected val healthNotes = CopyOnWriteArrayList<Notification>()
     protected val calls = CopyOnWriteArrayList<List<String>>()
 
     override fun setUp() {
@@ -34,7 +35,9 @@ abstract class SampleTestCase : BasePlatformTestCase() {
         saved = WsSettings.getInstance().wsCommand
         project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {
             override fun notify(notification: Notification) {
-                notes += notification
+                // The sample's template placeholders are error findings, so opening it raises the
+                // health notification (plan T12): those are kept apart from what the others say.
+                if (notification.displayId == Workstreams.HEALTH_NOTICE) healthNotes += notification else notes += notification
             }
         })
         Workstreams.of(project).forget()

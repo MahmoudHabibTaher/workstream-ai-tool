@@ -36,6 +36,7 @@ ESCAPED = re.compile(r"Text\.(html|escaped|tip)\(")
 # never reads markup, and a tooltip through Text.tip.
 REGISTRY = KOTLIN / "RegistryView.kt"
 REVIEW = KOTLIN / "ReviewView.kt"
+HEALTH = KOTLIN / "HealthView.kt"
 STATUS = KOTLIN / "StatusWidget.kt"
 LAUNCH = KOTLIN / "Launch.kt"
 # createNewSession starts the agent as a Terminal tab's process (plan T7).
@@ -58,6 +59,7 @@ class NamesNoProjectTests(unittest.TestCase):
         found = sources()
         for path in (CLI, TEXT, REGISTRY, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
                      KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", KOTLIN / "logic" / "Review.kt",
+                     KOTLIN / "logic" / "Health.kt", HEALTH,
                      REVIEW, KOTLIN / "Reviews.kt", LAUNCH, KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
                      SRC / "test" / "kotlin" / "dev" / "workstream" / "jetbrains" / "OpenTest.kt"):
             self.assertIn(path, found)
@@ -97,6 +99,23 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertIn('LightVirtualFile("${node.task}.md", node.text).apply { isWritable = false }', review)
         self.assertNotRegex(review, r"\"git\"|VcsUtil|GitRepository")
         self.assertIn('addTab(toolWindow, ReviewPanel(project, review), "Review", review)', REGISTRY.read_text())
+
+    def test_health_and_budget_draw_repo_text_as_text_and_notify_through_text_kt(self) -> None:
+        health = HEALTH.read_text()
+        for renderer in ("class HealthRenderer : ColoredTreeCellRenderer()", "class BudgetRenderer : ColoredTreeCellRenderer()"):
+            self.assertIn(renderer, health)
+        self.assertEqual(health.count("toolTipText = Text.tip(s.tip)"), 2)
+        self.assertEqual(re.findall(r"\bappend\(([^,]*),", health), ["s.label", '"  ${s.description}"'] * 2)
+        self.assertNotRegex(health, r"\bJLabel\(|\.setText\(|\.text\s*=|Text\.notify")
+        # A finding's writes are the Registry's own actions, so the same confirm and ws act.
+        self.assertIn('PopupHandler.installPopupMenu(tree, POPUP_GROUP, "WorkstreamsHealthPopup")', health)
+        self.assertIn("(selected() as? FindingNode)?.let { sink[WS_NODE] = it }", health)
+        # The health notification's body goes through Text.notify, so it is escaped (plan T2, T12).
+        service = (KOTLIN / "Workstreams.kt").read_text()
+        self.assertIn("Text.notify(project, line, NotificationType.ERROR, HEALTH_NOTICE, listOf(ShowHealthAction()))", service)
+        registry = REGISTRY.read_text()
+        self.assertIn("addTab(toolWindow, HealthPanel(project, health), HEALTH_TAB, health)", registry)
+        self.assertIn("budgetPanel.setShowing(manager.isSelected(budgetTab))", registry)
 
     def test_text_tip_escapes_every_line(self) -> None:
         text = TEXT.read_text()

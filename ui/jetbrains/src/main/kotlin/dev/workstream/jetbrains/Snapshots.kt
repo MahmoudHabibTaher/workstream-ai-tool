@@ -5,7 +5,9 @@ package dev.workstream.jetbrains
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import dev.workstream.jetbrains.logic.BudgetRow
 import dev.workstream.jetbrains.logic.Finding
+import dev.workstream.jetbrains.logic.Loaded
 import dev.workstream.jetbrains.logic.LaunchOffer
 import dev.workstream.jetbrains.logic.Offer
 import dev.workstream.jetbrains.logic.Progress
@@ -47,7 +49,20 @@ object Snapshots {
         Finding(it.str("level") ?: "", it.str("workstream"), it.str("task"), it.str("message"),
                 it.arr("actions").objects().mapNotNull { a ->
                     Offer(a.str("action") ?: return@mapNotNull null, a.str("workstream") ?: return@mapNotNull null, a.str("task"))
-                })
+                }, it.str("kind"))
+    }
+
+    /** The snapshot's git error, when git couldn't be read. */
+    fun gitError(snap: JsonObject): String? = snap.obj("git")?.str("error")
+
+    /** `ws audit context --json`'s rows; a row without a role is skipped. */
+    fun budget(got: Loaded<JsonElement>): Loaded<List<BudgetRow>> = when (got) {
+        is Loaded.Error -> got
+        is Loaded.Value -> (got.value as? JsonArray)?.let { rows ->
+            Loaded.Value(rows.objects().mapNotNull { r ->
+                BudgetRow(r.str("role") ?: return@mapNotNull null, r.int("tokens") ?: 0, r.int("budget") ?: 0, r.bool("ok"))
+            })
+        } ?: Loaded.Error("audit context printed no rows")
     }
 
     /** The revisions a write against this snapshot expects; null when the CLI printed none. */
