@@ -29,8 +29,12 @@ FORBIDDEN = re.compile(
 SINK = re.compile(
     r"<html>|wrapWith\(|HtmlChunk\.raw|HtmlBuilder|XmlStringUtil\.wrapInHtml|createNotification\("
     r"|Messages\.show|toolTipText\s*=|setToolTipText\(|\.comment\(|JEditorPane|HTMLEditorKit|JBCef"
-    r"|text/html")
-ESCAPED = re.compile(r"Text\.(html|escaped)\(")
+    r"|text/html|getTooltipText\(\)|\.tooltip\s*=|setTooltip\(")
+ESCAPED = re.compile(r"Text\.(html|escaped|tip)\(")
+# The places that draw repo text: a tree label goes through ColoredTreeCellRenderer.append, which
+# never reads markup, and a tooltip through Text.tip.
+REGISTRY = KOTLIN / "RegistryView.kt"
+STATUS = KOTLIN / "StatusWidget.kt"
 PROCESS = re.compile(r"GeneralCommandLine|ProcessBuilder|Runtime\.getRuntime|CapturingProcessHandler|OSProcessHandler")
 
 
@@ -47,7 +51,8 @@ def lines(paths: list[Path]):
 class NamesNoProjectTests(unittest.TestCase):
     def test_finds_the_sources(self) -> None:
         found = sources()
-        for path in (CLI, TEXT, KOTLIN / "logic" / "Model.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
+        for path in (CLI, TEXT, REGISTRY, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
+                     KOTLIN / "logic" / "Registry.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
                      SRC / "test" / "kotlin" / "dev" / "workstream" / "jetbrains" / "OpenTest.kt"):
             self.assertIn(path, found)
 
@@ -57,10 +62,30 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertEqual(found, [])
 
     def test_no_unescaped_markup_sink(self) -> None:
-        """Outside Text.kt, a markup sink only ever takes Text.html or Text.escaped."""
-        found = [f"{p.relative_to(PACKAGE)}:{n}: {line.strip()}" for p, n, line in lines(sources())
+        """Outside Text.kt, a markup sink in the plugin only ever takes Text.html, Text.escaped or
+        Text.tip. The tests' own expected strings hold markup on purpose, so they aren't scanned."""
+        main = [p for p in sources() if p.relative_to(SRC).parts[0] == "main"]
+        found = [f"{p.relative_to(PACKAGE)}:{n}: {line.strip()}" for p, n, line in lines(main)
                  if p != TEXT and SINK.search(line) and not ESCAPED.search(line)]
         self.assertEqual(found, [])
+
+    def test_the_registry_draws_repo_text_as_text(self) -> None:
+        registry = REGISTRY.read_text()
+        self.assertIn("class RegistryRenderer : ColoredTreeCellRenderer()", registry)
+        self.assertIn("toolTipText = Text.tip(s.tip)", registry)
+        self.assertEqual(re.findall(r"\bappend\(([^,]*),", registry), ["s.label", '"  ${s.description}"'])
+        self.assertNotRegex(registry, r"\bJLabel\(|\.setText\(|\.text\s*=")
+        status = STATUS.read_text()
+        self.assertIn("override fun getTooltipText(): String? = active()?.let { Text.tip(shown(it).tip) }", status)
+
+    def test_text_tip_escapes_every_line(self) -> None:
+        text = TEXT.read_text()
+        body = text[text.index("fun tip("):text.index("fun notify(")]
+        # HtmlBuilder.append(String) escapes; headings are the plugin's constants, escaped too.
+        self.assertEqual(body.count("out.append("), 2)
+        self.assertIn("section.heading?.let { out.append(HtmlChunk.text(it).bold()).br() }", body)
+        self.assertIn("out.append(line)", body)
+        self.assertIn('return out.wrapWith("html").toString()', body)
 
     def test_text_kt_escapes_what_it_is_given(self) -> None:
         text = TEXT.read_text()
@@ -91,6 +116,9 @@ class PackageTests(unittest.TestCase):
         self.assertTrue((SRC / "main" / "resources" / "META-INF" / "workstreams-terminal.xml").is_file())
         self.assertNotIn("com.intellij.modules.java", xml)
         self.assertIn('<applicationConfigurable parentId="tools"', xml)
+        self.assertIn('<toolWindow id="Workstreams"', xml)
+        self.assertIn('factoryClass="dev.workstream.jetbrains.WorkstreamsToolWindow"', xml)
+        self.assertIn('implementation="dev.workstream.jetbrains.StatusWidgetFactory"', xml)
 
     def test_the_build_targets_262(self) -> None:
         build = (PACKAGE / "build.gradle.kts").read_text()
