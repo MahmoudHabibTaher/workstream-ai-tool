@@ -36,6 +36,19 @@ ACTION_STATUSES = {"pause": ("planned", "active"), "resume": ("paused",), "uncla
 # The status writes a registry row offers. `unclaim` is a task's, and `sync` is offered only
 # when the recorded progress is stale.
 ROW_ACTIONS = ("pause", "resume")
+# What each launch an open row offers hands to an agent, with `{ws}` for the row's id. The same
+# texts as promptText in assets/web/logic.js, held equal by a test until those copies go.
+# Abandon's prompt stops at ": ", and the UI appends the reason it asks for.
+LAUNCH_PROMPTS = {
+    "run": "Use the ws-run skill to run workstream {ws}.",
+    "coordinate": "Use the ws-coordinate skill on workstream {ws}.",
+    "close": "Use the ws-coordinate skill to close workstream {ws}.",
+    "abandon": "Use the ws-coordinate skill to abandon workstream {ws}: ",
+}
+# The launches that ask the person something first, by the field they ask for.
+LAUNCH_ASKS = {"abandon": "reason"}
+# The statuses whose rows offer no launches.
+CLOSED_STATUSES = ("done", "abandoned")
 
 
 # --- git ----------------------------------------------------------------------------------
@@ -347,6 +360,16 @@ def row_actions(status: object, progress_stale: bool) -> list[str]:
     return found + (["sync"] if progress_stale else [])
 
 
+def row_launches(ws_id: object, status: object) -> list[dict]:
+    """The launches an open row offers, as {kind, prompt} and abandon's `ask`, in the order
+    run, coordinate, close, abandon. A done or abandoned row offers none."""
+    if status in CLOSED_STATUSES:
+        return []
+    return [{"kind": kind, "prompt": text.format(ws=ws_id),
+             **({"ask": LAUNCH_ASKS[kind]} if kind in LAUNCH_ASKS else {})}
+            for kind, text in LAUNCH_PROMPTS.items()]
+
+
 def git_refresh(root: Path) -> list[dict]:
     """Git's own files whose change alters what a view shows: the branch, the index, every
     branch, and the linked checkouts. Empty outside a repository."""
@@ -408,7 +431,8 @@ def build_snapshot(project: Project, ws_id: str | None = None,
         progress = live_progress(ws)
         stale = ws.get("progress") != progress
         return {**ws, "progress": progress, "progressStale": stale,
-                "actions": row_actions(ws.get("status"), stale)}
+                "actions": row_actions(ws.get("status"), stale),
+                "launches": row_launches(ws.get("id"), ws.get("status"))}
 
     facts = git_facts(project, rows)
     snapshot = {

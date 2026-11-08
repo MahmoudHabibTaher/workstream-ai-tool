@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -391,6 +392,57 @@ class RowActionsTests(RepoTestCase):
             self.assertEqual(self.build()["registry"][0]["actions"], [])
 
 
+LOGIC_JS = Path(__file__).resolve().parent.parent / "src/workstream/assets/web/logic.js"
+
+
+def prompt_text_strings() -> dict[str, str]:
+    """promptText's strings from logic.js, by kind, with `${ws}` written as `{ws}`. The last
+    return, which has no `if`, is abandon's."""
+    body = LOGIC_JS.read_text().split("export function promptText(kind, ws) {", 1)[1]
+    body = body.split("\n}", 1)[0]
+    found = dict(re.findall(r"if \(kind === '(\w+)'\) return `([^`]*)`", body))
+    found["abandon"] = re.findall(r"\n  return `([^`]*)`", body)[-1]
+    return {k: v.replace("${ws}", "{ws}") for k, v in found.items()}
+
+
+class RowLaunchesTests(RepoTestCase):
+    build = RowActionsTests.build
+    set_status = RowActionsTests.set_status
+
+    def test_each_open_status_offers_the_four_launches_in_order(self) -> None:
+        for status in ("active", "paused", "planned"):
+            with self.subTest(status=status):
+                self.set_status(status)
+                launches = self.build()["registry"][0]["launches"]
+                self.assertEqual([l["kind"] for l in launches],
+                                 ["run", "coordinate", "close", "abandon"])
+                self.assertEqual(launches[0]["prompt"],
+                                 "Use the ws-run skill to run workstream alpha.")
+
+    def test_a_closed_row_offers_none(self) -> None:
+        for status in ("done", "abandoned"):
+            with self.subTest(status=status):
+                self.set_status(status)
+                self.assertEqual(self.build()["registry"][0]["launches"], [])
+
+    def test_only_abandon_asks_for_a_reason(self) -> None:
+        self.set_status("active")
+        launches = {l["kind"]: l for l in self.build()["registry"][0]["launches"]}
+        self.assertEqual(launches["abandon"]["ask"], "reason")
+        self.assertTrue(launches["abandon"]["prompt"].endswith(": "))
+        self.assertEqual(launches["abandon"]["prompt"],
+                         "Use the ws-coordinate skill to abandon workstream alpha: ")
+        self.assertEqual([k for k, l in launches.items() if "ask" in l], ["abandon"])
+
+    def test_the_prompts_match_promptText_in_logic_js(self) -> None:
+        web = prompt_text_strings()
+        self.assertEqual(set(web), set(snapshot.LAUNCH_PROMPTS))
+        for kind in ("run", "coordinate", "close"):
+            self.assertEqual(snapshot.LAUNCH_PROMPTS[kind], web[kind], kind)
+        # The web copy ends in a placeholder for the reason; the snapshot's stops before it.
+        self.assertEqual(web["abandon"], snapshot.LAUNCH_PROMPTS["abandon"] + "<why>")
+
+
 class RefreshTests(RepoTestCase):
     def test_refresh_holds_the_registry_each_folder_and_gits_files(self) -> None:
         self.new_ws("beta", "BE")
@@ -432,6 +484,7 @@ class RefreshTests(RepoTestCase):
             data = json.loads(self.ok("snapshot", *argv))
             self.assertIn("refresh", data)
             self.assertTrue(all("actions" in row for row in data["registry"]))
+            self.assertTrue(all(len(row["launches"]) == 4 for row in data["registry"]))
             self.assertEqual(problems(data, schema, schema), [])
         self.assertIn("refresh", schema["required"])
         self.assertIn("actions", schema["properties"]["registry"]["items"]["required"])
