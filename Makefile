@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help test test-real test-mod test-vscode vsix audit eval
+.PHONY: help test test-real test-mod test-vscode vsix test-jetbrains jetbrains-zip verify-jetbrains audit eval
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -19,6 +19,15 @@ test-vscode: ## Build the VS Code extension and run its tests in the installed V
 
 vsix: ## Package the VS Code extension as ui/vscode/workstreams.vsix
 	cd ui/vscode && npm run build && npm run vsix
+
+test-jetbrains: ## Build the JetBrains plugin and run its JUnit and headless IDE tests (local only, like test-vscode)
+	cd ui/jetbrains && ./gradlew test
+
+jetbrains-zip: ## Package the JetBrains plugin under ui/jetbrains/build/distributions
+	cd ui/jetbrains && ./gradlew buildPlugin
+
+verify-jetbrains: ## Check the JetBrains plugin against the local IntelliJ IDEA and Android Studio
+	cd ui/jetbrains && ./gradlew verifyPlugin
 
 audit: ## Check every role's context against its limit
 	PYTHONPATH=src python3 -B -m workstream audit context

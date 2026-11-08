@@ -10,3 +10,7 @@ ui/vscode/node_modules/
 ui/vscode/out/
 ui/vscode/.vscode-test/
 *.vsix
+ui/jetbrains/build/
+ui/jetbrains/.gradle/
+ui/jetbrains/.intellijPlatform/
+ui/jetbrains/.kotlin/

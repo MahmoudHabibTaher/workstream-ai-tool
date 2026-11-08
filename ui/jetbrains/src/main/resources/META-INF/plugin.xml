@@ -1,0 +1,19 @@
+<idea-plugin>
+  <id>dev.workstream.jetbrains</id>
+  <name>Workstreams</name>
+  <vendor>workstream</vendor>
+  <description><![CDATA[
+    Shows a project's workstreams, reviews, health and context budget, all read from the ws CLI,
+    and writes only through <code>ws act</code>.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends optional="true" config-file="workstreams-terminal.xml">org.jetbrains.plugins.terminal</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationConfigurable parentId="tools" instance="dev.workstream.jetbrains.WsConfigurable"
+                             id="dev.workstream.jetbrains.settings" displayName="Workstreams"/>
+    <notificationGroup id="Workstreams" displayType="BALLOON"/>
+    <postStartupActivity implementation="dev.workstream.jetbrains.OpenWorkstreams"/>
+  </extensions>
+</idea-plugin>
