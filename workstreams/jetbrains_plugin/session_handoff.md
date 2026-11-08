@@ -1,12 +1,13 @@
 # Session handoff
 
-**State:** 2/7 done on `main` at `390e495`, as of 2026-11-08.
+**State:** 3/7 done on `main` at `79881c6`, as of 2026-11-08.
 
-**Just landed:** JB-02 (`390e495518`)
+**Just landed:** JB-03 (`79881c6091`)
 
-**Next:** `ws claim --commit JB-03` (phase 2).
+**Next:** `ws claim --commit JB-04` (phase 2).
 
 **Gotchas:**
-- JB-02: - `make verify-jetbrains` is UP-TO-DATE when nothing changed, and then prints no verdicts. Use `./gradlew verifyPlugin --rerun` to see them again.
-- JB-03 and JB-04 should extend `SINK` and `PROCESS` in `tests/test_jetbrains_files.py` when they add tooltips, dialogs and the launcher. The process check currently allows only `Cli.kt`.
-- `workstreams-terminal.xml` is an empty `<idea-plugin>` for JB-04 to fill. The verifier accepted it on both IDEs.
+- JB-03: - Opening a workstream project now runs `ws snapshot -w <id>` for the first active workstream after each top-level snapshot, so the status bar can show its wave line. OpenTest's expected calls were updated to `root`, `snapshot`, `snapshot -w alpha`. Each burst therefore costs two `ws` calls when a workstream is active.
+- The light test project, and so the `Workstreams` service, outlives each test. `Workstreams.forget()` (`@TestOnly`) resets it in `SampleTestCase.setUp` and `tearDown`. OpenTest now shares `SampleTestCase` with RegistryViewTest.
+- Temp dirs resolve to `/private/var/...`, which the test VFS doesn't allow by default (`VfsRootAccessNotAllowedError`). `SampleTestCase` calls `VfsRootAccess.allowRootAccess` for its temp dir.
+- The tool window has only the Registry tab. Review, Health and Budget come with JB-05 and JB-06. Nodes carry no writes or launches yet, which JB-04 adds.

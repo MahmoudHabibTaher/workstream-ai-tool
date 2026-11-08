@@ -6,6 +6,10 @@ Created 2026-11-08 from `main` at `045b529`.
 
 ---
 
+## 2026-11-08: JB-03: Registry, documents, status bar and live refresh
+
+Merged as `79881c6091`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-03.md).
+
 ## 2026-11-08: JB-02: The plugin's Gradle project, CLI class and test harness
 
 Merged as `390e495518`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-02.md).
