@@ -80,3 +80,15 @@ A workstream node carries the top-level snapshot's `revisions`. A task node carr
 ## D018 (2026-11-08, JB-04): the question a launch asks is worded from the offer's `ask` field
 
 When an offer has `ask`, the input dialog asks `Give the <ask> for <Kind> <ws>. The prompt ends with it.`, requires a non-blank answer, and appends the trimmed answer to the prompt. Nothing in Kotlin knows that abandon is the launch that asks. Rejected: a fixed abandon question like VS Code's, which is per-kind text in Kotlin. **Closed.**
+
+## D019 (2026-11-08, JB-05): the diff viewer is reached through a swappable `ReviewOpen.showDiff`, so the headless test keeps the request
+
+The default is `DiffManager.getInstance().showDiff(project, request)`. The tests replace it to capture the `SimpleDiffRequest` and read both `DocumentContent`s and `contentTitles`, as `TerminalTarget.opener` does for the Terminal (D014). Acceptance 2 asks for the request to be built, and this tests that. JB-07's manual check should open a real diff once. Rejected: calling the real `DiffManager` in a headless test, which opens a frame and gives the test nothing to read. **Closed.**
+
+## D020 (2026-11-08, JB-05): each side's title is `<side> <rev[:10]>`, and the request's title is VS Code's `diffTitle`
+
+Examples are `old de11afcd43` and `new 388682b46b`, with the request titled `shared.txt (R-1: de11afcd43 ↔ 388682b46b)`. "old" and "new" are the CLI's own side words. Kotlin doesn't call the old side "merge base", because whether it is one is the CLI's business. Rejected: full 40-character revs, which crowd the viewer's header. **Closed.**
+
+## D021 (2026-11-08, JB-05): a branch task's evidence opens the `evidenceText` that the `--checks` review drew the node from
+
+`EvidenceNode` carries the text, so opening it runs no second `ws` call. The `LightVirtualFile` is named `<task>.md` and is not writable. Rejected: re-reading `--checks` on open, as VS Code's content provider does. Here the file is built in one step, and no document provider has to serve it again later. **Closed.**

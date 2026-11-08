@@ -6,6 +6,10 @@ Created 2026-11-08 from `main` at `045b529`.
 
 ---
 
+## 2026-11-08: JB-05: The review queue and diffs in the diff viewer
+
+Merged as `a5e82d8f01`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-05.md).
+
 ## 2026-11-08: JB-04: Writes through ws act, and launching in the Terminal
 
 Merged as `5553b56ed2`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-04.md).
