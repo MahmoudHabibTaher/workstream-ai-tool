@@ -44,11 +44,24 @@ configuration's arguments are, and neither goes through a shell.
   PATH, so if `ws` doesn't start, set the full path, such as `~/.local/bin/ws` written out in full.
 - **Agent command**, empty by default: what the launcher starts in the Terminal.
 
+## What it shows
+
+- **The Workstreams tool window, Registry tab.** Each open workstream with its status, `done/total`
+  and error count. A workstream opens to its wave line, its phases, each phase's tasks with badges,
+  then Documents, whose files open in the editor on double-click or Enter. **Show Done** adds the
+  done and abandoned workstreams; **Refresh** reads the snapshot again.
+- **The status bar.** The first active workstream's wave line and error count. Clicking it opens
+  the tool window.
+- **Live refresh.** Every path in the snapshot's `refresh` list is watched by the IDE. A change
+  under one of them, such as a commit from a shell, reloads the snapshot once per 300 ms burst, and
+  so does the IDE window regaining focus.
+
 ## Layout
 
 - `src/main/kotlin/dev/workstream/jetbrains/`: the platform code. `Cli.kt` is the one class that
   runs `ws`, always off the UI thread. `Text.kt` builds every piece of HTML, escaping repo text.
-- `src/main/kotlin/dev/workstream/jetbrains/logic/`: plain Kotlin that never imports the platform.
+- `src/main/kotlin/dev/workstream/jetbrains/logic/`: plain Kotlin that never imports the platform:
+  the ports of the VS Code extension's `waveLine`, `badgesOf`, `lanes`, `splitRows` and its Registry tree.
 - `src/main/resources/META-INF/plugin.xml`, plus `workstreams-terminal.xml`, which loads only when
   the Terminal plugin is there.
 - `src/test/kotlin/`: JUnit tests, and headless `BasePlatformTestCase` tests against a sample

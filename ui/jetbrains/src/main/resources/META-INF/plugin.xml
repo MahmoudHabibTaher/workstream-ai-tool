@@ -15,5 +15,9 @@
                              id="dev.workstream.jetbrains.settings" displayName="Workstreams"/>
     <notificationGroup id="Workstreams" displayType="BALLOON"/>
     <postStartupActivity implementation="dev.workstream.jetbrains.OpenWorkstreams"/>
+    <toolWindow id="Workstreams" anchor="right" icon="AllIcons.Toolwindows.ToolWindowStructure"
+                factoryClass="dev.workstream.jetbrains.WorkstreamsToolWindow"/>
+    <statusBarWidgetFactory id="dev.workstream.jetbrains.status" order="first"
+                            implementation="dev.workstream.jetbrains.StatusWidgetFactory"/>
   </extensions>
 </idea-plugin>

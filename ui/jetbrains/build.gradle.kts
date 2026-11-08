@@ -26,6 +26,11 @@ repositories {
 }
 
 kotlin {
+    // Interface methods the plugin doesn't override stay the platform's: no bridges that call
+    // deprecated or experimental defaults, which the verifier would count as the plugin's usages.
+    compilerOptions {
+        jvmDefault = org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY
+    }
     jvmToolchain {
         languageVersion = JavaLanguageVersion.of(25)
         vendor = JvmVendorSpec.JETBRAINS
