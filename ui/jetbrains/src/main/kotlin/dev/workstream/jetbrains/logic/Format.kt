@@ -44,9 +44,18 @@ data class Row(
     val dependsOn: List<String> = listOf(),
     /** The status writes `ws act` would accept for this row now, as the snapshot drew them. */
     val actions: List<String> = listOf(),
+    /** What the row can launch, in the snapshot's order, each prompt already filled in. */
+    val launches: List<LaunchOffer> = listOf(),
 )
 
-data class Finding(val level: String, val workstream: String?, val task: String? = null, val message: String? = null)
+data class Finding(
+    val level: String,
+    val workstream: String?,
+    val task: String? = null,
+    val message: String? = null,
+    /** The writes this finding offers, each naming the workstream and task it is for. */
+    val actions: List<Offer> = listOf(),
+)
 
 data class Badge(val text: String, val kind: String)
 

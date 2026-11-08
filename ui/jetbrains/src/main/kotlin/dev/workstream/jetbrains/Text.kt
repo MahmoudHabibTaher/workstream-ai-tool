@@ -6,8 +6,11 @@ package dev.workstream.jetbrains
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.InputValidator
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.text.HtmlBuilder
 import com.intellij.openapi.util.text.HtmlChunk
+import dev.workstream.jetbrains.logic.ConfirmText
 import dev.workstream.jetbrains.logic.Section
 
 object Text {
@@ -36,6 +39,27 @@ object Text {
         }
         return out.wrapWith("html").toString()
     }
+
+    /** Lines of text, each escaped, a blank line apart, for a dialog's message. */
+    fun lines(lines: List<String>): String {
+        val out = HtmlBuilder()
+        lines.forEachIndexed { i, line ->
+            if (i > 0) out.br().br()
+            out.append(line)
+        }
+        return out.wrapWith("html").toString()
+    }
+
+    /** A modal confirm: true only when the person chose Confirm. */
+    fun confirm(project: Project, text: ConfirmText): Boolean =
+        Messages.showOkCancelDialog(project, lines(text.lines), text.title, "Confirm", "Cancel", Messages.getWarningIcon()) == Messages.OK
+
+    /** A modal question that needs a non-blank answer; null when the person cancelled. */
+    fun ask(project: Project, title: String, question: String): String? =
+        Messages.showInputDialog(project, html(question), title, null, "", object : InputValidator {
+            override fun checkInput(inputString: String?): Boolean = !inputString.isNullOrBlank()
+            override fun canClose(inputString: String?): Boolean = checkInput(inputString)
+        })
 
     fun notify(project: Project, text: String, type: NotificationType = NotificationType.WARNING) {
         NotificationGroupManager.getInstance().getNotificationGroup(GROUP)

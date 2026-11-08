@@ -4,7 +4,14 @@
 package dev.workstream.jetbrains.logic
 
 /** A workstream's own snapshot (`ws snapshot -w <id>`): its tasks, wave and document paths. */
-data class WsView(val tasks: List<Task>, val wave: Wave?, val docs: Map<String, String>)
+data class WsView(
+    val tasks: List<Task>,
+    val wave: Wave?,
+    val docs: Map<String, String>,
+    /** The revisions and health of this snapshot: what its task nodes pin and offer. */
+    val revisions: Revisions? = null,
+    val health: List<Finding> = listOf(),
+)
 
 /** One `refresh` entry of the snapshot: a path whose change means the snapshot may have changed. */
 data class Watch(val path: String, val recursive: Boolean)
@@ -22,10 +29,10 @@ sealed class Node(val id: String) {
     override fun toString(): String = "${javaClass.simpleName}($id)"
 }
 
-class WorkstreamNode(id: String, val row: Row, val errors: Int) : Node(id)
+class WorkstreamNode(id: String, val row: Row, val errors: Int, val writes: List<String> = listOf(), val revisions: Revisions? = null) : Node(id)
 class WaveNode(id: String, val text: String) : Node(id)
-class PhaseNode(id: String, val ws: String, val phase: Int, val tasks: List<Task>, val all: List<Task>, val wave: Wave?) : Node(id)
-class TaskNode(id: String, val ws: String, val task: Task, val badges: List<String>) : Node(id)
+class PhaseNode(id: String, val ws: String, val phase: Int, val tasks: List<Task>, val all: List<Task>, val wave: Wave?, val view: WsView? = null) : Node(id)
+class TaskNode(id: String, val ws: String, val task: Task, val badges: List<String>, val writes: List<String> = listOf(), val revisions: Revisions? = null) : Node(id)
 class DocumentsNode(id: String, val ws: String, val docs: List<Pair<String, String>>) : Node(id)
 class DocumentNode(id: String, val ws: String, val name: String, val path: String) : Node(id)
 class MessageNode(id: String, val text: String, val error: Boolean) : Node(id)
@@ -34,11 +41,14 @@ val DOC_LABELS = mapOf("plan" to "Plan", "progress" to "Progress", "decisions" t
 
 private fun key(vararg parts: Any): String = parts.joinToString("\u001f")
 
-/** The registry's rows in registry order, open ones first; closed ones only with Show done. */
-fun workstreams(rows: List<Row>, health: List<Finding>, showDone: Boolean): List<Node> {
+/**
+ * The registry's rows in registry order, open ones first; closed ones only with Show done. Each
+ * pins the `revisions` of the snapshot it came from, for its writes.
+ */
+fun workstreams(rows: List<Row>, health: List<Finding>, showDone: Boolean, revisions: Revisions? = null): List<Node> {
     val (open, closed) = splitRows(rows)
     val shown = if (showDone) open + closed else open
-    return shown.map { WorkstreamNode(key(it.id), it, errorCount(health, it.id)) }
+    return shown.map { WorkstreamNode(key(it.id), it, errorCount(health, it.id), rowWrites(it, health), revisions) }
 }
 
 /** Under a workstream: its wave line, its phases in order, then its documents. */
@@ -46,7 +56,7 @@ fun workstreamChildren(ws: String, view: WsView): List<Node> {
     val found = mutableListOf<Node>()
     val line = waveLine(view.wave)
     if (line.isNotEmpty()) found += WaveNode(key(ws, "wave"), line)
-    for (lane in lanes(view.tasks)) found += PhaseNode(key(ws, "phase", lane.phase), ws, lane.phase, lane.tasks, view.tasks, view.wave)
+    for (lane in lanes(view.tasks)) found += PhaseNode(key(ws, "phase", lane.phase), ws, lane.phase, lane.tasks, view.tasks, view.wave, view)
     val docs = DOC_NAMES.mapNotNull { name -> view.docs[name]?.let { name to it } }
     if (docs.isNotEmpty()) found += DocumentsNode(key(ws, "documents"), ws, docs)
     return found
@@ -54,7 +64,8 @@ fun workstreamChildren(ws: String, view: WsView): List<Node> {
 
 /** A phase's tasks, already in priority order, each with its badges. */
 fun phaseChildren(node: PhaseNode, now: Long): List<Node> = node.tasks.map { task ->
-    TaskNode(key(node.ws, "task", task.id), node.ws, task, badgesOf(task, node.all, node.wave?.ids, now).map { it.text })
+    TaskNode(key(node.ws, "task", task.id), node.ws, task, badgesOf(task, node.all, node.wave?.ids, now).map { it.text },
+             taskWrites(node.view?.health ?: listOf(), node.ws, task.id), node.view?.revisions)
 }
 
 fun documentChildren(node: DocumentsNode): List<Node> =

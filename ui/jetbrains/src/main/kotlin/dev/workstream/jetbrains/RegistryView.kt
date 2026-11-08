@@ -13,6 +13,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
@@ -26,6 +27,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.DoubleClickListener
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.content.ContentFactory
@@ -56,6 +58,7 @@ import javax.swing.Icon
 import javax.swing.JTree
 
 const val TOOL_WINDOW = "Workstreams"
+const val POPUP_GROUP = "Workstreams.Registry.Popup"
 
 /**
  * The tree's contents. Children are asked for on a background thread without a read action, since
@@ -77,7 +80,7 @@ class RegistryStructure(private val project: Project, private val now: () -> Lon
             root -> {
                 val snap = ws.snapshot
                 val error = ws.error
-                val rows = if (snap == null) listOf() else workstreams(Snapshots.rows(snap), Snapshots.health(snap), ws.showDone)
+                val rows = if (snap == null) listOf() else workstreams(Snapshots.rows(snap), Snapshots.health(snap), ws.showDone, Snapshots.revisions(snap))
                 (if (error != null) listOf(MessageNode("error", error, true)) else listOf()) + rows
             }
             is WorkstreamNode -> when (val got = ws.view(element.row.id)) {
@@ -162,6 +165,7 @@ class RegistryPanel(private val project: Project, parent: Disposable) : SimpleTo
                 if (e.keyCode == KeyEvent.VK_ENTER && openSelected()) e.consume()
             }
         })
+        PopupHandler.installPopupMenu(tree, POPUP_GROUP, "WorkstreamsRegistryPopup")
         val actions = DefaultActionGroup(ShowDoneAction(), RefreshAction())
         val toolbar = ActionManager.getInstance().createActionToolbar("WorkstreamsRegistry", actions, true)
         toolbar.targetComponent = this
@@ -170,8 +174,16 @@ class RegistryPanel(private val project: Project, parent: Disposable) : SimpleTo
         project.messageBus.connect(parent).subscribe(Workstreams.CHANGED, Workstreams.Changed { model.invalidateAsync() })
     }
 
+    /** The selected node's newest copy: what the writes and launches act on. */
+    fun selected(): Node? = (TreeUtil.getUserObject(tree.selectionPath?.lastPathComponent) as? RegistryDescriptor)?.node
+
+    override fun uiDataSnapshot(sink: DataSink) {
+        super.uiDataSnapshot(sink)
+        selected()?.let { sink[WS_NODE] = it }
+    }
+
     private fun openSelected(): Boolean {
-        val node = (TreeUtil.getUserObject(tree.selectionPath?.lastPathComponent) as? RegistryDescriptor)?.node
+        val node = selected()
         if (node !is DocumentNode) return false
         open(node)
         return true

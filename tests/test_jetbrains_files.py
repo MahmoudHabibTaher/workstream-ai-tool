@@ -13,6 +13,7 @@ import unittest
 from pathlib import Path
 
 from tests.helpers import WsTestCase, task
+from workstream.snapshot import LAUNCH_PROMPTS
 
 REPO = Path(__file__).resolve().parent.parent
 PACKAGE = REPO / "ui" / "jetbrains"
@@ -35,7 +36,10 @@ ESCAPED = re.compile(r"Text\.(html|escaped|tip)\(")
 # never reads markup, and a tooltip through Text.tip.
 REGISTRY = KOTLIN / "RegistryView.kt"
 STATUS = KOTLIN / "StatusWidget.kt"
-PROCESS = re.compile(r"GeneralCommandLine|ProcessBuilder|Runtime\.getRuntime|CapturingProcessHandler|OSProcessHandler")
+LAUNCH = KOTLIN / "Launch.kt"
+# createNewSession starts the agent as a Terminal tab's process (plan T7).
+PROCESS = re.compile(r"GeneralCommandLine|ProcessBuilder|Runtime\.getRuntime|CapturingProcessHandler|OSProcessHandler"
+                     r"|createNewSession|ProcessHandler|PtyProcess")
 
 
 def sources() -> list[Path]:
@@ -52,7 +56,7 @@ class NamesNoProjectTests(unittest.TestCase):
     def test_finds_the_sources(self) -> None:
         found = sources()
         for path in (CLI, TEXT, REGISTRY, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
-                     KOTLIN / "logic" / "Registry.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
+                     KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", LAUNCH, KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
                      SRC / "test" / "kotlin" / "dev" / "workstream" / "jetbrains" / "OpenTest.kt"):
             self.assertIn(path, found)
 
@@ -80,12 +84,18 @@ class NamesNoProjectTests(unittest.TestCase):
 
     def test_text_tip_escapes_every_line(self) -> None:
         text = TEXT.read_text()
-        body = text[text.index("fun tip("):text.index("fun notify(")]
+        body = text[text.index("fun tip("):text.index("fun lines(")]
         # HtmlBuilder.append(String) escapes; headings are the plugin's constants, escaped too.
         self.assertEqual(body.count("out.append("), 2)
         self.assertIn("section.heading?.let { out.append(HtmlChunk.text(it).bold()).br() }", body)
         self.assertIn("out.append(line)", body)
         self.assertIn('return out.wrapWith("html").toString()', body)
+        # A dialog's message is HTML too: each line escaped, and the question through html().
+        dialogs = text[text.index("fun lines("):text.index("fun notify(")]
+        self.assertEqual(dialogs.count("out.append("), 1)
+        self.assertIn("out.append(line)", dialogs)
+        self.assertIn("Messages.showOkCancelDialog(project, lines(text.lines), text.title,", dialogs)
+        self.assertIn("Messages.showInputDialog(project, html(question), title,", dialogs)
 
     def test_text_kt_escapes_what_it_is_given(self) -> None:
         text = TEXT.read_text()
@@ -94,10 +104,14 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertEqual(re.findall(r"createNotification\(([^,]*),", text), ["escaped(text)"])
         self.assertNotRegex(text, r'HtmlChunk\.raw|"<html>')
 
-    def test_only_cli_kt_runs_processes_and_logic_never_imports_the_platform(self) -> None:
+    def test_only_cli_kt_and_launch_kt_run_processes_and_logic_never_imports_the_platform(self) -> None:
         main = [p for p in sources() if "main" in p.relative_to(SRC).parts[:1]]
         runs = sorted({p.name for p, _, line in lines(main) if PROCESS.search(line)})
-        self.assertEqual(runs, ["Cli.kt"])
+        self.assertEqual(runs, ["Cli.kt", "Launch.kt"])
+        launch = LAUNCH.read_text()
+        self.assertIn("TerminalToolWindowManager.getInstance(project).createNewSession(LocalTerminalDirectRunner.createTerminalRunner(project), state)", launch)
+        self.assertIn("myShellCommand = argv", launch)
+        self.assertNotRegex(launch, r"sendText|createShellWidget|createLocalShellWidget")
         for path in (KOTLIN / "logic").rglob("*.kt"):
             self.assertNotIn("com.intellij", path.read_text(), path.name)
         cli = CLI.read_text()
@@ -105,6 +119,29 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertIn('.withEnvironment("GIT_OPTIONAL_LOCKS", "0")', cli)
         self.assertIn("isDispatchThread != true", cli)
         self.assertIn("const val TIMEOUT_MS = 60_000L", (KOTLIN / "logic" / "Model.kt").read_text())
+
+
+class NoPromptTextTests(unittest.TestCase):
+    """The snapshot owns the launch prompts (D-LAUNCHES): no Kotlin file, shipped or test, holds
+    any piece of one, so a launch can only send what a row's `launches` carries."""
+
+    def test_no_kotlin_file_holds_a_prompt_text(self) -> None:
+        pieces = {piece.strip() for text in LAUNCH_PROMPTS.values() for piece in text.split("{ws}")}
+        pieces = {p for p in pieces if len(p) >= 8}
+        self.assertTrue(pieces)
+        words = re.compile(r"\bskill\b|ws-run|ws-coordinate", re.IGNORECASE)
+        kotlin = [p for p in sources() if p.suffix == ".kt"]
+        found = [f"{p.relative_to(PACKAGE)}:{n}: {line.strip()}" for p, n, line in lines(kotlin)
+                 if words.search(line) or any(piece in line for piece in pieces)]
+        self.assertEqual(found, [])
+
+    def test_launches_come_from_the_row(self) -> None:
+        actions = (KOTLIN / "logic" / "Actions.kt").read_text()
+        self.assertIn("(node as? WorkstreamNode)?.row?.launches?.firstOrNull { it.kind == kind }", actions)
+        self.assertIn('fun promptOf(offer: LaunchOffer, answer: String?): String = if (offer.ask != null) offer.prompt + (answer ?: "") else offer.prompt', actions)
+        terminal = (SRC / "main" / "resources" / "META-INF" / "workstreams-terminal.xml").read_text()
+        self.assertIn('<launchTarget implementation="dev.workstream.jetbrains.TerminalTarget"/>', terminal)
+        self.assertNotIn("org.jetbrains.plugins.terminal", (KOTLIN / "WsActions.kt").read_text())
 
 
 class PackageTests(unittest.TestCase):
@@ -119,6 +156,9 @@ class PackageTests(unittest.TestCase):
         self.assertIn('<toolWindow id="Workstreams"', xml)
         self.assertIn('factoryClass="dev.workstream.jetbrains.WorkstreamsToolWindow"', xml)
         self.assertIn('implementation="dev.workstream.jetbrains.StatusWidgetFactory"', xml)
+        self.assertIn('<extensionPoint qualifiedName="dev.workstream.jetbrains.launchTarget"', xml)
+        self.assertEqual(re.findall(r'<action id="Workstreams\.(\w+)"', xml),
+                         ["Pause", "Resume", "Sync", "Unclaim", "Run", "Coordinate", "Close", "Abandon"])
 
     def test_the_build_targets_262(self) -> None:
         build = (PACKAGE / "build.gradle.kts").read_text()

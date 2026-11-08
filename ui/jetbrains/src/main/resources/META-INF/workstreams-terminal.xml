@@ -1,3 +1,6 @@
 <!-- Loaded only when the Terminal plugin is: the launcher's Terminal target registers here. -->
 <idea-plugin>
+  <extensions defaultExtensionNs="dev.workstream.jetbrains">
+    <launchTarget implementation="dev.workstream.jetbrains.TerminalTarget"/>
+  </extensions>
 </idea-plugin>

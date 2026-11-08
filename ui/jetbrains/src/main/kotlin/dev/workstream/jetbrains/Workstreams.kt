@@ -7,6 +7,7 @@
 package dev.workstream.jetbrains
 
 import com.google.gson.JsonObject
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationActivationListener
 import com.intellij.openapi.application.ApplicationManager
@@ -25,7 +26,9 @@ import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.util.messages.Topic
+import dev.workstream.jetbrains.logic.Confirm
 import dev.workstream.jetbrains.logic.Loaded
+import dev.workstream.jetbrains.logic.Revisions
 import dev.workstream.jetbrains.logic.Rooted
 import dev.workstream.jetbrains.logic.Run
 import dev.workstream.jetbrains.logic.Watch
@@ -117,6 +120,17 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
 
     /** Reloads now, off the EDT: the Refresh action. */
     fun refresh(): Job = scope.launch(Dispatchers.IO) { reload() }
+
+    /**
+     * The confirmed write, off the EDT: `ws act` against the pinned revisions. Its line, or its
+     * refusal as given, is one notification (escaped, plan T2), then the snapshot reloads.
+     */
+    fun act(ws: String, confirm: Confirm, pinned: Revisions): Job = scope.launch(Dispatchers.IO) {
+        val at = root ?: return@launch
+        val acted = cli().runAct(at, ws, confirm, pinned)
+        Text.notify(project, acted.line, if (acted.refused) NotificationType.ERROR else NotificationType.INFORMATION)
+        reload()
+    }
 
     private fun cli() = Cli.fromSettings(run)
 
