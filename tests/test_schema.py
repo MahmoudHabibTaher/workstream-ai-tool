@@ -84,9 +84,43 @@ class SchemaAgainstCodeTests(unittest.TestCase):
         self.assertEqual(row["properties"]["actions"]["items"]["enum"],
                          [*snapshot.ROW_ACTIONS, "sync"])
         self.assertIn("actions", row["required"])
+        launch = row["properties"]["launches"]["items"]
+        self.assertEqual(launch["properties"]["kind"]["enum"], list(snapshot.LAUNCH_PROMPTS))
+        self.assertEqual(launch["properties"]["ask"]["enum"],
+                         sorted(set(snapshot.LAUNCH_ASKS.values())))
+        self.assertIn("launches", row["required"])
         self.assertEqual(set(snap["properties"]["refresh"]["items"]["properties"]),
                          {"path", "recursive"})
         self.assertIn("refresh", snap["required"])
+
+
+class LaunchesSchemaTests(unittest.TestCase):
+    def snapshot_with(self, launches: list[dict]) -> dict:
+        return {"snapshotVersion": snapshot.SNAPSHOT_VERSION, "repoRoot": "/r",
+                "integrationBranch": "main",
+                "registry": [{"id": "alpha", "status": "active", "progress": {},
+                              "progressStale": False, "actions": ["pause"],
+                              "launches": launches}],
+                "revisions": {"registry": "x", "tasks": {}}, "watch": [], "refresh": [],
+                "health": [], "git": {}}
+
+    def test_a_snapshot_with_launches_passes(self) -> None:
+        schema = load_schema("snapshot")
+        data = self.snapshot_with(snapshot.row_launches("alpha", "active"))
+        self.assertEqual(len(data["registry"][0]["launches"]), 4)
+        self.assertEqual(problems(data, schema, schema), [])
+        self.assertEqual(problems(self.snapshot_with([]), schema, schema), [])
+
+    def test_an_unknown_launch_kind_is_rejected(self) -> None:
+        schema = load_schema("snapshot")
+        found = problems(self.snapshot_with([{"kind": "chat", "prompt": "hi"}]), schema, schema)
+        self.assertTrue(any("'chat' not in" in p for p in found), found)
+
+    def test_a_launch_with_an_extra_key_or_no_prompt_is_rejected(self) -> None:
+        schema = load_schema("snapshot")
+        self.assertTrue(problems(self.snapshot_with([{"kind": "run", "prompt": "p", "x": 1}]),
+                                 schema, schema))
+        self.assertTrue(problems(self.snapshot_with([{"kind": "run"}]), schema, schema))
 
 
 class ChecksTheCheckerTests(unittest.TestCase):

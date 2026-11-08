@@ -32,7 +32,8 @@
           "status",
           "progress",
           "progressStale",
-          "actions"
+          "actions",
+          "launches"
         ],
         "properties": {
           "id": {
@@ -58,6 +59,36 @@
             },
             "uniqueItems": true,
             "description": "The status writes ws act would accept for this row now."
+          },
+          "launches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "prompt"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "run",
+                    "coordinate",
+                    "close",
+                    "abandon"
+                  ]
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "ask": {
+                  "enum": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "description": "What an open row offers to hand an agent, in the order run, coordinate, close, abandon. A launch with ask wants that from the person, appended to its prompt. Empty for a done or abandoned row."
           }
         }
       }
