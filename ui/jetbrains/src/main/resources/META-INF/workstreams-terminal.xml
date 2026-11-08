@@ -1,0 +1,3 @@
+<!-- Loaded only when the Terminal plugin is: the launcher's Terminal target registers here. -->
+<idea-plugin>
+</idea-plugin>
