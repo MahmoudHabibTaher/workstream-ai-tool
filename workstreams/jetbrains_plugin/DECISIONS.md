@@ -60,3 +60,23 @@ Without it, Kotlin 2.3 emits bridges for every interface default the plugin does
 ## D013 (2026-11-08, JB-03): the sink scan in test_jetbrains_files.py reads only `src/main`
 
 The new tests' expected strings hold `<html>` on purpose, for example the escaped tooltip they assert. Those strings aren't sinks, and they would fail a scan of the test sources. The scan therefore covers the shipped code only, and it gained three sink patterns: `getTooltipText()`, `.tooltip =` and `setTooltip(`. Rejected: rewriting each expected string so that no line holds `<html>`. **Closed.**
+
+## D014 (2026-11-08, JB-04): the Terminal tab is opened with the public `createNewSession(runner, TerminalTabState)`, not the five-argument overload plan T7 names
+
+`javap -v` and the verifier both show `createNewSession(String, String, List, boolean, boolean)` is `@ApiStatus.Internal` on 262 and 263. With it, both IDEs reported `Compatible. 1 usage of internal API`. `TerminalTarget` instead builds a `TerminalTabState` with `myShellCommand = argv`, `myWorkingDirectory`, `myTabName`. It calls `TerminalToolWindowManager.getInstance(project).createNewSession(LocalTerminalDirectRunner.createTerminalRunner(project), state)`, which is unannotated, and both verifications are then plain `Compatible`. The argv is still the tab's process, with the prompt as its last argument, and no shell is involved. The headless test swaps the tab-opening call (`TerminalTarget.opener`), so JB-07 should confirm by hand that a tab starts the agent. `LocalTerminalDirectRunner` may add shell-integration options when the argv's program is itself a known shell (bash, zsh, fish, pwsh). An agent binary isn't one. Rejected: the internal overload, which T7 checked exists but which isn't API. **Open.**
+
+## D015 (2026-11-08, JB-04): launch targets are an extension point that the optional Terminal descriptor fills
+
+`plugin.xml` declares `dev.workstream.jetbrains.launchTarget`, and `workstreams-terminal.xml` registers `TerminalTarget` in it, so the target exists only when the Terminal plugin does. `Launcher.launch` tries each target, then the clipboard. It names no Terminal class, and it tells "no agent command" apart from "Terminal plugin off" by the target's `id`. The clipboard message names the setting in both cases. Rejected: a fixed list in Launch.kt that refers to `TerminalTarget` directly, which would load Terminal classes without the plugin. **Closed.**
+
+## D016 (2026-11-08, JB-04): an action the node doesn't offer is hidden as well as disabled
+
+`NodeAction.update` sets `isEnabledAndVisible`, so the popup menu shows only what the snapshot offers, as the brief's summary says. Find Action does the same, and without a Registry selection it offers none of them. Rejected: disabled but visible, which acceptance 2's wording alone would also allow. **Closed.**
+
+## D017 (2026-11-08, JB-04): a write's revisions are pinned on the node from the snapshot that drew it
+
+A workstream node carries the top-level snapshot's `revisions`. A task node carries those of `ws snapshot -w <id>`, which it was drawn from, along with that snapshot's health for its `unclaim` offers. Whether the view is behind is judged when the confirm opens, against `Workstreams.snapshot` (T8). Rejected: reading the service's latest revisions at click time, which would let a reload just before the click pass a stale view. **Closed.**
+
+## D018 (2026-11-08, JB-04): the question a launch asks is worded from the offer's `ask` field
+
+When an offer has `ask`, the input dialog asks `Give the <ask> for <Kind> <ws>. The prompt ends with it.`, requires a non-blank answer, and appends the trimmed answer to the prompt. Nothing in Kotlin knows that abandon is the launch that asks. Rejected: a fixed abandon question like VS Code's, which is per-kind text in Kotlin. **Closed.**

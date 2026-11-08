@@ -245,13 +245,29 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-08T10:56:24Z",
       "baseCommit": "0d19b060df5805bddf428b142f878672784501e2",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-08T11:13:23Z",
+      "commit": "5553b56ed227167bcdaf03fb7443b4763796b08d",
+      "verification": {
+        "tree": "9c7800eaa6d74864c2189f32ffa394087d69eecc",
+        "at": "2026-11-08T11:12:09Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-jetbrains",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {

@@ -1,13 +1,15 @@
 # Session handoff
 
-**State:** 3/7 done on `main` at `79881c6`, as of 2026-11-08.
+**State:** 4/7 done on `main` at `5553b56`, as of 2026-11-08.
 
-**Just landed:** JB-03 (`79881c6091`)
+**Just landed:** JB-04 (`5553b56ed2`)
 
-**Next:** `ws claim --commit JB-04` (phase 2).
+**Open decisions:**
+- D014: the Terminal tab is opened with the public `createNewSession(runner, TerminalTabState)`, not the five-argument overload plan T7 names (waiting: JB-05, JB-06, JB-07)
+
+**Next:** `ws claim --commit JB-05` (phase 3).
 
 **Gotchas:**
-- JB-03: - Opening a workstream project now runs `ws snapshot -w <id>` for the first active workstream after each top-level snapshot, so the status bar can show its wave line. OpenTest's expected calls were updated to `root`, `snapshot`, `snapshot -w alpha`. Each burst therefore costs two `ws` calls when a workstream is active.
-- The light test project, and so the `Workstreams` service, outlives each test. `Workstreams.forget()` (`@TestOnly`) resets it in `SampleTestCase.setUp` and `tearDown`. OpenTest now shares `SampleTestCase` with RegistryViewTest.
-- Temp dirs resolve to `/private/var/...`, which the test VFS doesn't allow by default (`VfsRootAccessNotAllowedError`). `SampleTestCase` calls `VfsRootAccess.allowRootAccess` for its temp dir.
-- The tool window has only the Registry tab. Review, Health and Budget come with JB-05 and JB-06. Nodes carry no writes or launches yet, which JB-04 adds.
+- JB-04: - The confirm says `This commits "alpha: pause" on main.`, while `ws act` commits `alpha: pause (ws act)`. VS Code's `commitLine` says the same. If the confirm should quote the subject exactly, the commit line belongs in the snapshot, not in a fourth copy.
+- `ui/vscode/src/logic/actions.ts` and this port both rebuild the commit line. They are held together by a test only within each UI.
+- JB-07's manual check should cover a real Terminal tab (D014) and the popup menu on a right-click.
