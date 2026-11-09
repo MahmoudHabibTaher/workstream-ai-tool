@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from workstream import evidence
+from workstream import adapt, evidence
 
 REPO = Path(__file__).resolve().parent.parent
 STUB = "stub"
@@ -353,6 +353,27 @@ class Scenario:
     worker: bool = True  # a worker's job, so the task is claimed and a worktree made first
     setup: Callable[[Repo], None] | None = None  # what happened before this agent starts
     plan: str = PLAN
+    applies: Callable[[str], bool] = lambda agent: True  # an agent this scenario's premise holds for
+    why_not: Callable[[str], str] = lambda agent: ""  # the reason it doesn't, for the N/A line
+
+
+def _cannot_edit(agent: str) -> list[str]:
+    return list(adapt.load(agent).raw["worker"].get("cannot_edit", []))
+
+
+TEXT_FOLDER = TEXT_FILE.split("/")[0] + "/"
+
+
+def text_applies(agent: str) -> bool:
+    """Only where the agent's adapter warns a worker off TEXT_FILE's folder; the stub always."""
+    return agent == STUB or TEXT_FOLDER in _cannot_edit(agent)
+
+
+def text_why_not(agent: str) -> str:
+    folders = _cannot_edit(agent)
+    if not folders:
+        return f"{agent}'s adapter forbids no folder"
+    return f"{agent}'s adapter forbids {', '.join(folders)}, not {TEXT_FOLDER}"
 
 
 WORKER_PROMPT = f"Run `ws brief D-1 -w {WS_ID}` and follow it."
@@ -372,7 +393,8 @@ SCENARIOS = {s.name: s for s in (
     Scenario("leftover", WORKER_PROMPT, check_leftover, setup=leave_partial_work,
              plan=LEFTOVER_PLAN),
     # Again the usual prompt: the brief has to say where the line goes instead.
-    Scenario("text", WORKER_PROMPT, check_text, plan=TEXT_PLAN),
+    Scenario("text", WORKER_PROMPT, check_text, plan=TEXT_PLAN, applies=text_applies,
+             why_not=text_why_not),
 )}
 
 
@@ -573,6 +595,10 @@ def main(argv: list[str] | None = None) -> int:
     cap = args.cap or DEFAULT_CAP.get(args.agent, "0")
     results = []
     for name in args.scenarios.split(","):
+        scenario = SCENARIOS[name]
+        if not scenario.applies(args.agent):  # neither a pass nor a failure, and nothing spent
+            print(f"N/A {name}  ({scenario.why_not(args.agent)})", flush=True)
+            continue
         result = run_scenario(name, args.agent, cap, keep=args.keep, model=args.model)
         results.append(result)
         print(report_line(result), flush=True)
