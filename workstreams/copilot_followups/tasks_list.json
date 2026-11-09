@@ -146,7 +146,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/cf-02",
       "blockedBy": [
         "CF-01"
       ],
@@ -155,10 +155,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-09T15:31:48Z",
+      "baseCommit": "cb90c0ffbfcbf026b6b0accb56e3d887106d196c",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,
