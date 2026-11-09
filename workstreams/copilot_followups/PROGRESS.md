@@ -6,6 +6,10 @@ Created 2026-11-09 from `main` at `9deab81`.
 
 ---
 
+## 2026-11-09: CF-02: `text` runs only where an adapter warns
+
+Merged as `8378f8deba`. Verified: test pass. [Evidence](evidence/CF-02.md).
+
 ## 2026-11-09: CF-01: The harness reports Copilot credits
 
 Merged as `d94e2802ba`. Verified: test pass. [Evidence](evidence/CF-01.md).
