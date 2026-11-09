@@ -5,3 +5,11 @@ Append-only log, newest entry on top: the date, the task, what changed, and a li
 Created 2026-11-09 from `main` at `9deab81`.
 
 ---
+
+## 2026-11-09: CF-01: The harness reports Copilot credits
+
+Merged as `d94e2802ba`. Verified: test pass. [Evidence](evidence/CF-01.md).
+
+## 2026-11-09: CF-04: The edit-tool rule reaches only Claude Code workers
+
+Merged as `9373a4004b`. Verified: test pass, audit pass. [Evidence](evidence/CF-04.md).
