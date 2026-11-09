@@ -341,8 +341,8 @@
       "dependsOn": [],
       "progress": {
         "total": 5,
-        "todo": 2,
-        "in-progress": 0,
+        "todo": 1,
+        "in-progress": 1,
         "blocked": 0,
         "done": 3,
         "deferred": 0
