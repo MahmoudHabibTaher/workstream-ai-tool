@@ -271,7 +271,7 @@
         "test",
         "audit"
       ],
-      "branch": "",
+      "branch": "task/cf-05",
       "blockedBy": [
         "CF-03",
         "CF-04"
@@ -281,10 +281,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-09T17:29:19Z",
+      "baseCommit": "7d4b574b13e445dd5ad364075897424036ab2cbc",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,
