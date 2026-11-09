@@ -20,7 +20,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -220,7 +220,7 @@ object ReviewOpen {
         val fs = LocalFileSystem.getInstance()
         val landed = if (!node.onBranch && node.path != null) fs.findFileByPath(node.path) ?: fs.refreshAndFindFileByPath(node.path) else null
         val file = landed ?: LightVirtualFile("${node.task}.md", node.text).apply { isWritable = false }
-        FileEditorManager.getInstance(project).openFile(file, true)
+        OpenFileDescriptor(project, file).navigate(true)
         return Opened.Evidence(file)
     }
 }

@@ -48,5 +48,8 @@ On macOS, IntelliJ IDEA 2026.3 (IU-263.7307.200) and Android Studio 2026.2 (AI-2
 
 ## Left open
 
-- D014: the Terminal tab is opened through the public `createNewSession(runner, TerminalTabState)` rather than the overload plan T7 named. It worked by hand on both IDEs.
-- The one deprecated call reported on 263, `FileEditorManager.openFile` in `ReviewOpen.openEvidence`.
+Nothing. Closed after the milestone, on 2026-11-09:
+
+- D031 closed D014: Terminal tabs keep the public `createNewSession(runner, TerminalTabState)`, which JB-07 saw start the agent on both IDEs.
+- D032 closed D027: local installs stay on the gitignored `dist/jetbrains/`, copied by hand. No make target writes it yet.
+- `ReviewOpen.openEvidence` now opens through `OpenFileDescriptor.navigate` instead of the deprecated `FileEditorManager.openFile`. `make test-jetbrains` passes, and `make verify-jetbrains` reports plain Compatible on 262 and 263 with no deprecated usages.

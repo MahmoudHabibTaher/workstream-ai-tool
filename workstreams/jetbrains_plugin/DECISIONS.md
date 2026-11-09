@@ -130,3 +130,15 @@ Android Studio 2026.2 here has another workstream plugin 1.1.0, which registers 
 Closes: D029.
 
 The owner installed both together after JB-07 and reported no conflicts, which settles what D029 left untested; renaming the id is not needed **Closed.**
+
+## D031 (2026-11-09, coordinator): D014 stands: Terminal tabs open through the public createNewSession(runner, TerminalTabState)
+
+Closes: D014.
+
+JB-07 checked by hand that a tab starts the agent in IntelliJ IDEA 2026.3 and Android Studio 2026.2, and both verifications are plain Compatible with no internal API **Closed.**
+
+## D032 (2026-11-09, coordinator): D027 stands for now: local installs come from the gitignored dist/jetbrains/ with its updatePlugins.xml, copied by hand from make jetbrains-zip
+
+Closes: D027.
+
+the owner installs the zip themselves and it worked on both IDEs; a make target that writes dist/jetbrains/ can come when there is a release process **Closed.**
