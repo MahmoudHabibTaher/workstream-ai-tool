@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "keys": {
+    "audit": {
+      "parser": "exit-code",
+      "command": "make audit",
+      "exit": 0,
+      "findings": []
+    },
+    "test": {
+      "parser": "exit-code",
+      "command": "make test",
+      "exit": 0,
+      "findings": []
+    }
+  },
+  "recordedAt": "2026-11-09T15:00:31Z",
+  "commit": "9deab81d7571f027d767c1668ed3f6c2fab7a1d9"
+}

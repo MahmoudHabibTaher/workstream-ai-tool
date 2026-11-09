@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/copilot_followups/PLAN.md",
+  "updated": "2026-11-09",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "CF-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "The harness reports Copilot credits",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "D-CREDITS"
+      ],
+      "summary": "cost_from returns an amount and its unit: USD from total_cost_usd for Claude, credits from totalNanoAiu / 10**9 for Copilot (from the agent's log, or else that run's newest events.jsonl). The report prints `$0.20` or `54.20 credits`.",
+      "files": [
+        "evals/harness.py",
+        "tests/test_evals.py"
+      ],
+      "docs": [
+        "docs/decisions/0008-agent-adapters.md"
+      ],
+      "acceptance": [
+        "A test feeds Copilot-shaped event lines with totalNanoAiu and gets credits back, and the existing Claude cost test still passes",
+        "A test shows the report line prints `54.20 credits` for Copilot and `$0.20` for Claude",
+        "`make test TESTS=tests.test_evals` passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "CF-04",
+      "phase": 1,
+      "priority": 20,
+      "title": "The edit-tool rule reaches only Claude Code workers",
+      "kind": "prompts",
+      "findings": [
+        "T4",
+        "D-RULE"
+      ],
+      "summary": "Move the edit-tools / one-command-per-call rule out of PROTOCOL.md's worker section into `[worker] rules` in claude-code.toml. The brief adds `**On Claude Code:** ...` under Rules for each adapted agent with rules, and worker_text appends them to that agent's worker file. Update docs/rule-map.md and regenerate this repo's own Claude files.",
+      "files": [
+        "src/workstream/assets/PROTOCOL.md",
+        "src/workstream/assets/adapters/claude-code.toml",
+        "src/workstream/brief.py",
+        "src/workstream/adapt.py",
+        "tests/test_brief.py",
+        "tests/test_adapt.py",
+        "docs/rule-map.md",
+        ".claude/"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test shows a claude-code project's brief carries the rule labelled for Claude Code, and a copilot-cli project's brief doesn't carry it",
+        "A test shows the generated Claude worker file carries the rule and the Copilot one doesn't",
+        "`make test` passes, including tests.test_rule_map and tests.test_protocol",
+        "`make audit` passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "CF-02",
+      "phase": 1,
+      "priority": 30,
+      "title": "`text` runs only where an adapter warns",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-APPLIES"
+      ],
+      "summary": "A Scenario says which agents it applies to. `text` applies where the agent's adapter has a cannot_edit folder over TEXT_FILE, and to the stub. Elsewhere the harness prints N/A with the reason, starts no agent and spends nothing, and the run's exit code ignores it.",
+      "files": [
+        "evals/harness.py",
+        "tests/test_evals.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test shows a copilot-cli run of `text` reports N/A, starts no agent and leaves the exit code 0",
+        "A test shows `text` still applies to claude-code and to the stub",
+        "`make test TESTS=tests.test_evals` passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "CF-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "CF-03",
+      "phase": 1,
+      "priority": 40,
+      "title": "A `hook` scenario that proves a denial",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "D-HOOK"
+      ],
+      "summary": "Add a non-worker `hook` scenario asking for a direct fix to workstreams/demo/PROGRESS.md. The harness adds a capture hook beside the generated one (Copilot's .github/hooks/ws.json, Claude's .claude/settings.json) that appends raw payloads outside the repo. The check needs PROGRESS.md unchanged and a captured file-tool payload naming it that hook.decide denies, and says which was missing. --keep also copies the capture.",
+      "files": [
+        "evals/harness.py",
+        "evals/stub_agent.py",
+        "tests/test_evals.py"
+      ],
+      "docs": [
+        "src/workstream/hook.py",
+        "src/workstream/assets/adapters/copilot-cli.toml",
+        "src/workstream/assets/adapters/claude-code.toml"
+      ],
+      "acceptance": [
+        "A stub test with behaviour `hook-edit` passes the hook scenario",
+        "A stub test where no file-tool edit reached the hook fails with a problem saying so",
+        "A stub test where PROGRESS.md changed fails with a problem naming it",
+        "`make test TESTS=tests.test_evals` passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "CF-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "CF-05",
+      "phase": 2,
+      "priority": 50,
+      "title": "Prove it on real agents and record it",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "T3",
+        "D-HOOK"
+      ],
+      "summary": "Run the Claude Code evals in full and the Copilot `hook` and `text` scenarios with KEEP. Add a real Copilot hook payload, made synthetic, as a test_hook fixture (fixing hook.py if the real shape differs), and record everything in 0008.",
+      "files": [
+        "docs/decisions/0008-agent-adapters.md",
+        "tests/test_hook.py",
+        "src/workstream/hook.py",
+        ".claude/",
+        ".github/"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "`make eval AGENT=claude-code` passes all nine scenarios, each with a dollar cost, recorded in 0008",
+          "kind": "manual"
+        },
+        {
+          "text": "`make eval AGENT=copilot-cli SCENARIOS=hook,text` passes `hook` with a credit figure and reports `text` as N/A, recorded in 0008",
+          "kind": "manual"
+        },
+        "A test in tests/test_hook.py feeds a recorded Copilot payload shape to hook.decide and it denies",
+        "`make test` and `make audit` pass"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "CF-03",
+        "CF-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "evals/",
+      "tests/test_evals.py",
+      "tests/test_hook.py",
+      "tests/test_brief.py",
+      "src/workstream/brief.py",
+      "src/workstream/adapt.py",
+      "src/workstream/hook.py",
+      "src/workstream/assets/PROTOCOL.md",
+      "src/workstream/assets/adapters/",
+      "docs/rule-map.md",
+      "docs/decisions/0008-agent-adapters.md",
+      ".claude/",
+      ".github/"
+    ],
+    "outOfScope": [
+      "a full Copilot rerun",
+      "a cannot_edit folder for Copilot",
+      "changing the hook matcher without a recorded payload",
+      "pushing"
+    ],
+    "rule": "Change only what the four fixes from the Copilot rerun need, and spend Copilot credits only on the hook and text scenarios in CF-05."
+  }
+}
