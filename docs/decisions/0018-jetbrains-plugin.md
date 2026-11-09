@@ -34,6 +34,7 @@ On macOS, IntelliJ IDEA 2026.3 (IU-263.7307.200) and Android Studio 2026.2 (AI-2
 | A notified finding's unclaim | The health notification's Show Health opened the Health tab, and the stale-claim finding's Unclaim landed as `42e6357 alpha: unclaim S-1 (ws act)` |
 | Run in a Terminal tab | Run on alpha opened a Terminal tab running the agent command with the prompt as its argument, in IntelliJ and in Android Studio. With the agent command cleared, Run opened no tab and copied `Use the ws-run skill to run workstream alpha.` |
 | Android Studio | The tool window drew on the sample, and `d91ad8a beta: resume (ws act)` landed |
+| Alongside another `Workstreams` tool window | Android Studio here also has another plugin that registers a tool window with id `Workstreams`. It was disabled for the checks above; afterwards the owner installed both side by side and reported no conflicts (D030) |
 | This repo, read-only | Viewed in IntelliJ with no writes; HEAD (`3cb2c67`), status and refs were the same afterwards |
 | Automated | `make test` and `make test-jetbrains` pass |
 
@@ -42,12 +43,10 @@ On macOS, IntelliJ IDEA 2026.3 (IU-263.7307.200) and Android Studio 2026.2 (AI-2
 - **A real agent started by Run.** The sample's agent command printed its argument and opened a shell instead of starting Claude Code.
 - **The stale refusal's exact text.** The owner reported "refused"; the message wasn't copied from the screen.
 - **PyCharm and other JetBrains IDEs, builds older than 262, and other OSes.** Out of scope.
-- **Alongside a plugin with the same tool window id.** Android Studio here has another plugin registering a `Workstreams` tool window; it was disabled for the check, so how the two coexist is untested.
 - **Several active workstreams.** The status bar shows the first active one.
 - **A write to a real project**, or a long session. Writes ran on the sample only, by design.
 
 ## Left open
 
 - D014: the Terminal tab is opened through the public `createNewSession(runner, TerminalTabState)` rather than the overload plan T7 named. It worked by hand on both IDEs.
-- The tool window id `Workstreams` clashes with another plugin's; a unique id would avoid it.
 - The one deprecated call reported on 263, `FileEditorManager.openFile` in `ReviewOpen.openEvidence`.

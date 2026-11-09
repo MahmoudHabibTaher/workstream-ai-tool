@@ -124,3 +124,9 @@ An empty commit doesn't change the registry or queue hashes, so it can't make a 
 ## D029 (2026-11-09, JB-07): Android Studio was checked with the other `Workstreams` plugin disabled
 
 Android Studio 2026.2 here has another workstream plugin 1.1.0, which registers a tool window with id `Workstreams`, the same as this plugin's. The owner chose to disable it for the check. How the two coexist is untested. Rejected: installing alongside it, or blocking JB-07 on renaming the id. **Open.**
+
+## D030 (2026-11-09, coordinator): Our plugin and another workstream plugin install side by side in Android Studio 2026.2 without conflict, so the tool window id stays `Workstreams`
+
+Closes: D029.
+
+The owner installed both together after JB-07 and reported no conflicts, which settles what D029 left untested; renaming the id is not needed **Closed.**

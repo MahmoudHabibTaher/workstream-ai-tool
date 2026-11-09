@@ -78,8 +78,6 @@ configuration's arguments are, and neither goes through a shell.
 
 ## Known issues
 
-- The tool window's id is `Workstreams`. Another plugin that registers a tool window with the same
-  id (one such is installed in some Android Studio setups) clashes with it; disable one of them.
 - IntelliJ IDEA 2026.3's verifier reports one deprecated call, `FileEditorManager.openFile`, used
   in `ReviewOpen.openEvidence` to open a task's evidence from the Review tab.
 
