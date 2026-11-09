@@ -256,6 +256,31 @@ class RealRunGuardTests(unittest.TestCase):
             self.assertEqual(harness.main(["--agent", harness.CLAUDE]), 2)
         started.assert_not_called()
 
+    def test_text_is_not_applicable_to_copilot_and_starts_nothing(self) -> None:
+        with mock.patch.object(harness, "preflight", return_value=""), \
+                mock.patch.object(harness, "run_scenario") as started, \
+                mock.patch.object(harness, "start_agent") as agent, \
+                mock.patch("builtins.print") as printed:
+            code = harness.main(["--agent", harness.COPILOT, "--scenarios", "text"])
+        self.assertEqual(code, 0)
+        started.assert_not_called()
+        agent.assert_not_called()
+        printed.assert_called_once_with("N/A text  (copilot-cli's adapter forbids no folder)",
+                                        flush=True)
+
+    def test_text_still_applies_to_claude_and_the_stub(self) -> None:
+        text = harness.SCENARIOS["text"]
+        self.assertTrue(text.applies(harness.CLAUDE))
+        self.assertTrue(text.applies(harness.STUB))
+        self.assertFalse(text.applies(harness.COPILOT))
+        passed = {"scenario": "text", "agent": harness.CLAUDE, "passed": True, "problems": [],
+                  "exit": 0, "seconds": 1.0, "cost": None, "said": ""}
+        with mock.patch.object(harness, "preflight", return_value=""), \
+                mock.patch.object(harness, "run_scenario", return_value=passed) as started, \
+                mock.patch("builtins.print"):
+            self.assertEqual(harness.main(["--agent", harness.CLAUDE, "--scenarios", "text"]), 0)
+        self.assertEqual(started.call_args[0][:2], ("text", harness.CLAUDE))
+
     def test_the_test_suite_never_names_a_real_run(self) -> None:
         makefile = (REPO / "Makefile").read_text()
         test_recipe = makefile.split("test:")[1].split("\n\n")[0]
