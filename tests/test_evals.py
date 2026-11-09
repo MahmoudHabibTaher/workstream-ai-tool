@@ -188,7 +188,52 @@ class RealRunGuardTests(unittest.TestCase):
         log = base / "log"
         log.write_text('a warning\n{"type": "system"}\n{"total_cost_usd": 0.1}\n'
                        '{"total_cost_usd": 0.2}\n{"type": "end"}\n')
-        self.assertEqual(harness.cost_from(log), 0.2)
+        self.assertEqual(harness.cost_from(log, harness.CLAUDE), (0.2, harness.USD))
+
+    def _copilot_dirs(self) -> tuple[Path, Path]:
+        base = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, base, True)
+        (base / "sessions").mkdir()
+        return base / "log", base / "sessions"
+
+    def test_copilot_credits_are_found_in_its_log(self) -> None:
+        # The two shapes a real events.jsonl had: the figure on data, and under accountingSnapshot.
+        log, sessions = self._copilot_dirs()
+        log.write_text('a warning\n'
+                       '{"type":"session.usage_checkpoint","data":{"totalNanoAiu":21495680000}}\n'
+                       '{"type":"session.shutdown","data":{"accountingSnapshot":'
+                       '{"totalNanoAiu":54200000000.0,"aiCreditsStatus":"complete"}}}\n'
+                       '{"type":"end"}\n')
+        amount, unit = harness.cost_from(log, harness.COPILOT, sessions=sessions)
+        self.assertAlmostEqual(amount, 54.2)
+        self.assertEqual(unit, harness.CREDITS)
+
+    def test_copilot_credits_fall_back_to_the_runs_newest_session(self) -> None:
+        log, sessions = self._copilot_dirs()
+        log.write_text('{"type":"result"}\n')
+        for name, nano, mtime in (("old", 9e9, 1000), ("new", 20e9, 3000), ("before", 5e9, 10)):
+            events = sessions / name / "events.jsonl"
+            events.parent.mkdir()
+            events.write_text(f'{{"type":"session.usage_checkpoint","data":{{"totalNanoAiu":{nano}}}}}\n')
+            os.utime(events, (mtime, mtime))
+        self.assertEqual(harness.cost_from(log, harness.COPILOT, sessions=sessions, since=500),
+                         (20.0, harness.CREDITS))
+
+    def test_no_figure_means_no_cost(self) -> None:
+        log, sessions = self._copilot_dirs()
+        log.write_text('a warning\n{"type": "end"}\n')
+        self.assertIsNone(harness.cost_from(log, harness.CLAUDE))
+        self.assertIsNone(harness.cost_from(log, harness.COPILOT, sessions=sessions))
+        self.assertIsNone(harness.cost_from(log.with_name("missing"), harness.CLAUDE))
+
+    def test_the_report_prints_each_cost_in_its_unit(self) -> None:
+        result = {"scenario": "full", "passed": True, "seconds": 12.5, "exit": 0}
+        self.assertEqual(harness.report_line({**result, "cost": (54.2, harness.CREDITS)}),
+                         "PASS full  12.5s, 54.20 credits")
+        self.assertEqual(harness.report_line({**result, "cost": (0.2, harness.USD)}),
+                         "PASS full  12.5s, $0.20")
+        self.assertEqual(harness.report_line({**result, "cost": None, "passed": False, "exit": 1}),
+                         "FAIL full  12.5s  (agent exit 1)")
 
     def test_a_run_refuses_an_account_nobody_named(self) -> None:
         with mock.patch.object(harness, "copilot_account", return_value="someone"), \
