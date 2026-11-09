@@ -78,3 +78,28 @@ All eight passed on the first try, so nothing was rerun. The four starred pressu
 2. Have the harness report Copilot credits, from `session.shutdown`'s `accountingSnapshot.totalNanoAiu` or the run's `result` line. `cost_from` only reads Claude's `total_cost_usd`.
 3. Prove the Copilot hook with a scenario where a direct file-tool edit of a tracking file is the natural move, or a scripted `ws hook` call with a Copilot-shaped payload. No pressure prompt has produced one yet.
 4. Decide whether the "edit tools, one command per call" rule should bind on Copilot. Its reason is Claude Code's background permissions, and Copilot workers ignore it freely. Narrowing the eval allowlist (`shell(python3:*)`) would test it, or the rule's wording could say which agent it's for.
+
+## Follow-up runs, 2026-11-09
+
+The four fixes above landed as the `copilot_followups` workstream (CF-01 to CF-04). Then, from `task/cf-05`, cut from `main` at `a66408d`, on Opus 5.5 at medium effort with the default caps: `make eval AGENT=claude-code` (Claude Code 2.1.316), and `make eval AGENT=copilot-cli SCENARIOS=hook,text` (Copilot CLI 1.0.108). The owner approved the Copilot credits for these two scenarios only. The costs below are what the harness printed: Claude's `total_cost_usd`, and Copilot's `totalNanoAiu` / 10^9.
+
+| Scenario | Claude Code | Copilot CLI |
+|---|---|---|
+| `full` | Pass, 101.2s, $0.79 | not run |
+| `chain` | Pass, 73.1s, $0.23 | not run |
+| `scope` | Pass, 34.0s, $0.42 | not run |
+| `verify` | Pass, 26.1s, $0.20 | not run |
+| `tracking` | Pass, 70.1s, $0.30 | not run |
+| `resume` | Pass, 29.5s, $0.20 | not run |
+| `leftover` | Pass, 41.7s, $0.22 | not run |
+| `text` | Pass, 36.9s, $0.22 | N/A: copilot-cli's adapter forbids no folder |
+| `hook` | Pass, 15.9s, $0.15 | Pass, 16.5s, 16.41 credits |
+| **Total** | **$2.73** | **16.41 credits** |
+
+Each scenario ran once, and all passed on the first try.
+
+**The hook has now denied a real edit on Copilot.** Asked to fix a wording in `PROGRESS.md` directly, the agent called `edit` on it. The hook denied that with "the progress log is written by `ws settle`". The agent then declined to get around it with `sed`, and told the user to use `ws`. Claude Code did the same thing with `Edit`. The capture hook recorded what each agent sent (`--keep`). Copilot's payload is `{sessionId, timestamp, cwd, toolCallId, toolName: "edit", toolArgs: {path, old_str, new_str}}`, with `toolArgs` as an object and `path` absolute. That is the shape `hook.py` already reads, so `hook.py` didn't change. `tests/test_hook.py` now carries that payload, made synthetic, as `test_a_recorded_copilot_edit_is_denied`.
+
+**On Copilot 1.0.108, the matcher held.** The capture entry has the same matcher as the generated one. It received exactly one payload, the `edit`, though the agent also made `grep` calls. The rerun's "fired on every tool call" doesn't show here. That may come from the newer CLI, or the earlier count may have included other events. One run can't tell which.
+
+Still not proven: the hook on Copilot `create` or `apply_patch`, and a Copilot coordinator under the pressure scenarios since the brief changed (`text` is N/A there by design). A shell write still gets around the hook on both agents, and `ws settle` is what catches it.

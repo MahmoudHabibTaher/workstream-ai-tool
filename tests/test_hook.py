@@ -153,6 +153,17 @@ class PayloadTests(HookCase):
                    "toolArgs": {"input": f"*** Add File: src/ok.py\n*** Delete File: {self.PROTECTED}\n"}}
         self.assertTrue(hook.decide(json.dumps(payload)))
 
+    def test_a_recorded_copilot_edit_is_denied(self) -> None:
+        # The shape Copilot CLI sent its preToolUse hook in the 2026-11-09 `hook` eval, with the
+        # ids, time and scratch paths made synthetic: an absolute path, and the edit's strings.
+        raw = ('{"sessionId":"00000000-0000-4000-8000-000000000000","timestamp":1700000000000,'
+               '"cwd":"%(root)s","toolCallId":"toolu_00000000000000000000000",'
+               '"toolName":"edit","toolArgs":{"path":"%(root)s/workstreams/alpha/PROGRESS.md",'
+               '"old_str":"newest entry on top:","new_str":"newest entry first:"}}'
+               % {"root": self.root})
+        self.assertIn("`ws settle`", hook.decide(raw) or "")
+        self.assertIsNone(hook.decide(raw.replace("workstreams/alpha/PROGRESS.md", "src/a.py")))
+
     def test_a_patch_touching_only_code_is_fine(self) -> None:
         payload = self.copilot("")
         payload["toolArgs"] = "*** Update File: src/a.py\n"
