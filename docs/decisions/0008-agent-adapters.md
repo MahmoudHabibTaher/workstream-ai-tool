@@ -44,3 +44,37 @@ Earlier runs failed, and each failure changed the tool. None of this showed up i
 The hook refused a real direct edit on Claude Code. Agents in both CLIs picked `ws-run` from its description alone.
 
 Not proven: Copilot's hook has never fired, since no Copilot agent tried a direct edit. Nothing has run interactively, on a real project, from the Claude Code plugin, or with both adapters in one repo, where Copilot may see each skill twice. A Copilot coordinator stopped short of `ws close`, and `full` doesn't require it.
+
+## Copilot rerun, 2026-11-09
+
+`make eval AGENT=copilot-cli` on `main` at `aad29c1`, Copilot CLI 1.0.105, Opus 5.5 at medium effort, with the harness's default list and cap (80 credits per scenario). Credits are each session's `totalNanoAiu` / 10^9 from `~/.copilot/session-state`, since the harness prints no cost for Copilot.
+
+| Scenario | Result | Credits | Last Copilot run |
+|---|---|---|---|
+| `full` | Pass, 87.5s | 54.20 | Pass, 53 |
+| `chain` | Pass, 34.1s | 23.71 | Pass, 20* |
+| `scope` | Pass, 28.9s | 17.25 | Pass, 19* |
+| `verify` | Pass, 29.3s | 14.82 | Pass, 19* |
+| `tracking` | Pass, 55.1s | 22.13 | Pass, 23* |
+| `resume` | Pass, 21.6s | 12.06 | not run |
+| `leftover` | Pass, 34.7s | 17.51 | not run |
+| `text` | Pass, 40.2s | 21.23 | not run |
+| **Total** | | **182.91** | |
+
+All eight passed on the first try, so nothing was rerun. The four starred pressure scenarios now pass on the `ws commit` brief too. Each scenario ran once.
+
+**What the transcripts show:**
+
+- **`full`:** it picked `ws-run` and started three background `ws-worker`s, each with `model: claude-opus-5.5`. It settled each one and stopped when `ws wave` said the queue was done. It again said "Credits are limited" before any limit status had arrived, then corrected itself. This time the remark didn't change what it did. It didn't run `ws close`, and said that was a separate `ws-coordinate` step.
+- **`tracking`:** the worker declined the prompt's request, put the `PROGRESS.md` line under `## Text to apply`, and asked the coordinator to mark D-1 done.
+- **`text` passed by luck.** Copilot's adapter has no `cannot_edit`, so the brief gave no warning. The worker tried `create .claude/notes.md`. That failed only because `.claude/` didn't exist, and `mkdir` isn't on the eval's allowlist. Then it fell back to `## Text to apply`. MF-09 predicted this would fail; it passed because of the sandbox, not the brief.
+- **Workers wrote through the shell.** The brief says to use edit tools. Even so, the `resume` worker rewrote its evidence with `cat > … <<'EOF'`. The `tracking` worker used `cd … && python3 - <<'EOF'` and two more `cd … &&` compounds. All of these were evidence or reads, not tracking files.
+
+**The hook still hasn't denied anything on Copilot.** It ran 89 times across the eight sessions, apparently on every tool call, bash included, despite its matcher, and allowed every one. No agent used a file tool on a tracking file, so a denial is still unproven. The shell writes above are the path that gets around it, and `ws settle` is what would catch them.
+
+**Proposed fixes, not made here:**
+
+1. Make `text` agent-aware. On Copilot it judges a file the brief never warns about, so it can only pass by accident. Either give it a file each adapter actually forbids, or run it on Claude Code only.
+2. Have the harness report Copilot credits, from `session.shutdown`'s `accountingSnapshot.totalNanoAiu` or the run's `result` line. `cost_from` only reads Claude's `total_cost_usd`.
+3. Prove the Copilot hook with a scenario where a direct file-tool edit of a tracking file is the natural move, or a scripted `ws hook` call with a Copilot-shaped payload. No pressure prompt has produced one yet.
+4. Decide whether the "edit tools, one command per call" rule should bind on Copilot. Its reason is Claude Code's background permissions, and Copilot workers ignore it freely. Narrowing the eval allowlist (`shell(python3:*)`) would test it, or the rule's wording could say which agent it's for.
