@@ -73,8 +73,11 @@ def worker_text(adapter: Adapter, name: str | None = None) -> str:
     """The worker agent's file. Its body stands alone, as a worker may not see the project's
     instructions, and its tools are listed so it can't start workers of its own."""
     worker = adapter.raw["worker"]
+    body = WORKER_FILE.read_text().strip()
+    if worker.get("rules"):
+        body += "\n\n" + "\n".join(f"- {rule}" for rule in worker["rules"])
     return (f"---\nname: {name or worker['name']}\ndescription: {worker['description']}\n"
-            f"{worker['frontmatter']}\n---\n\n{WORKER_FILE.read_text().strip()}\n")
+            f"{worker['frontmatter']}\n---\n\n{body}\n")
 
 
 def always_on_text(adapter: Adapter) -> str:

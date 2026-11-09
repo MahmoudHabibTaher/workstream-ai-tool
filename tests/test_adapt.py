@@ -183,6 +183,13 @@ class WorkerTests(AdaptCase):
                 self.assertNotIn(": ", value, f"{path}: {line}")
                 self.assertNotRegex(value, r"^[*&!|>%@`]|\s#", f"{path}: {line}")
 
+    def test_only_the_claude_worker_carries_the_edit_tool_rule(self) -> None:
+        self.ok("adapt", CLAUDE)
+        self.ok("adapt", COPILOT)
+        rule = "- Create and change files with your edit tools, and give the shell one command per call"
+        self.assertIn(rule, self.path(".claude/agents/ws-worker.md").read_text().split("---")[2])
+        self.assertNotIn("edit tools", self.path(".github/agents/ws-worker.agent.md").read_text())
+
     def test_a_copilot_worker_keeps_the_projects_rules(self) -> None:
         self.ok("adapt", COPILOT)
         self.assertIn("include-custom-instructions: true",
