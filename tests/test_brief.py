@@ -103,6 +103,34 @@ class CannotEditTests(WsTestCase):
         self.assertNotIn("Gotchas", line)
 
 
+class AdapterRuleTests(WsTestCase):
+    """The edit-tool rule is Claude Code's: its reason is that agent's background permissions."""
+
+    RULE = "Create and change files with your edit tools"
+
+    def rules(self, *agents: str) -> str:
+        for agent in agents:
+            self.ok("adapt", agent)
+        self.commit_all("adapted")
+        self.new_ws()
+        self.seed_ok([task("T1", 1)])
+        brief = self.ok("brief", "T1", "-w", "alpha")
+        return brief.split("## Rules\n\n", 1)[1].split("\n\n", 1)[0]
+
+    def test_a_claude_code_project_gets_the_rule_labelled(self) -> None:
+        rules = self.rules("claude-code")
+        self.assertIn(f"- **On Claude Code:** {self.RULE}", rules)
+        self.assertNotIn(self.RULE, protocol.section("worker"))
+
+    def test_a_copilot_project_does_not_get_it(self) -> None:
+        self.assertNotIn(self.RULE, self.rules("copilot-cli"))
+
+    def test_a_project_with_both_labels_it(self) -> None:
+        rules = self.rules("claude-code", "copilot-cli")
+        self.assertEqual(rules.count(self.RULE), 1)
+        self.assertIn(f"- **On Claude Code:** {self.RULE}", rules)
+
+
 class SourceTests(WsTestCase):
     """A brief and a task's definition come from the integration checkout, the work from the
     worktree."""

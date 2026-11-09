@@ -246,6 +246,16 @@ def _cannot_edit_lines(project: Project, task: dict) -> list[str]:
             + ". Don't try: if one needs a change, put the exact text under `## Text to apply` in your evidence, for someone who can."]
 
 
+def _adapter_rule_lines(project: Project) -> list[str]:
+    """Worker rules that hold for one agent only, labelled with it. A project may have more than
+    one adapter, and the brief can't tell which agent reads it."""
+    lines = []
+    for name in adapt.load_manifest(project)["adapters"]:
+        adapter = adapt.load(name)
+        lines += [f"- **On {adapter.label}:** {rule}" for rule in adapter.raw["worker"].get("rules", [])]
+    return lines
+
+
 def _open_decision_lines(project: Project, ws: dict, task: dict, rows: list[dict]) -> list[str]:
     """Open decisions from anything this task waits on, directly or not: one that lands open can
     make this task's acceptance wrong. Never trimmed, since it can change the whole task."""
@@ -339,7 +349,7 @@ def render(project: Project, ws: dict, task: dict, rows: list[dict],
             parts += ["", section]
         if missing:
             parts += ["", f"Cited but not found in PLAN.md: {', '.join(missing)}"]
-    parts += ["", "## Rules", "", protocol.section("worker"), "",
+    parts += ["", "## Rules", "", protocol.section("worker"), *_adapter_rule_lines(project), "",
               *_finish_lines(project, ws, task, existing_evidence)]
     text = "\n".join(parts)
     return _with_decisions(project, ws, task, text, max_chars) + "\n"

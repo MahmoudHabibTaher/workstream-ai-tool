@@ -11,6 +11,10 @@ description = "Does one workstream task by following `ws brief`."
 frontmatter = "tools: Read, Edit, Write, Bash, Grep, Glob"
 # Refused in the background even with an allow rule, so `ws brief` warns instead of a worker trying.
 cannot_edit = [".claude/"]
+# Rules for this agent's workers only. `ws brief` labels them with the agent, and the worker file
+# carries them too. A background worker here can't ask permission, so anything but an edit tool
+# or a single shell command the settings allow is refused.
+rules = ["Create and change files with your edit tools, and give the shell one command per call: a background worker can't ask permission for anything else. A denied call isn't a block until you've tried it that way."]
 
 [notes]
 ws-plan = "Do steps 1 to 5 in plan mode, and ask with the question tool. The plan file you write there is what `ws seed --from-plan` reads."
