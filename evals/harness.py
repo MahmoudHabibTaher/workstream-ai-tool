@@ -449,21 +449,83 @@ def start_agent(agent: str, prompt: str, cap: str, repo: Repo, log: Path, stub_b
     return code, round(time.monotonic() - started, 1)
 
 
-def cost_from(log: Path) -> float | None:
-    """What the run cost, where the agent's output says: the log is JSON lines, with any warnings
-    among them, and the summary last."""
+USD, CREDITS = "USD", "credits"
+COPILOT_SESSIONS = Path.home() / ".copilot" / "session-state"
+
+
+def _find_key(value: object, key: str) -> object:
+    """The first value under `key` anywhere in a parsed JSON value, or None."""
+    if isinstance(value, dict):
+        if value.get(key) is not None:
+            return value[key]
+        children = value.values()
+    elif isinstance(value, list):
+        children = value
+    else:
+        return None
+    for child in children:
+        found = _find_key(child, key)
+        if found is not None:
+            return found
+    return None
+
+
+def _last_figure(path: Path, key: str, nested: bool = False) -> float | None:
+    """The last `key` in a file of JSON lines, with warnings among them. Copilot puts
+    totalNanoAiu at different depths in different events, so `nested` looks at any depth."""
     try:
-        lines = log.read_text().splitlines()
+        lines = path.read_text(errors="replace").splitlines()
     except OSError:
         return None
     for line in reversed(lines):
         try:
-            cost = json.loads(line).get("total_cost_usd")
-        except (json.JSONDecodeError, AttributeError):
+            event = json.loads(line)
+        except json.JSONDecodeError:
             continue
-        if cost is not None:
-            return cost
+        if nested:
+            figure = _find_key(event, key)
+        else:
+            figure = event.get(key) if isinstance(event, dict) else None
+        if isinstance(figure, (int, float)) and not isinstance(figure, bool):
+            return figure
     return None
+
+
+def _newest_events(sessions: Path, since: float | None) -> Path | None:
+    """The newest Copilot events.jsonl written since the run started."""
+    found = []
+    for path in sessions.glob("*/events.jsonl"):
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if since is None or mtime >= since:
+            found.append((mtime, path))
+    return max(found)[1] if found else None
+
+
+def cost_from(log: Path, agent: str = CLAUDE, sessions: Path | None = None,
+              since: float | None = None) -> tuple[float, str] | None:
+    """What the run cost and in what unit, where the agent says. Claude's log ends with a summary
+    carrying total_cost_usd. Copilot's figure is totalNanoAiu / 10**9 credits, from its log, or
+    else from the newest session events.jsonl written since `since`. Credits aren't converted to
+    dollars: there is no fixed rate."""
+    if agent == COPILOT:
+        nano = _last_figure(log, "totalNanoAiu", nested=True)
+        if nano is None:
+            events = _newest_events(sessions or COPILOT_SESSIONS, since)
+            nano = _last_figure(events, "totalNanoAiu", nested=True) if events else None
+        return (nano / 10**9, CREDITS) if nano is not None else None
+    cost = _last_figure(log, "total_cost_usd")
+    return (cost, USD) if cost is not None else None
+
+
+def format_cost(cost: tuple[float, str] | None) -> str:
+    """`$0.20` or `54.20 credits`, or "" with no figure."""
+    if cost is None:
+        return ""
+    amount, unit = cost
+    return f"${amount:.2f}" if unit == USD else f"{amount:.2f} {unit}"
 
 
 def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
@@ -478,10 +540,11 @@ def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
         if scenario.setup is not None:
             scenario.setup(repo)
         log = base / "agent.log"
+        started = time.time()
         code, seconds = start_agent(agent, scenario.prompt, cap, repo, log, stub_behaviour, model)
         problems = scenario.check(repo)
         result = {"scenario": name, "agent": agent, "passed": not problems, "problems": problems,
-                  "exit": code, "seconds": seconds, "cost": cost_from(log),
+                  "exit": code, "seconds": seconds, "cost": cost_from(log, agent, since=started),
                   "said": log.read_text(errors="replace")[-LOG_TAIL_CHARS:].strip() if code else ""}
         if keep is not None:
             keep.mkdir(parents=True, exist_ok=True)
@@ -512,14 +575,20 @@ def main(argv: list[str] | None = None) -> int:
     for name in args.scenarios.split(","):
         result = run_scenario(name, args.agent, cap, keep=args.keep, model=args.model)
         results.append(result)
-        cost = f", ${result['cost']:.2f}" if result["cost"] is not None else ""
-        print(f"{'PASS' if result['passed'] else 'FAIL'} {name}  {result['seconds']}s{cost}"
-              + (f"  (agent exit {result['exit']})" if result["exit"] else ""), flush=True)
+        print(report_line(result), flush=True)
         if result["said"]:  # an agent that never started isn't an agent that misbehaved
             print(f"     the agent said: {result['said']}", flush=True)
         for problem in result["problems"]:
             print(f"     {problem}", flush=True)
     return 0 if all(r["passed"] for r in results) else 1
+
+
+def report_line(result: dict) -> str:
+    """One scenario's line: PASS or FAIL, its time, and its cost in the agent's unit."""
+    cost = format_cost(result["cost"])
+    return (f"{'PASS' if result['passed'] else 'FAIL'} {result['scenario']}  {result['seconds']}s"
+            + (f", {cost}" if cost else "")
+            + (f"  (agent exit {result['exit']})" if result["exit"] else ""))
 
 
 if __name__ == "__main__":
