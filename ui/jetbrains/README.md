@@ -55,11 +55,33 @@ configuration's arguments are, and neither goes through a shell.
   A file opens in the diff viewer with both sides from `ws review --show`, each titled with its
   revision, so a branch's old side is its merge base; a binary file opens nothing and says so. A
   landed task's evidence opens as its file, a branch task's read-only as the branch holds it.
+- **Health tab.** The snapshot's findings, errors first. A finding that offers a fix (an unclaim of
+  a stale claim, say) has it on its context menu. New errors since the last reload raise one
+  notification between them, whose **Show Health** opens this tab.
+- **Budget tab.** `ws audit context`: what each role's context costs against its limit. It runs
+  only while the tab is showing; Refresh drops the held rows.
 - **The status bar.** The first active workstream's wave line and error count. Clicking it opens
   the tool window.
 - **Live refresh.** Every path in the snapshot's `refresh` list is watched by the IDE. A change
   under one of them, such as a commit from a shell, reloads the snapshot once per 300 ms burst, and
   so does the IDE window regaining focus.
+
+## Writes and launches
+
+- **Writes.** Pause, Resume, Sync and Unclaim are on a node's context menu only where the snapshot
+  offers them. Each asks first, then runs `ws act` pinned to the revisions the node was drawn
+  with, so a change made from a shell while the box is open is refused as stale and nothing is
+  committed.
+- **Run.** A workstream's launches come from the snapshot. Run starts the agent command in a new
+  Terminal tab, in the project folder, with the prompt as its last argument. With no agent command
+  set, or without the Terminal plugin, the prompt goes to the clipboard.
+
+## Known issues
+
+- The tool window's id is `Workstreams`. Another plugin that registers a tool window with the same
+  id (one such is installed in some Android Studio setups) clashes with it; disable one of them.
+- IntelliJ IDEA 2026.3's verifier reports one deprecated call, `FileEditorManager.openFile`, used
+  in `ReviewOpen.openEvidence` to open a task's evidence from the Review tab.
 
 ## Layout
 
