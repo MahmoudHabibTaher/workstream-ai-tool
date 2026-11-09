@@ -303,13 +303,13 @@
       "id": "jetbrains_plugin",
       "title": "JetBrains plugin",
       "summary": "M10: native IntelliJ Platform plugin over the ws CLI, for IntelliJ IDEA 2026.3 and Android Studio 2026.2",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "JB",
       "path": "workstreams/jetbrains_plugin",
       "tier": "standard",
       "created": "2026-11-08",
       "startedAt": "2026-11-08",
-      "completedAt": null,
+      "completedAt": "2026-11-09",
       "baseCommit": "045b529",
       "dependsOn": [],
       "progress": {
@@ -320,7 +320,11 @@
         "done": 7,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "55d59eeb09fadd96acb23c279b4fc13c2b9cdbc7",
+        "pruned": false
+      }
     }
   ]
 }
