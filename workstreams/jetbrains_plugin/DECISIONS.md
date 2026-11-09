@@ -108,3 +108,19 @@ Refresh with the tab hidden runs no audit. The tab reads the budget when next sh
 ## D025 (2026-11-08, JB-06): the health notification carries display id `workstreams.health`
 
 The test harness (`SampleTestCase`) uses it to keep health notices apart from act notices. Rejected: matching on the notification's text. **Closed.**
+
+## D026 (2026-11-09, JB-07): the one deprecated call on 263 is recorded, not fixed, in JB-07
+
+`make verify-jetbrains` reports `Compatible. 1 usage of deprecated API` on IU-263, from `ReviewOpen.openEvidence`. Acceptance 1 asks for "compatible", which it is. The fix is in `ReviewOpen.kt`, outside JB-07's files, so it is a follow-up and is listed under Left open in 0018 and Known issues in the guide. Rejected: editing `ReviewOpen.kt` here. **Closed.**
+
+## D027 (2026-11-09, JB-07): the zip was installed from a copy in `dist/jetbrains/`, also served by a local plugin repository
+
+At the owner's request the zip was copied to the gitignored `dist/jetbrains/`, beside an `updatePlugins.xml` that names it, so the IDEs can add `file:///.../dist/jetbrains/updatePlugins.xml` as a custom repository. Nothing committed builds it yet. Rejected: installing straight from `ui/jetbrains/build/distributions`, which is buried in a worktree. **Open.**
+
+## D028 (2026-11-09, JB-07): the stale-write check was proven with the box open across a registry change
+
+An empty commit doesn't change the registry or queue hashes, so it can't make a view stale, and a write from a view that has reloaded is rightly allowed. The proof is the VS-08 recipe: box open, registry changed from a shell, then OK. Rejected: counting the empty-commit tries. **Closed.**
+
+## D029 (2026-11-09, JB-07): Android Studio was checked with the other `Workstreams` plugin disabled
+
+Android Studio 2026.2 here has another workstream plugin 1.1.0, which registers a tool window with id `Workstreams`, the same as this plugin's. The owner chose to disable it for the check. How the two coexist is untested. Rejected: installing alongside it, or blocking JB-07 on renaming the id. **Open.**

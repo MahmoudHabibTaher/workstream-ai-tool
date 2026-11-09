@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-08",
+  "updated": "2026-11-09",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -315,9 +315,9 @@
       "progress": {
         "total": 7,
         "todo": 0,
-        "in-progress": 1,
+        "in-progress": 0,
         "blocked": 0,
-        "done": 6,
+        "done": 7,
         "deferred": 0
       },
       "notes": ""

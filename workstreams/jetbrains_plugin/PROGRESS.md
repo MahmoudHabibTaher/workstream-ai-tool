@@ -6,6 +6,10 @@ Created 2026-11-08 from `main` at `045b529`.
 
 ---
 
+## 2026-11-09: JB-07: Prove it in IntelliJ and Android Studio, and write down what's true
+
+Merged as `a32d2bca19`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-07.md).
+
 ## 2026-11-08: JB-06: Health, notifications and the budget
 
 Merged as `1406479ac0`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JB-06.md).

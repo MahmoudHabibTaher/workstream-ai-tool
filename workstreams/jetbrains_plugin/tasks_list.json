@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "source": "workstreams/jetbrains_plugin/PLAN.md",
-  "updated": "2026-11-08",
+  "updated": "2026-11-09",
   "protocolVersion": "1",
   "tier": "standard",
   "tasks": [
@@ -439,13 +439,29 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-08T15:01:03Z",
       "baseCommit": "949ba84692660e0d4337865a68f0f4c3c1a72d05",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-09T12:23:33Z",
+      "commit": "a32d2bca1921fb8216d4593d1cc9406a1c6785df",
+      "verification": {
+        "tree": "15b96d3331efbc3afd84d0888ca40b1a09bd59ed",
+        "at": "2026-11-09T12:22:52Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-jetbrains",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     }
   ],
