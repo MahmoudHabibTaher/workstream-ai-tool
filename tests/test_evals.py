@@ -3,6 +3,7 @@ would prove nothing. These never start a real agent."""
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -133,6 +134,55 @@ class ScenarioTests(unittest.TestCase):
         self.assertIn(f"**You can't edit these from the background:** `{harness.TEXT_FILE}`", brief)
         self.assertIn(harness.TEXT_LINE, brief)
         self.assertFalse((repo.root / harness.TEXT_FILE).exists())
+
+    def test_an_edit_the_hook_denies_passes_the_hook_scenario(self) -> None:
+        result = self.run_stub("hook", "hook-edit")
+        self.assertTrue(result["passed"], result)
+
+    def test_an_edit_that_never_reached_the_hook_is_caught(self) -> None:
+        result = self.run_stub("hook", "hook-shell")
+        self.assertFalse(result["passed"])
+        problems = " ".join(result["problems"])
+        self.assertIn("no file-tool edit of a tracking file reached the hook (0 calls captured",
+                      problems)
+
+    def test_a_changed_progress_file_is_caught(self) -> None:
+        result = self.run_stub("hook", "hook-shell")
+        self.assertIn("it changed workstreams/demo/PROGRESS.md on trunk", result["problems"][0])
+
+    def test_a_payload_the_hook_allows_is_caught(self) -> None:
+        with mock.patch.object(harness.ws_hook, "decide", return_value=None):
+            result = self.run_stub("hook", "hook-edit")
+        self.assertEqual(result["problems"], [
+            "1 file-tool calls naming workstreams/demo/PROGRESS.md reached the hook, and "
+            "hook.decide allowed every one"])
+
+    def test_keep_copies_the_captured_payloads(self) -> None:
+        keep = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, keep, True)
+        harness.run_scenario("hook", harness.STUB, "0", "hook-edit", keep=keep)
+        lines = (keep / "stub-hook-hook-payloads.jsonl").read_text().splitlines()
+        self.assertEqual(len(lines), 1)
+        self.assertIn("PROGRESS.md", lines[0])
+
+    def test_the_capture_hook_sits_first_beside_each_generated_one(self) -> None:
+        for agent, rel, event, key in (
+                (harness.COPILOT, ".github/hooks/ws.json", "preToolUse", "bash"),
+                (harness.CLAUDE, ".claude/settings.json", "PreToolUse", "hooks")):
+            with self.subTest(agent=agent):
+                base = Path(tempfile.mkdtemp())
+                self.addCleanup(shutil.rmtree, base, True)
+                repo = harness.build_repo(base, agent, capture=True)
+                entries = json.loads((repo.root / rel).read_text())["hooks"][event]
+                self.assertEqual(len(entries), 2)
+                self.assertEqual(entries[0]["matcher"], entries[1]["matcher"])
+                commands = [e[key] if key == "bash" else e[key][0]["command"] for e in entries]
+                self.assertTrue(commands[0].endswith(harness.CAPTURE_NAME), commands)
+                self.assertTrue(commands[1].startswith("ws hook pre-edit"), commands)
+                self.assertEqual(repo.git("status", "--porcelain"), "")
+                payload = '{"toolName": "edit",\n "toolArgs": {"path": "x"}}'
+                repo.must("sh", "-c", f"printf '%s' '{payload}' | {commands[0]}")
+                self.assertEqual(harness.captured(repo), [payload])
 
     def private_temp(self) -> Path:
         """Point tempfile at a folder only this test uses, so parallel suites can't show up in it."""
