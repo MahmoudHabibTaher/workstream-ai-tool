@@ -16,7 +16,8 @@ The approved plan for this tool, kept as written. Why it looks like this: [harne
 | M7 Claude Code pane | Done: `/workstreams` works in any project, as [a plugin in this repo](../ui/mod/README.md), and was seen drawn in the desktop app. See [the decision](decisions/0010-claude-pane.md) |
 | M8 `ws serve` and web UI | Done: `ws serve` works with no Node, from an installed wheel, and a stale write from the page is refused. Seen in one browser, on macOS. See [the guide](../ui/web/README.md) and [the decision](decisions/0011-web-ui.md) |
 | M9 VS Code extension | Done: native trees, Problems-panel quick fixes, diffs and terminal launches, all through the `ws` CLI. Installed from a `.vsix` into VS Code 1.139 and checked by hand on a sample project built from a wheel; a stale write is refused. Not tried in Cursor. See [the guide](../ui/vscode/README.md) and [the decision](decisions/0017-vscode-extension.md) |
-| M10 onward | Not started. M10 uses JetBrains' native UI and calls the `ws` CLI: see [the decision](decisions/0016-native-ide-ui.md) |
+| M10 JetBrains plugin | Done: a native tool window (Registry, Review, Health, Budget), a status bar widget, diffs in the diff viewer and Terminal launches, all through the `ws` CLI. Installed from a zip into IntelliJ IDEA 2026.3 and Android Studio 2026.2 and checked by hand on a sample project built from a wheel; a stale write is refused. See [the guide](../ui/jetbrains/README.md) and [the decision](decisions/0018-jetbrains-plugin.md) |
+| M11 onward | Not started |
 
 
 ## Design principles
