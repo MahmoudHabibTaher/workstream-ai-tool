@@ -6,6 +6,10 @@ Created 2026-11-09 from `main` at `9deab81`.
 
 ---
 
+## 2026-11-09: CF-03: A `hook` scenario that proves a denial
+
+Merged as `c18f7cbdc4`. Verified: test pass. [Evidence](evidence/CF-03.md).
+
 ## 2026-11-09: CF-02: `text` runs only where an adapter warns
 
 Merged as `8378f8deba`. Verified: test pass. [Evidence](evidence/CF-02.md).

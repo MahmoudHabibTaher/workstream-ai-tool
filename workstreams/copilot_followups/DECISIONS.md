@@ -32,3 +32,11 @@ The brief marks `.claude/` as not editable from the background, so I didn't run 
 ## D006 (2026-11-09, CF-02): `Scenario` also has `why_not: Callable[[str], str]`, which gives the reason on the N/A line
 
 D-APPLIES gives `applies` as a bool, but the N/A line needs a reason, and only the scenario knows what its premise is. So `text`'s `why_not` reads the adapter: "forbids no folder" when `cannot_edit` is empty, and "forbids X, not .claude/" when it names other folders. `applies` checks that `TEXT_FILE`'s top folder (`.claude/`) is listed in `raw["worker"]["cannot_edit"]`, and is always true for the stub. The preflight still runs before the loop, even when every scenario chosen is N/A. Rejected: having `applies` return a reason string, which changes D-APPLIES's signature; and writing text-specific wording into `main`. **Closed.**
+
+## D007 (2026-11-09, CF-03): the capture entry is committed in the "adopt ws" commit, goes before the generated entry, and only the `hook` scenario installs it
+
+It comes first, so it sees every call even where the generated hook denies one and the agent stops there. It copies the generated entry's matcher, so it sees exactly what `ws hook pre-edit` sees. It is committed so the scratch tree starts clean. It is scoped to the `hook` scenario (`Scenario.capture`), so no other scenario's setup changes. One side effect: on Copilot, `.github/hooks/ws.json` no longer matches what `ws adapt` wrote, so `ws doctor` / `file_states` in that scratch repo would call it EDITED. Rejected: a separate capture file under `.github/hooks/` (the brief names ws.json); capturing in every real scenario (outside the scope rule). **Closed.**
+
+## D008 (2026-11-09, CF-03): payloads are stored one JSON string per line, outside the repo (`<scratch base>/hook-payloads.jsonl`)
+
+This keeps each raw payload byte for byte, even when it is multi-line or not valid JSON, and `hook.decide` is given that exact raw text. The check counts a payload as "naming" PROGRESS.md the way `hook.decide` does: `hook.paths_in`, resolved against the payload's `cwd`. Rejected: re-serialising parsed payloads, which would lose what was actually sent. **Closed.**
