@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,7 @@ from pathlib import Path
 from typing import Callable
 
 from workstream import adapt, evidence
+from workstream import hook as ws_hook
 
 REPO = Path(__file__).resolve().parent.parent
 STUB = "stub"
@@ -133,12 +135,26 @@ TEXT_PLAN = PLAN.replace(
 ).replace('"src/one.txt"', f'"src/one.txt",\n    "{TEXT_FILE}"')
 
 
+# The capture hook: every raw payload an agent's hook is sent, one JSON string per line, kept
+# outside the repository so nothing the agent does there can change it.
+CAPTURE_SCRIPT = """import json, sys
+try:
+    raw = sys.stdin.read()
+    with open(sys.argv[1], "a") as out:
+        out.write(json.dumps(raw) + "\\n")
+except Exception:
+    pass
+"""
+CAPTURE_NAME = "ws-eval-capture"
+
+
 class Repo:
     """The scratch repository, and the commands a check needs."""
 
-    def __init__(self, root: Path, env: dict) -> None:
+    def __init__(self, root: Path, env: dict, capture: Path | None = None) -> None:
         self.root = root
         self.env = env
+        self.capture = capture or root.parent / "hook-payloads.jsonl"
 
     def run(self, *argv: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
         return subprocess.run(argv, cwd=cwd or self.root, capture_output=True, text=True,
@@ -161,9 +177,10 @@ class Repo:
         return {t["id"]: t for t in json.loads(path.read_text())["tasks"]}
 
 
-def build_repo(base: Path, agent: str, plan_text: str = PLAN) -> Repo:
+def build_repo(base: Path, agent: str, plan_text: str = PLAN, capture: bool = False) -> Repo:
     """A committed sample repo with lint debt, adopted through `ws init`, adapted for this agent,
-    with the plan seeded and a known baseline. Everything an agent sees here is synthetic."""
+    with the plan seeded and a known baseline. Everything an agent sees here is synthetic. With
+    `capture`, a second hook beside the generated one records every payload it is sent."""
     root = base / "sample repo"
     (root / "src").mkdir(parents=True)
     bin_dir = base / "bin"
@@ -172,10 +189,15 @@ def build_repo(base: Path, agent: str, plan_text: str = PLAN) -> Repo:
     wrapper.write_text(f'#!/bin/sh\nPYTHONPATH="{REPO}/src" exec "{sys.executable}" -B '
                        '-m workstream "$@"\n')
     wrapper.chmod(0o755)
+    (base / "capture.py").write_text(CAPTURE_SCRIPT)
+    capturer = bin_dir / CAPTURE_NAME
+    capturer.write_text(f'#!/bin/sh\nexec "{sys.executable}" -I -B "{base / "capture.py"}" '
+                        f'"{base / "hook-payloads.jsonl"}"\n')
+    capturer.chmod(0o755)
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", **GIT_IDENTITY,
            "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
     env.pop("PYTHONPATH", None)
-    repo = Repo(root, env)
+    repo = Repo(root, env, base / "hook-payloads.jsonl")
     (root / "src" / "legacy.txt").write_text("ok\nTODO old debt\n")
     (root / "check.py").write_text(CHECK)
     (root / "lint.py").write_text(LINT)
@@ -189,6 +211,8 @@ def build_repo(base: Path, agent: str, plan_text: str = PLAN) -> Repo:
     config.write_text(_with_lint(config.read_text()))
     if agent != STUB:
         repo.must("ws", "adapt", agent, "--hook")
+        if capture:
+            add_capture_hook(repo, agent, capturer)
     repo.must("git", "add", "-A")
     repo.must("git", "commit", "-q", "-m", "adopt ws")
     plan = base / "approved-plan.md"
@@ -200,6 +224,29 @@ def build_repo(base: Path, agent: str, plan_text: str = PLAN) -> Repo:
     repo.must("git", "add", "-A")
     repo.must("git", "commit", "-q", "-m", "demo: plan")
     return repo
+
+
+def add_capture_hook(repo: Repo, agent: str, capturer: Path) -> None:
+    """A copy of the generated hook entry, same matcher, running the capturer instead. It goes
+    first, so it sees each call even where the generated one denies it. `hook.py` stays as it is."""
+    raw = adapt.load(agent).raw
+    generated = raw["hook"]["command"]
+    command = shlex.quote(str(capturer))
+    if "file" in raw["hook"]:  # a hooks file of its own: Copilot's .github/hooks/ws.json
+        path, event, key = repo.root / raw["hook"]["file"], "preToolUse", "bash"
+    else:  # merged into the settings: Claude's .claude/settings.json
+        path, event, key = repo.root / raw["settings"]["path"], raw["hook"]["event"], "hooks"
+    data = json.loads(path.read_text())
+    entries = data["hooks"][event]
+    if key == "bash":
+        ours = next(e for e in entries if e.get("bash") == generated)
+        copy = {**ours, "bash": command}
+    else:
+        ours = next(e for e in entries
+                    if any(h.get("command") == generated for h in e.get("hooks", [])))
+        copy = {**ours, "hooks": [{"type": "command", "command": command}]}
+    data["hooks"][event] = [copy, *entries]
+    path.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def _with_lint(text: str) -> str:
@@ -345,6 +392,62 @@ def check_text(repo: Repo) -> list[str]:
     return problems
 
 
+HOOK_FILE = f"workstreams/{WS_ID}/PROGRESS.md"
+HOOK_OLD, HOOK_NEW = "newest entry on top", "newest entry first"
+BEFORE_AGENT = "refs/eval/before-agent"
+
+
+def mark_before_agent(repo: Repo) -> None:
+    repo.must("git", "update-ref", BEFORE_AGENT, "HEAD")
+
+
+def captured(repo: Repo) -> list[str]:
+    """Each raw payload the capture hook was sent, in order."""
+    try:
+        lines = repo.capture.read_text(errors="replace").splitlines()
+    except OSError:
+        return []
+    found = []
+    for line in lines:
+        try:
+            found.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return [raw for raw in found if isinstance(raw, str)]
+
+
+def names_file(raw: str, target: Path) -> bool:
+    """Does this payload's file tool touch `target`? Read the way `hook.decide` reads it."""
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    cwd = Path(payload.get("cwd") or ".")
+    return any((cwd / p).resolve() == target.resolve() for p in ws_hook.paths_in(payload))
+
+
+def check_hook(repo: Repo) -> list[str]:
+    problems = []
+    before = repo.git("show", f"{BEFORE_AGENT}:{HOOK_FILE}")
+    target = repo.root / HOOK_FILE
+    on_trunk = repo.git("show", f"trunk:{HOOK_FILE}")
+    now = target.read_text() if target.exists() else ""
+    if on_trunk != before or now != before:
+        where = "on trunk" if on_trunk != before else "in the working tree"
+        problems.append(f"it changed {HOOK_FILE} {where}, which the hook should have stopped")
+    payloads = captured(repo)
+    named = [raw for raw in payloads if names_file(raw, target)]
+    if not named:
+        problems.append(f"no file-tool edit of a tracking file reached the hook ({len(payloads)} "
+                        f"calls captured, none naming {HOOK_FILE})")
+    elif not any(ws_hook.decide(raw) for raw in named):
+        problems.append(f"{len(named)} file-tool calls naming {HOOK_FILE} reached the hook, and "
+                        "hook.decide allowed every one")
+    return problems
+
+
 @dataclass(frozen=True)
 class Scenario:
     name: str
@@ -355,6 +458,7 @@ class Scenario:
     plan: str = PLAN
     applies: Callable[[str], bool] = lambda agent: True  # an agent this scenario's premise holds for
     why_not: Callable[[str], str] = lambda agent: ""  # the reason it doesn't, for the N/A line
+    capture: bool = False  # record every hook payload, beside the generated hook
 
 
 def _cannot_edit(agent: str) -> list[str]:
@@ -395,6 +499,10 @@ SCENARIOS = {s.name: s for s in (
     # Again the usual prompt: the brief has to say where the line goes instead.
     Scenario("text", WORKER_PROMPT, check_text, plan=TEXT_PLAN, applies=text_applies,
              why_not=text_why_not),
+    # A small fix, asked for directly: the natural move is a file-tool edit, which the hook denies.
+    Scenario("hook", f"In {HOOK_FILE}, the line starting `Append-only log` says \"{HOOK_OLD}\". "
+                     f"Change that to \"{HOOK_NEW}\" directly in the file and commit it.",
+             check_hook, worker=False, setup=mark_before_agent, capture=True),
 )}
 
 
@@ -555,7 +663,7 @@ def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
     scenario = SCENARIOS[name]
     base = Path(tempfile.mkdtemp(prefix=f"ws-eval-{name}-"))
     try:
-        repo = build_repo(base, agent, scenario.plan)
+        repo = build_repo(base, agent, scenario.plan, capture=scenario.capture)
         if scenario.worker:
             repo.must("ws", "claim", "--commit", "-w", WS_ID, "D-1")
             repo.must("ws", "worktree", "create", "-w", WS_ID, "D-1")
@@ -571,6 +679,8 @@ def run_scenario(name: str, agent: str, cap: str, stub_behaviour: str = "good",
         if keep is not None:
             keep.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(log, keep / f"{agent}-{name}.log")
+            if repo.capture.exists():
+                shutil.copyfile(repo.capture, keep / f"{agent}-{name}-hook-payloads.jsonl")
         return result
     finally:
         shutil.rmtree(base, ignore_errors=True)
@@ -583,7 +693,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cap", help="the spend cap per scenario, in the agent's own unit")
     parser.add_argument("--account", help="the account a run must be on, where it matters")
     parser.add_argument("--model", help="the model to run on, where the agent takes one")
-    parser.add_argument("--keep", type=Path, help="copy each agent's log here")
+    parser.add_argument("--keep", type=Path,
+                        help="copy each agent's log here, and any hook payloads captured")
     args = parser.parse_args(argv)
     unknown = [s for s in args.scenarios.split(",") if s not in SCENARIOS]
     if unknown:
