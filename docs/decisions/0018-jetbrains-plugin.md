@@ -30,9 +30,9 @@ On macOS, IntelliJ IDEA 2026.3 (IU-263.7307.200) and Android Studio 2026.2 (AI-2
 | A pause landing | `39e44a2 alpha: pause (ws act)` |
 | A stale pause refused | With the alpha Pause box open, a shell commit (`86c74e7 touch2`) changed the registry. OK was refused as stale, and HEAD stayed at `86c74e7` |
 | Live refresh | After `touch2` paused beta from the shell, the tree showed beta paused without a Refresh click |
-| A branch diff after main moved | S-2's files opened in the IDE's diff viewer from the Review tab |
+| A branch diff after main moved | Review → On a branch → S-2 listed only `shared.txt` and `added.txt`, not main's `main-only.txt`. `shared.txt` opened in the diff viewer as `one` → `one` / `two`, its old side titled with the merge base rather than main's tip |
 | A notified finding's unclaim | The health notification's Show Health opened the Health tab, and the stale-claim finding's Unclaim landed as `42e6357 alpha: unclaim S-1 (ws act)` |
-| Run in a Terminal tab | Run on alpha opened a Terminal tab running the agent command with the prompt as its argument, in IntelliJ and in Android Studio |
+| Run in a Terminal tab | Run on alpha opened a Terminal tab running the agent command with the prompt as its argument, in IntelliJ and in Android Studio. With the agent command cleared, Run opened no tab and copied `Use the ws-run skill to run workstream alpha.` |
 | Android Studio | The tool window drew on the sample, and `d91ad8a beta: resume (ws act)` landed |
 | This repo, read-only | Viewed in IntelliJ with no writes; HEAD (`3cb2c67`), status and refs were the same afterwards |
 | Automated | `make test` and `make test-jetbrains` pass |
@@ -41,7 +41,6 @@ On macOS, IntelliJ IDEA 2026.3 (IU-263.7307.200) and Android Studio 2026.2 (AI-2
 
 - **A real agent started by Run.** The sample's agent command printed its argument and opened a shell instead of starting Claude Code.
 - **The stale refusal's exact text.** The owner reported "refused"; the message wasn't copied from the screen.
-- **The diff's content as drawn.** The owner confirmed the diff opened; its sides weren't copied. The headless test checks the request's contents.
 - **PyCharm and other JetBrains IDEs, builds older than 262, and other OSes.** Out of scope.
 - **Alongside a plugin with the same tool window id.** Android Studio here has another plugin registering a `Workstreams` tool window; it was disabled for the check, so how the two coexist is untested.
 - **Several active workstreams.** The status bar shows the first active one.
