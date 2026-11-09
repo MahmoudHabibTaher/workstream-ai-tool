@@ -1,14 +1,15 @@
 # Session handoff
 
-**State:** 4/5 done on `main` at `c18f7cb`, as of 2026-11-09.
+**State:** 5/5 done on `main` at `4e15af4`, as of 2026-11-09.
 
-**Just landed:** CF-03 (`c18f7cbdc4`)
+**Just landed:** CF-05 (`4e15af4ffa`)
 
 **Text to apply:**
 - CF-04: .claude/agents/ws-worker.md (evidence/CF-04.md)
 
-**Next:** `ws claim --commit CF-05` (phase 2).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- CF-03: - The check reports changes on trunk ahead of changes in the working tree. An agent that edited the file but didn't commit gets "in the working tree".
-- Whether Copilot runs the capture entry with a `bash` key and empty stdout as an allow is assumed from the generated entry's shape. CF-05's real run will show it.
+- CF-05: - The Copilot capture entry received exactly one payload (the `edit`), though the agent also called `grep`. So on Copilot CLI 1.0.108 the matcher filtered as written, which contradicts the rerun's "fired on every tool call" on 1.0.105. One run can't say whether the CLI changed or the earlier count was wrong. 0008 says this.
+- Both agents, once denied, declined to get around the hook from the shell. Neither was pressed to.
+- `ws settle` keeps listing CF-04's text to apply as pending, though `.claude/agents/ws-worker.md` holds it. `evidence.parse` keeps the ``` fences inside the entry's text, so `handoff._is_applied` never matches a fenced block.

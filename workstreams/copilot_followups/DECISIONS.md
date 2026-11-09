@@ -40,3 +40,7 @@ It comes first, so it sees every call even where the generated hook denies one a
 ## D008 (2026-11-09, CF-03): payloads are stored one JSON string per line, outside the repo (`<scratch base>/hook-payloads.jsonl`)
 
 This keeps each raw payload byte for byte, even when it is multi-line or not valid JSON, and `hook.decide` is given that exact raw text. The check counts a payload as "naming" PROGRESS.md the way `hook.decide` does: `hook.paths_in`, resolved against the payload's `cwd`. Rejected: re-serialising parsed payloads, which would lose what was actually sent. **Closed.**
+
+## D009 (2026-11-09, CF-05): `hook.py` is unchanged, because the real Copilot payload matches the shape it already reads
+
+The captured payload has `toolArgs` as an object holding `path`, which `hook.paths_in` already reads. The extra fields (`sessionId`, `timestamp`, `toolCallId`, `old_str`, `new_str`) don't matter to it. Rejected: widening the parser or the matcher on the strength of one run. The scope rule also forbids changing the matcher without a recorded payload that needs it. **Closed.**

@@ -6,6 +6,10 @@ Created 2026-11-09 from `main` at `9deab81`.
 
 ---
 
+## 2026-11-09: CF-05: Prove it on real agents and record it
+
+Merged as `4e15af4ffa`. Verified: test pass, audit pass. [Evidence](evidence/CF-05.md).
+
 ## 2026-11-09: CF-03: A `hook` scenario that proves a denial
 
 Merged as `c18f7cbdc4`. Verified: test pass. [Evidence](evidence/CF-03.md).
