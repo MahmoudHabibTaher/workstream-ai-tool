@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-09",
+  "updated": "2026-11-10",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -330,13 +330,13 @@
       "id": "copilot_followups",
       "title": "Copilot follow-ups",
       "summary": "The four fixes from the Copilot eval rerun: credits reported, text scenario only where it applies, the hook proven on a real run, and the edit-tool rule only for Claude Code.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "CF",
       "path": "workstreams/copilot_followups",
       "tier": "standard",
       "created": "2026-11-09",
       "startedAt": "2026-11-09",
-      "completedAt": null,
+      "completedAt": "2026-11-10",
       "baseCommit": "9deab81",
       "dependsOn": [],
       "progress": {
@@ -347,7 +347,11 @@
         "done": 5,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "5062cbb6d8035b0098f9197b663b8fdc2c177519",
+        "pruned": false
+      }
     }
   ]
 }
