@@ -375,6 +375,56 @@
         "deferred": 0
       },
       "notes": ""
+    },
+    {
+      "id": "vscode_ux",
+      "title": "VS Code UX redesign",
+      "summary": "Bring the master-detail design and launch flow to the VS Code extension through native linked views, with Terminal, Copilot Chat and Claude Code extension targets.",
+      "status": "planned",
+      "taskPrefix": "VX",
+      "path": "workstreams/vscode_ux",
+      "tier": "standard",
+      "created": "2026-11-10",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "e935195",
+      "dependsOn": [
+        "jetbrains_ux"
+      ],
+      "progress": {
+        "total": 7,
+        "todo": 7,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
+    },
+    {
+      "id": "pane_ux",
+      "title": "Claude Code pane UX",
+      "summary": "Give the pane Tasks, Graph and Overview sub-screens, a task page with jump buttons, and pre-flight before a prompt is filled.",
+      "status": "planned",
+      "taskPrefix": "PX",
+      "path": "workstreams/pane_ux",
+      "tier": "standard",
+      "created": "2026-11-10",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "e935195",
+      "dependsOn": [
+        "jetbrains_ux"
+      ],
+      "progress": {
+        "total": 5,
+        "todo": 5,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }

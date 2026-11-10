@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "keys": {
+    "test": {
+      "parser": "exit-code",
+      "command": "make test",
+      "exit": 0,
+      "findings": []
+    }
+  },
+  "recordedAt": "2026-11-10T16:41:49Z",
+  "commit": "e9351953cbd95a089f23dcbb3bac321ada39f556"
+}

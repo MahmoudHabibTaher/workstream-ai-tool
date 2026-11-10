@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/vscode_ux/PLAN.md",
+  "updated": "2026-11-10",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "VX-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Detail builders in logic/",
+      "kind": "behaviour",
+      "findings": [
+        "T5",
+        "D-VIEWS"
+      ],
+      "summary": "Plain-data builders for the list rows, a task's sections (depends on, unblocks, files, acceptance, verify, notes, claim), the graph tree and the overview sections, from the snapshot's new fields. No vscode import.",
+      "files": [
+        "ui/vscode/src/logic/detail.ts",
+        "ui/vscode/src/logic/registry.ts",
+        "ui/vscode/test/logic"
+      ],
+      "docs": [],
+      "acceptance": [
+        "node tests for detail.ts cover each builder on a sample snapshot",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VX-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Workstreams, Tasks and Task views linked by selection",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-VIEWS"
+      ],
+      "summary": "Replace the Registry view with Workstreams, and add Tasks and Task views driven by the store's selection; dependency items jump and file items open.",
+      "files": [
+        "ui/vscode/src/views",
+        "ui/vscode/src/extension.ts",
+        "ui/vscode/src/logic/store.ts",
+        "ui/vscode/package.json",
+        "ui/vscode/test"
+      ],
+      "docs": [],
+      "acceptance": [
+        "An integration test selects a workstream and a task and reads the Tasks and Task views' items",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VX-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VX-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "Graph and Overview views",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-VIEWS"
+      ],
+      "summary": "Graph from blockedBy and unblocks, selecting a node selecting its task; Overview with document links, claims, scope, verify commands, baseline and the registry row.",
+      "files": [
+        "ui/vscode/src/views",
+        "ui/vscode/src/extension.ts",
+        "ui/vscode/package.json",
+        "ui/vscode/test"
+      ],
+      "docs": [],
+      "acceptance": [
+        "An integration test reads both views for the sample",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VX-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VX-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "Menus, welcome views, status bar",
+      "kind": "behaviour",
+      "findings": [
+        "D-MENUS"
+      ],
+      "summary": "Grouped view/title and context menus for Run, Workstream, Task and Open, gated by contextValue; viewsWelcome empty states; the status bar shows the claimed task and its age.",
+      "files": [
+        "ui/vscode/package.json",
+        "ui/vscode/src/extension.ts",
+        "ui/vscode/src/logic/actions.ts",
+        "ui/vscode/src/logic/format.ts",
+        "ui/vscode/test"
+      ],
+      "docs": [],
+      "acceptance": [
+        "Tests show each menu item only where the snapshot offers it and a write passing the drawn revisions",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VX-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VX-05",
+      "phase": 3,
+      "priority": 50,
+      "title": "Quick-pick launch flow with pre-flight and presets",
+      "kind": "behaviour",
+      "findings": [
+        "D-LAUNCH"
+      ],
+      "summary": "Run actions open the D-LAUNCH chain: checks from ws launch check, target, agent preset from ws launch agents and ws launch argv, an editable prompt; choices kept in workspaceState.",
+      "files": [
+        "ui/vscode/src/launchFlow.ts",
+        "ui/vscode/src/launch.ts",
+        "ui/vscode/src/cli.ts",
+        "ui/vscode/test",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "An integration test drives the flow with a blocking check and with a preset, and sees the terminal's argv",
+        "test_vscode_files.py runs the new argvs against the real CLI",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VX-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VX-06",
+      "phase": 3,
+      "priority": 60,
+      "title": "Copilot Chat and Claude Code extension targets",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T3",
+        "T4"
+      ],
+      "summary": "src/chat.ts: a chat target through workbench.action.chat.open in agent mode, and a target through the Claude Code extension's open URI with the prompt; each offered only when its extension is enabled. test_vscode_files.py allows agent names in chat.ts only.",
+      "files": [
+        "ui/vscode/src/chat.ts",
+        "ui/vscode/src/launch.ts",
+        "ui/vscode/test",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "Tests with a stubbed command and openExternal show each target's call, and the URI holding the prompt escaped",
+        "test_vscode_files.py passes with agent names only in chat.ts",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VX-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VX-07",
+      "phase": 4,
+      "priority": 70,
+      "title": "Prove it in VS Code by hand",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "With Copilot Chat installed, install the vsix and run the plan's end-to-end checks on a sample from a wheel; record them in 0019 and the extension's README.",
+      "files": [
+        "docs/decisions/0019-ui-redesign.md",
+        "ui/vscode/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "The owner saw the five linked views, a blocked launch, a terminal launch with preset flags, Copilot Chat in agent mode and the Claude Code panel each holding the prompt, and a stale Pause refused",
+          "kind": "manual"
+        },
+        "make test passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VX-06"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ui/vscode",
+      "tests/test_vscode_files.py",
+      "docs/decisions/0019-ui-redesign.md"
+    ],
+    "outOfScope": [
+      "src/workstream (facts come from jetbrains_ux)",
+      "ui/jetbrains",
+      "ui/mod",
+      "webviews",
+      "Cursor"
+    ],
+    "rule": "Native VS Code views only, every fact from the ws CLI and every write from ws act."
+  }
+}
