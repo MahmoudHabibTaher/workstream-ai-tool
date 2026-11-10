@@ -352,6 +352,29 @@
         "commit": "5062cbb6d8035b0098f9197b663b8fdc2c177519",
         "pruned": false
       }
+    },
+    {
+      "id": "jetbrains_ux",
+      "title": "JetBrains UX redesign",
+      "summary": "Rebuild the JetBrains plugin as master-detail with a launch dialog (pre-flight, agent presets, Terminal, Copilot Chat and Air targets), modelled on the other workstream plugin, and add the CLI facts all three UIs need.",
+      "status": "planned",
+      "taskPrefix": "JX",
+      "path": "workstreams/jetbrains_ux",
+      "tier": "standard",
+      "created": "2026-11-10",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "bf36f9b",
+      "dependsOn": [],
+      "progress": {
+        "total": 10,
+        "todo": 10,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }

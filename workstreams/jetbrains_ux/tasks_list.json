@@ -1,0 +1,492 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/jetbrains_ux/PLAN.md",
+  "updated": "2026-11-10",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "JX-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Record the comparison and the rules it changes",
+      "kind": "docs",
+      "findings": [
+        "T1",
+        "T5"
+      ],
+      "summary": "Write docs/decisions/0019-ui-redesign.md: what the other workstream plugin does better (master-detail, task pane, Graph and Overview, grouped menus, launch dialog with pre-flight, presets and chat targets), what we adopt and don't, the ideas-only boundary, the exception to 0018's no-internal-API rule for Air, and the ChatTargets.kt exception to the agent-name scan.",
+      "files": [
+        "docs/decisions/0019-ui-redesign.md"
+      ],
+      "docs": [
+        "docs/decisions/0016-native-ide-ui.md",
+        "docs/decisions/0018-jetbrains-plugin.md"
+      ],
+      "acceptance": [
+        "docs/decisions/0019-ui-redesign.md exists, names the five adopted ideas and the rules it changes, and quotes no code or text from the other workstream plugin",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Snapshot facts: unblocks, waitingOn, scope, baseline",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "D-FACTS"
+      ],
+      "summary": "Each snapshot task gains unblocks and waitingOn, from graph.py; ws snapshot -w gains scope and baseline. The schema follows.",
+      "files": [
+        "src/workstream/snapshot.py",
+        "schema/snapshot.schema.json",
+        "tests/test_snapshot.py",
+        "tests/test_schema.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "New tests in tests/test_snapshot.py show unblocks and waitingOn for a three-task chain and scope and baseline for one workstream",
+        "tests/test_schema.py validates the new fields",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "ws launch check: pre-flight checks",
+      "kind": "behaviour",
+      "findings": [
+        "T4",
+        "D-PREFLIGHT"
+      ],
+      "summary": "Add src/workstream/launch.py and `ws launch check -w <id> --kind <kind> [--task T] [--agent A] --json`, with the checks D-PREFLIGHT lists, each blocking or a warning.",
+      "files": [
+        "src/workstream/launch.py",
+        "src/workstream/cli.py",
+        "tests/test_launch.py",
+        "tests/test_no_project_literals.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "tests/test_launch.py covers each check passing and failing, including a blocking one and the skills-not-installed warning",
+        "src/workstream/launch.py names no agent (test_no_project_literals passes)",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-04",
+      "phase": 1,
+      "priority": 40,
+      "title": "ws launch argv and agent presets, plus the run-task prompt",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "D-PRESETS"
+      ],
+      "summary": "Add a [launch] table to each adapter TOML (command, effort flag and levels, permission choices and their flags, how the prompt is passed), taken from each CLI's real --help. Add `ws launch agents --json` and `ws launch argv`. Add LAUNCH_PROMPTS['run-task'] with {task}, and the schema's launch kind enum.",
+      "files": [
+        "src/workstream/assets/adapters/claude-code.toml",
+        "src/workstream/assets/adapters/copilot-cli.toml",
+        "src/workstream/launch.py",
+        "src/workstream/adapt.py",
+        "src/workstream/cli.py",
+        "src/workstream/snapshot.py",
+        "schema/snapshot.schema.json",
+        "tests/test_launch.py",
+        "tests/test_schema.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "tests/test_launch.py shows the argv for each agent with each effort level and permission choice, and that --prompt replaces the snapshot's text",
+        "tests/test_schema.py holds the launch kind enum equal to LAUNCH_PROMPTS with run-task in it",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-05",
+      "phase": 2,
+      "priority": 50,
+      "title": "Master-detail Workstreams tab: list, Tasks table, task pane",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "T6",
+        "T7",
+        "D-LAYOUT"
+      ],
+      "summary": "Replace RegistryView.kt with WorkstreamsView.kt: a workstream list (status icon, done/total, status, claim, error count), and a Tasks tab with a table (status, id, phase, title, waiting on) above a task pane (summary, depends on and unblocks as jump links, files that open, acceptance, verify, notes, claim and age). Builders in logic/ for JUnit. Double-click opens the tasks file at the task. Keep writes pinned.",
+      "files": [
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/WorkstreamsView.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/RegistryView.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/logic/Registry.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/logic/Format.kt",
+        "ui/jetbrains/src/test/kotlin/dev/workstream/jetbrains",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A headless test on the sample selects a workstream and a task and reads the table's rows and the task pane's sections",
+        "A jump link selects the task it names",
+        "test_jetbrains_files.py lists WorkstreamsView.kt as a drawing file and passes",
+        "make test-jetbrains passes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-06",
+      "phase": 2,
+      "priority": 60,
+      "title": "Graph and Overview tabs",
+      "kind": "behaviour",
+      "findings": [
+        "T6",
+        "D-LAYOUT"
+      ],
+      "summary": "Graph: the dependency tree from blockedBy and unblocks, each node with status and title, selecting a node selecting its task. Overview: document links, open claims, scope, verify commands, baseline and the registry row.",
+      "files": [
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/WorkstreamsView.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/logic/Registry.kt",
+        "ui/jetbrains/src/test/kotlin/dev/workstream/jetbrains"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A headless test reads the Graph tree and the Overview sections for the sample",
+        "make test-jetbrains passes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-07",
+      "phase": 2,
+      "priority": 70,
+      "title": "Toolbar groups, Tools menu, empty states, status bar",
+      "kind": "behaviour",
+      "findings": [
+        "T7",
+        "D-MENUS"
+      ],
+      "summary": "Grouped popups Run, Workstream, Task and Open, also under Tools > Workstreams and on context menus, each shown only where the snapshot offers it. Empty states with a Configure link and a how-to-plan line. The status bar shows the claimed task and its age.",
+      "files": [
+        "ui/jetbrains/src/main/resources/META-INF/plugin.xml",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/WsActions.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/WorkstreamsView.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/StatusWidget.kt",
+        "ui/jetbrains/src/test/kotlin/dev/workstream/jetbrains"
+      ],
+      "docs": [],
+      "acceptance": [
+        "WsActionsTest shows each group's actions enabled only where the snapshot offers them, and a write still passes the drawn revisions",
+        "A test reads the status text with a claimed task",
+        "make test-jetbrains passes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-06"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-08",
+      "phase": 3,
+      "priority": 80,
+      "title": "Launch dialog with pre-flight, presets and targets",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "T8",
+        "D-DIALOG"
+      ],
+      "summary": "A DialogWrapper opened by each Run action: checks from ws launch check (blocking disables OK), task pin, target picker, agent preset with effort and permissions and the argv from ws launch argv (Terminal only), and an editable prompt. Remembers the choices in WsSettings. Launcher.launch takes the chosen target; the clipboard stays the fallback.",
+      "files": [
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/LaunchDialog.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/Launch.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/Cli.kt",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/WsSettings.kt",
+        "ui/jetbrains/src/test/kotlin/dev/workstream/jetbrains",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A headless test opens the dialog on the sample, sees a blocking check disable OK, and sees the argv for a chosen preset",
+        "test_jetbrains_files.py runs the ws launch argvs Cli.kt builds",
+        "make test-jetbrains passes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-04",
+        "JX-07"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-09",
+      "phase": 3,
+      "priority": 90,
+      "title": "Copilot Chat and Air launch targets",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T4",
+        "T5",
+        "D-CHAT"
+      ],
+      "summary": "ChatTargets.kt with two LaunchTargets, registered through optional depends config files: a new agent-mode chat session holding the prompt, and the agent prompt popup holding the text. Classes loaded through the plugin's own action classloaders; any failure goes to the clipboard with a reason. The prompt names the repository root when the project folder isn't it. test_jetbrains_files.py allows agent names in ChatTargets.kt only.",
+      "files": [
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/ChatTargets.kt",
+        "ui/jetbrains/src/main/resources/META-INF",
+        "ui/jetbrains/src/test/kotlin",
+        "tests/test_jetbrains_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "Tests with fake plugin classes show each target receiving the prompt, and a missing class falling back to the clipboard",
+        "test_jetbrains_files.py passes with agent names only in ChatTargets.kt",
+        "make verify-jetbrains reports Compatible on both IDEs",
+        "make test-jetbrains passes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains",
+        "make verify-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-08"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "JX-10",
+      "phase": 4,
+      "priority": 100,
+      "title": "Prove it in both IDEs by hand",
+      "kind": "behaviour",
+      "findings": [
+        "D-LAYOUT",
+        "D-DIALOG",
+        "D-CHAT"
+      ],
+      "summary": "Build and install the zip in IntelliJ IDEA 2026.3 and Android Studio 2026.2, run the checks in the plan's end-to-end section on a sample from a wheel, and record them in 0019 and the plugin's README.",
+      "files": [
+        "docs/decisions/0019-ui-redesign.md",
+        "ui/jetbrains/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "The owner saw the list, Tasks, Graph and Overview tabs, a blocked launch, Run in a Terminal tab with the preset's flags, Copilot Chat and Air each opened with the prompt, and a stale Pause refused, in both IDEs",
+          "kind": "manual"
+        },
+        "0019 and ui/jetbrains/README.md describe the new layout and launch dialog",
+        "make test passes"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "JX-09"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ui/jetbrains",
+      "src/workstream/snapshot.py",
+      "src/workstream/launch.py",
+      "src/workstream/cli.py",
+      "src/workstream/assets/adapters",
+      "schema/snapshot.schema.json",
+      "tests",
+      "docs/decisions/0019-ui-redesign.md",
+      "ui/jetbrains/README.md"
+    ],
+    "outOfScope": [
+      "ui/vscode",
+      "ui/mod",
+      "new kinds of write in ws act",
+      "any file of the the other workstream plugin repo"
+    ],
+    "rule": "Every fact comes from the ws CLI and every write from ws act; ideas from the other workstream plugin are rewritten here, never copied."
+  }
+}
