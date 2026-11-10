@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/pane_ux/PLAN.md",
+  "updated": "2026-11-10",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "PX-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Read launches from the snapshot; drop promptText",
+      "kind": "behaviour",
+      "findings": [
+        "T1"
+      ],
+      "summary": "The pane's prompt buttons use the row's launches; promptText and its test go.",
+      "files": [
+        "ui/mod/hooks/views/detail.tsx",
+        "ui/mod/hooks/register.tsx",
+        "ui/mod/tests/detail.test.tsx",
+        "tests/test_mod_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "No file under ui/mod holds a launch prompt's text (test_mod_files.py)",
+        "make test passes"
+      ],
+      "verify": [
+        "test",
+        "audit",
+        "make test-mod"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "PX-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Tasks, Graph and Overview sub-screens",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-SCREENS"
+      ],
+      "summary": "A button row in detail switches between Tasks (today's phases), Graph (an indented button list from blockedBy and unblocks) and Overview (documents, claims, scope, verify commands, baseline). New state is tagged.",
+      "files": [
+        "ui/mod/hooks/views/detail.tsx",
+        "ui/mod/hooks/views/style.tsx",
+        "ui/mod/types/index.d.ts",
+        "ui/mod/hooks/register.tsx",
+        "ui/mod/tests"
+      ],
+      "docs": [],
+      "acceptance": [
+        "Tests render each sub-screen for a sample snapshot",
+        "make test-mod passes"
+      ],
+      "verify": [
+        "test",
+        "audit",
+        "make test-mod"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PX-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "PX-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "Task page with jump buttons",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-SCREENS"
+      ],
+      "summary": "hooks/views/task.tsx: summary, depends on and unblocks as buttons that open those tasks, files, acceptance, verify, notes and the claim; Review and Unclaim as today.",
+      "files": [
+        "ui/mod/hooks/views/task.tsx",
+        "ui/mod/hooks/register.tsx",
+        "ui/mod/types/index.d.ts",
+        "ui/mod/tests"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test opens a task page and presses an unblocks button to reach that task",
+        "make test-mod passes"
+      ],
+      "verify": [
+        "test",
+        "audit",
+        "make test-mod"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PX-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "PX-04",
+      "phase": 2,
+      "priority": 40,
+      "title": "Pre-flight before filling the prompt, and Run This Task",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "D-PREFLIGHT"
+      ],
+      "summary": "Prompt buttons run ws launch check and show its results; a blocking check disables the button with its message. The task page gains Run This Task from the run-task launch.",
+      "files": [
+        "ui/mod/hooks/data.ts",
+        "ui/mod/hooks/views/detail.tsx",
+        "ui/mod/hooks/views/task.tsx",
+        "ui/mod/tests",
+        "tests/test_mod_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "Tests with ws stubbed show a blocking check disabling Run and a passing one filling the box without submitting",
+        "test_mod_files.py runs ws launch check against the real CLI",
+        "make test-mod passes"
+      ],
+      "verify": [
+        "test",
+        "audit",
+        "make test-mod"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PX-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "PX-05",
+      "phase": 3,
+      "priority": 50,
+      "title": "Prove it in the desktop app",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "Reload the plugin, open /workstreams on a sample, run the plan's end-to-end checks, and record them in 0019 and the pane's README.",
+      "files": [
+        "docs/decisions/0019-ui-redesign.md",
+        "ui/mod/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "The owner saw the sub-screens, a task page jump, a blocked Run with its message, and Run This Task fill the box without sending",
+          "kind": "manual"
+        },
+        "make test passes"
+      ],
+      "verify": [
+        "test",
+        "make test-mod"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PX-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": "none",
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ui/mod",
+      "tests/test_mod_files.py",
+      "docs/decisions/0019-ui-redesign.md"
+    ],
+    "outOfScope": [
+      "src/workstream (facts come from jetbrains_ux)",
+      "ui/jetbrains",
+      "ui/vscode",
+      "launch targets other than the prompt box",
+      "submitting a prompt"
+    ],
+    "rule": "The pane draws and fills the prompt box; every fact comes from the ws CLI and every write from ws act."
+  }
+}
