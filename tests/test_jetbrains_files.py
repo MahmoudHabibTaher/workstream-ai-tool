@@ -61,7 +61,7 @@ class NamesNoProjectTests(unittest.TestCase):
         for path in (CLI, TEXT, WORKSTREAMS, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
                      KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", KOTLIN / "logic" / "Review.kt",
                      KOTLIN / "logic" / "Health.kt", HEALTH,
-                     REVIEW, KOTLIN / "Reviews.kt", LAUNCH, KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
+                     REVIEW, KOTLIN / "Reviews.kt", LAUNCH, KOTLIN / "LaunchDialog.kt", KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
                      SRC / "test" / "kotlin" / "dev" / "workstream" / "jetbrains" / "OpenTest.kt"):
             self.assertIn(path, found)
 
@@ -277,10 +277,15 @@ class TheCliAnswersThePluginTests(WsTestCase):
                      'listOf("review", "--queue")', 'listOf("audit", "context", "--json")',
                      'mutableListOf("act", confirm.action, "-w", wsId)', 'args.addAll(listOf("--task", confirm.task))',
                      'args.addAll(listOf("--expect-registry", revisions.registry))',
-                     'args.addAll(listOf("--expect-tasks", tasks))'):
+                     'args.addAll(listOf("--expect-tasks", tasks))',
+                     'listOf("launch", "check", "-w", wsId, "--kind", kind, "--json") + (if (task != null) listOf("--task", task) else listOf()) + (if (agent != null) listOf("--agent", agent) else listOf())',
+                     'listOf("launch", "agents", "--json")',
+                     'mutableListOf("launch", "argv", "-w", wsId, "--agent", agent, "--prompt-kind", kind, "--json")',
+                     'args.addAll(listOf("--task", task))', 'args.addAll(listOf("--effort", effort))',
+                     'args.addAll(listOf("--permissions", permissions))', 'args.add("--prompt=$prompt")'):
             self.assertIn(line, source)
-        # Seven calls, one per line above that starts an argv: none goes around this test.
-        self.assertEqual(len(re.findall(r"(?<!fun )\bws\(", source)), 7)
+        # Ten calls, one per line above that starts an argv: none goes around this test.
+        self.assertEqual(len(re.findall(r"(?<!fun )\bws\(", source)), 10)
         self.assertIn('OLD("old"), NEW("new")', (KOTLIN / "logic" / "Model.kt").read_text())
         self.assertEqual(self.ok("root").strip(), str(self.root))
         self.assertEqual(json.loads(self.ok("snapshot"))["snapshotVersion"], 1)
@@ -299,6 +304,27 @@ class TheCliAnswersThePluginTests(WsTestCase):
                       "--expect-tasks", tasks)
         self.assertIn("alpha: pause", self.ok("act", "pause", "-w", "alpha", "--expect-registry", registry,
                                               "--expect-tasks", tasks))
+
+    def test_the_launch_argvs_cli_kt_builds(self) -> None:
+        """The launch dialog's three calls (D-DIALOG): the checks, the presets and the argv, with
+        every optional part, and an edited prompt given as `--prompt=` even when it starts with `-`."""
+        checks = json.loads(self.ok("launch", "check", "-w", "alpha", "--kind", "run", "--json"))["checks"]
+        self.assertTrue(all({"id", "ok", "blocking", "message"} <= set(c) for c in checks))
+        pinned = json.loads(self.ok("launch", "check", "-w", "alpha", "--kind", "run-task", "--json", "--task", "T1",
+                                    "--agent", "claude-code"))["checks"]
+        self.assertIn("skills", [c["id"] for c in pinned])
+        agents = json.loads(self.ok("launch", "agents", "--json"))["agents"]
+        preset = next(a for a in agents if a["agent"] == "claude-code")
+        self.assertTrue({"agent", "label", "effortLevels", "permissionChoices"} <= set(preset))
+        effort, permissions = preset["effortLevels"][0], preset["permissionChoices"][0]
+        built = json.loads(self.ok("launch", "argv", "-w", "alpha", "--agent", "claude-code", "--prompt-kind", "run-task",
+                                   "--json", "--task", "T1", "--effort", effort, "--permissions", permissions,
+                                   "--prompt=-edited"))
+        self.assertEqual(built["argv"][-1], "-edited")
+        self.assertIn(effort, built["argv"])
+        own = json.loads(self.ok("launch", "argv", "-w", "alpha", "--agent", "claude-code", "--prompt-kind", "run-task",
+                                 "--json", "--task", "T1"))
+        self.assertEqual(own["argv"][-1], LAUNCH_PROMPTS["run-task"].format(ws="alpha", task="T1"))
 
 
 if __name__ == "__main__":

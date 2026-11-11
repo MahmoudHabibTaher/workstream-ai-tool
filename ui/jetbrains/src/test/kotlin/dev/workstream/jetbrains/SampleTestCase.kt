@@ -67,9 +67,10 @@ abstract class SampleTestCase : BasePlatformTestCase() {
 
     /**
      * `ws init`, then `alpha`, active with two tasks, all committed; `closed` adds an abandoned `old`,
-     * and `rich` gives A-1 a summary, a file, acceptance and notes.
+     * `rich` gives A-1 a summary, a file, acceptance and notes, and `filled` fills alpha's template
+     * placeholders, so no check blocks a launch.
      */
-    protected fun sampleProject(firstTitle: String = "First", closed: Boolean = false, rich: Boolean = false): File {
+    protected fun sampleProject(firstTitle: String = "First", closed: Boolean = false, rich: Boolean = false, filled: Boolean = false): File {
         val root = tmp.resolve("project").toFile().apply { mkdirs() }
         sh(root, "git", "init", "-q", "-b", "main")
         ws(root, "init", "--integration", "main")
@@ -88,6 +89,12 @@ abstract class SampleTestCase : BasePlatformTestCase() {
             {"id": "A-2", "phase": 1, "priority": 20, "title": "Second", "blockedBy": ["A-1"]}]""")
         ws(root, "seed", "-w", "alpha", seed.path)
         ws(root, "set-status", "-w", "alpha", "active")
+        if (filled) {
+            // The template's placeholders are integrity errors, which block every launch.
+            root.resolve("workstreams").resolve("alpha").listFiles { f -> f.name.endsWith(".md") }!!.forEach { f ->
+                f.writeText(f.readText().replace(Regex("\\{\\{[^}]*\\}\\}"), "filled"))
+            }
+        }
         if (closed) {
             ws(root, "new", "old", "--title", "Old", "--summary", "dropped", "--base", base)
             ws(root, "set-status", "-w", "old", "abandoned", "--notes", "dropped")

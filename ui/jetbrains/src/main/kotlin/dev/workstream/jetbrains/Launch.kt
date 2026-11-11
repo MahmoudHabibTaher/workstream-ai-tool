@@ -1,7 +1,8 @@
-// Where a launch goes (D-ACTIONS). Each target says whether it can take the launch now; the first
-// that can starts it. Today that is the Terminal, when the agent command is set and the Terminal
-// plugin is on, then the clipboard. Callers only call `Launcher.launch` and show what it said, so
-// they never know which target ran. Apart from Cli.kt, this is the only file that starts a process:
+// Where a launch goes (D-ACTIONS, D-DIALOG). The launch dialog names a target; it starts the
+// launch if it can take it now, else the prompt goes to the clipboard. With no target named, the
+// first that can take it starts it. Today the targets are the Terminal, when an agent argv is
+// given or the agent command is set and the Terminal plugin is on, then the clipboard. Callers only
+// call `Launcher.launch` and show what it said, so they never know which target's class ran. Apart from Cli.kt, this is the only file that starts a process:
 // the agent, as a Terminal tab's own process (plan T7).
 package dev.workstream.jetbrains
 
@@ -16,8 +17,11 @@ import org.jetbrains.plugins.terminal.TerminalTabState
 import org.jetbrains.plugins.terminal.TerminalToolWindowManager
 import java.awt.datatransfer.StringSelection
 
-/** A launch: the tab's title, the finished prompt and the folder the agent starts in. */
-data class LaunchRequest(val title: String, val prompt: String, val root: String)
+/**
+ * A launch: the tab's title, the finished prompt and the folder the agent starts in. `argv` is the
+ * agent's command line as `ws launch argv` built it for the chosen preset; null uses the agent command.
+ */
+data class LaunchRequest(val title: String, val prompt: String, val root: String, val argv: List<String>? = null)
 
 /** What the target did, in a line the caller shows; `argv` is the process a Terminal tab runs. */
 data class Started(val target: String, val said: String, val argv: List<String>? = null)
@@ -25,6 +29,9 @@ data class Started(val target: String, val said: String, val argv: List<String>?
 interface LaunchTarget {
     /** The target's name, the `target` of what it starts. */
     val id: String
+
+    /** What the launch dialog's target picker calls it. */
+    val label: String get() = id
 
     /** Null when this target can't take the request, so the next one is tried. */
     fun start(project: Project, request: LaunchRequest): Started?
@@ -41,9 +48,10 @@ fun interface TerminalOpener {
  */
 class TerminalTarget : LaunchTarget {
     override val id: String = TERMINAL
+    override val label: String = "Terminal"
 
     override fun start(project: Project, request: LaunchRequest): Started? {
-        val argv = terminalArgv(WsSettings.getInstance().agentCommand, request.prompt) ?: return null
+        val argv = request.argv ?: terminalArgv(WsSettings.getInstance().agentCommand, request.prompt) ?: return null
         opener.open(project, request.root, "Workstreams: ${request.title}", argv)
         return Started(id, terminalLine(argv, request.title), argv)
     }
@@ -72,21 +80,30 @@ class TerminalTarget : LaunchTarget {
 }
 
 const val TERMINAL = "terminal"
+const val CLIPBOARD = "clipboard"
 
 object Launcher {
     val TARGETS: ExtensionPointName<LaunchTarget> = ExtensionPointName.create("dev.workstream.jetbrains.launchTarget")
 
+    /** The targets a launch can go to now, in picker order: each registered one, then the clipboard. */
+    fun choices(): List<Pair<String, String>> = TARGETS.extensionList.map { it.id to it.label } + (CLIPBOARD to "Clipboard")
+
     /**
-     * Starts the request with the first target that takes it, else copies the prompt and says why.
-     * Launcher never names a target's class, so it loads without the Terminal plugin. On the EDT.
+     * Starts the request with `target`, or with the first target that takes it when none is named;
+     * else copies the prompt and says why. Launcher never names a target's class, so it loads
+     * without the Terminal plugin. On the EDT.
      */
-    fun launch(project: Project, request: LaunchRequest): Started {
+    fun launch(project: Project, request: LaunchRequest, target: String? = null): Started {
         val targets = TARGETS.extensionList
-        for (target in targets) {
-            target.start(project, request)?.let { return it }
+        if (target == CLIPBOARD) {
+            CopyPasteManager.getInstance().setContents(StringSelection(request.prompt))
+            return Started(CLIPBOARD, "Copied the ${request.title} prompt to the clipboard. Prompt: ${request.prompt}")
+        }
+        for (each in targets.filter { target == null || it.id == target }) {
+            each.start(project, request)?.let { return it }
         }
         CopyPasteManager.getInstance().setContents(StringSelection(request.prompt))
-        val agentSet = terminalArgv(WsSettings.getInstance().agentCommand, request.prompt) != null
-        return Started("clipboard", clipboardLine(request.title, request.prompt, targets.any { it.id == TERMINAL }, agentSet))
+        val agentSet = request.argv != null || terminalArgv(WsSettings.getInstance().agentCommand, request.prompt) != null
+        return Started(CLIPBOARD, clipboardLine(request.title, request.prompt, targets.any { it.id == TERMINAL }, agentSet))
     }
 }

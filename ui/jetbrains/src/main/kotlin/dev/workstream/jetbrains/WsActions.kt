@@ -4,7 +4,8 @@
 // Pause, Resume, Sync and Unclaim are enabled only where the node's row or finding offers them,
 // in the Registry or the Health tab, ask first, then write through `ws act` against the revisions
 // the node was drawn with (plan T8).
-// Run, Coordinate, Close and Abandon come only from the row's `launches` and go to Launcher.
+// Run, Coordinate, Close and Abandon come only from the row's `launches`, open the launch dialog
+// (D-DIALOG) and go to Launcher with the target it chose.
 package dev.workstream.jetbrains
 
 import com.intellij.notification.NotificationType
@@ -16,6 +17,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.LocalFileSystem
 import dev.workstream.jetbrains.logic.TaskNode
 import dev.workstream.jetbrains.logic.WorkstreamNode
@@ -86,7 +88,16 @@ abstract class LaunchAction(private val kind: String) : NodeAction() {
         val ws = (node as WorkstreamNode).row.id
         val title = launchTitle(kind, ws)
         val answer = offer.ask?.let { ask -> Text.ask(project, title, askLine(ask, title))?.trim()?.ifEmpty { null } ?: return }
-        val started = Launcher.launch(project, LaunchRequest(title, promptOf(offer, answer), root))
+        // Run can pin a task of the queue that isn't done; the checks say whether it may start.
+        val tasks = if (kind == LaunchDialog.RUN) Workstreams.of(project).cachedView(ws)?.tasks?.filter { it.status != "done" }?.map { it.id } ?: listOf() else listOf()
+        val dialog = LaunchDialog(project, LaunchSetup(ws, kind, title, promptOf(offer, answer), root, tasks))
+        val choice = try {
+            if (!LaunchDialog.show(dialog)) return
+            dialog.accepted() ?: return
+        } finally {
+            Disposer.dispose(dialog.disposable)
+        }
+        val started = Launcher.launch(project, choice.request, choice.target)
         Text.notify(project, started.said, NotificationType.INFORMATION)
     }
 }

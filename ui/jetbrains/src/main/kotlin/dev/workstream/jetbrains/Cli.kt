@@ -114,6 +114,33 @@ class Cli(command: List<String>, private val run: Run = ProcessRun) {
     fun loadBudget(root: String): Loaded<JsonElement> = parsed("audit", ws(listOf("audit", "context", "--json"), root))
 
     /**
+     * The pre-flight checks of one launch (D-DIALOG): exits 0 whenever they ran, so what blocks is
+     * in each check. `task` pins a run-task launch; `agent` adds the check that its skills are installed.
+     */
+    fun launchCheck(root: String, wsId: String, kind: String, task: String? = null, agent: String? = null): Loaded<JsonElement> {
+        val args = listOf("launch", "check", "-w", wsId, "--kind", kind, "--json") + (if (task != null) listOf("--task", task) else listOf()) + (if (agent != null) listOf("--agent", agent) else listOf())
+        return parsed("launch check", ws(args, root))
+    }
+
+    /** Each agent's launch preset: its effort levels and permission choices, for the dialog's pickers. */
+    fun launchAgents(root: String): Loaded<JsonElement> = parsed("launch agents", ws(listOf("launch", "agents", "--json"), root))
+
+    /**
+     * The command line that starts `agent` on a launch's prompt, as the CLI builds it from the
+     * agent's preset. A null `prompt` is the kind's own; an edited one goes as `--prompt=`, so a
+     * text that starts with `-` is still the option's value.
+     */
+    fun launchArgv(root: String, wsId: String, agent: String, kind: String, task: String? = null, effort: String? = null,
+                   permissions: String? = null, prompt: String? = null): Loaded<JsonElement> {
+        val args = mutableListOf("launch", "argv", "-w", wsId, "--agent", agent, "--prompt-kind", kind, "--json")
+        if (task != null) args.addAll(listOf("--task", task))
+        if (effort != null) args.addAll(listOf("--effort", effort))
+        if (permissions != null) args.addAll(listOf("--permissions", permissions))
+        if (prompt != null) args.add("--prompt=$prompt")
+        return parsed("launch argv", ws(args, root))
+    }
+
+    /**
      * The plugin's only write: `ws act` refuses, writes and commits in one call, against the
      * revisions of the snapshot the person saw. A refusal is its stderr, shown as given.
      */
