@@ -98,7 +98,7 @@ class HealthViewTest : SampleTestCase() {
         val finding = stale.node as FindingNode
         assertEquals(listOf("unclaim"), finding.writes)
         assertEquals(listOf("Unclaim"), enabled(finding))
-        // The popup's data is the selected finding, as the Registry's is its selected node.
+        // The popup's data is the selected finding, as the Workstreams tab's is its selected row or task.
         panel.tree.selectionPath = panel.tree.getPathForRow(rows.indexOf(stale))
         assertEquals(finding, panel.selected())
         assertEquals(listOf<String>(), enabled((rows.first { it.node is LevelNode }).node))
@@ -179,7 +179,7 @@ class HealthViewTest : SampleTestCase() {
         Disposer.register(testRootDisposable, window.disposable)
         WorkstreamsToolWindow().createToolWindowContent(project, window)
         val manager = window.contentManager
-        assertEquals(listOf("Registry", "Review", "Health", "Budget"), manager.contents.map { it.displayName })
+        assertEquals(listOf("Workstreams", "Review", "Health", "Budget"), manager.contents.map { it.displayName })
         val tab = manager.findContent(BUDGET_TAB)
         val panel = tab.component as BudgetPanel
         waitFor(1_000) { false }
@@ -221,12 +221,12 @@ class HealthViewTest : SampleTestCase() {
         assertEquals(2, audits())
 
         // Leaving the tab and coming back reads nothing new; Refresh while away drops the rows, so coming back reads them.
-        manager.setSelectedContent(manager.findContent("Registry"))
+        manager.setSelectedContent(manager.findContent(WORKSTREAMS_TAB))
         assertFalse(panel.showing)
         manager.setSelectedContent(tab)
         waitFor(1_000) { false }
         assertEquals(2, audits())
-        manager.setSelectedContent(manager.findContent("Registry"))
+        manager.setSelectedContent(manager.findContent(WORKSTREAMS_TAB))
         assertFalse(panel.showing)
         runBlocking { ws.refresh().join() }
         waitFor(1_000) { false }
