@@ -1,5 +1,5 @@
-// The Workstreams tab as plain data: the list's rows, the Tasks table's rows and cells, and the
-// task pane's sections. WorkstreamsView.kt draws these; nothing here imports the platform, so
+// The Workstreams tab as plain data: the list's rows, the Tasks table's rows and cells, the
+// task pane's sections, the Graph tab's tree and the Overview tab's sections. WorkstreamsView.kt draws these; nothing here imports the platform, so
 // JUnit covers it. Every fact is one the snapshot gave: nothing here works out a graph fact (plan T3).
 package dev.workstream.jetbrains.logic
 
@@ -15,7 +15,28 @@ data class WsView(
     val root: String? = null,
     /** The workstream's tasks file, as the snapshot's `watch` named it. */
     val tasksFile: String? = null,
+    /** The queue's scope, or null when it has none. */
+    val scope: Scope? = null,
+    /** What `ws verify` judges this workstream against. */
+    val baseline: Baseline? = null,
 )
+
+/** The snapshot's `scope`: what the queue may and may not touch, and its rule. */
+data class Scope(val inScope: List<String> = listOf(), val outOfScope: List<String> = listOf(), val rule: String? = null)
+
+/** One `baseline.keys` entry: a verify key's recorded run. */
+data class BaselineKey(
+    val key: String,
+    val source: String = "",
+    val command: String? = null,
+    val exit: Int? = null,
+    val findings: Int = 0,
+    val recordedAt: String? = null,
+    val commit: String? = null,
+)
+
+/** The snapshot's `baseline`: its keys in key order and the errors reading it gave. */
+data class Baseline(val keys: List<BaselineKey> = listOf(), val errors: List<String> = listOf())
 
 /** One `refresh` entry of the snapshot: a path whose change means the snapshot may have changed. */
 data class Watch(val path: String, val recursive: Boolean)
@@ -81,11 +102,11 @@ fun taskCells(node: TaskNode): List<String> {
     return listOf(t.status, t.id, t.phase.toString(), t.title ?: "", t.waitingOn.joinToString(", "))
 }
 
-/** One line of the task pane: text, a jump to a task of this table, or a file that opens. */
+/** One line of a pane: text, a jump to a task of this table, or a file that opens; a link shows its label. */
 sealed interface PaneItem {
     data class Line(val text: String) : PaneItem
-    data class TaskLink(val id: String) : PaneItem
-    data class FileLink(val path: String) : PaneItem
+    data class TaskLink(val id: String, val label: String = id) : PaneItem
+    data class FileLink(val path: String, val label: String = path) : PaneItem
 }
 
 /** A section of the task pane: its heading is the plugin's own constant, its items repo text. */
@@ -119,6 +140,85 @@ fun taskPane(node: TaskNode, known: Set<String>, now: Long): List<PaneSection> {
         found += PaneSection("Verify", t.verifyCommands.map { PaneItem.Line(if (it.label == it.command) it.command else "${it.label}: ${it.command}") })
     }
     if (!t.notes.isNullOrEmpty()) found += PaneSection("Notes", listOf(PaneItem.Line(t.notes)))
+    return found
+}
+
+/**
+ * A node of the Graph tab: a task, then the tasks its `unblocks` names, in the table's order. A
+ * task is expanded where it first appears; a later appearance is a leaf marked `repeat`, so a task
+ * two others wait on, or a cycle, never grows the tree without end.
+ */
+class GraphNode(val task: TaskNode, val children: List<GraphNode>, val repeat: Boolean = false)
+
+/**
+ * The dependency tree from the snapshot's `blockedBy` and `unblocks`: its roots are the tasks
+ * whose `blockedBy` names none of the table's tasks; a task no root reaches (a cycle) becomes a
+ * root after them. `rows` is the table's rows, in its order.
+ */
+fun graph(rows: List<TaskNode>): List<GraphNode> {
+    val known = rows.map { it.task.id }.toSet()
+    val expanded = mutableSetOf<String>()
+    fun grow(node: TaskNode): GraphNode {
+        if (!expanded.add(node.task.id)) return GraphNode(node, listOf(), repeat = true)
+        val next = node.task.unblocks.toSet()
+        return GraphNode(node, rows.filter { it.task.id in next }.map(::grow))
+    }
+    val roots = rows.filter { r -> r.task.blockedBy.none { it in known } }.map(::grow).toMutableList()
+    for (r in rows) if (r.task.id !in expanded) roots += grow(r)
+    return roots
+}
+
+/** What a Graph node shows: its id, its title, and its status and badges (or that it is shown above). */
+data class GraphLabel(val id: String, val title: String, val detail: String)
+
+fun graphLabel(node: GraphNode): GraphLabel {
+    val t = node.task.task
+    val detail = if (node.repeat) "${t.status} · shown above" else (listOf(t.status) + node.task.badges).joinToString(" · ")
+    return GraphLabel(t.id, t.title ?: "", detail)
+}
+
+/**
+ * The Overview tab, top to bottom: the workstream's documents, its registry row, its open claims,
+ * its scope, the verify commands its tasks name, and its baseline. `row` is the list's row for it.
+ */
+fun overview(row: Row?, view: WsView, now: Long): List<PaneSection> {
+    val found = mutableListOf<PaneSection>()
+    val docs = documents(view)
+    if (docs.isNotEmpty()) found += PaneSection("Documents", docs.map { (label, path) -> PaneItem.FileLink(path, label) })
+    if (row != null) {
+        val lines = mutableListOf(if (row.title != null) "${row.id}: ${row.title}" else row.id)
+        if (!row.summary.isNullOrEmpty()) lines += row.summary
+        lines += listOfNotNull(row.status.ifEmpty { null }, row.tier?.let { "$it tier" }).joinToString(" · ")
+        row.progress?.let { p -> lines += listOfNotNull("${p.done}/${p.total} done", p.inProgress.takeIf { it > 0 }?.let { "$it claimed" }).joinToString(" · ") }
+        if (row.dependsOn.isNotEmpty()) lines += "Depends on ${row.dependsOn.joinToString(", ")}"
+        val dates = listOfNotNull(row.created?.let { "created $it" }, row.startedAt?.let { "started $it" }, row.completedAt?.let { "completed $it" })
+        if (dates.isNotEmpty()) lines += dates.joinToString(" · ")
+        row.baseCommit?.let { lines += "Base $it" }
+        if (!row.notes.isNullOrEmpty()) lines += row.notes
+        found += PaneSection("Registry", lines.filter { it.isNotEmpty() }.map { PaneItem.Line(it) })
+    }
+    val claims = view.tasks.filter { it.status == "in-progress" }.map { t ->
+        val age = t.startedAt?.let { runCatching { "${ageOf(it, now)} ago" }.getOrNull() ?: it }
+        PaneItem.TaskLink(t.id, listOfNotNull(t.id, t.claimedBy, age).joinToString(" · "))
+    }
+    found += PaneSection("Open claims", claims.ifEmpty { listOf(PaneItem.Line("None")) })
+    view.scope?.let { s ->
+        if (!s.rule.isNullOrEmpty()) found += PaneSection("Scope", listOf(PaneItem.Line(s.rule)))
+        if (s.inScope.isNotEmpty()) found += PaneSection("In scope", s.inScope.map { PaneItem.Line(it) })
+        if (s.outOfScope.isNotEmpty()) found += PaneSection("Out of scope", s.outOfScope.map { PaneItem.Line(it) })
+    }
+    val verify = view.tasks.flatMap { it.verifyCommands }.distinct()
+    if (verify.isNotEmpty()) {
+        found += PaneSection("Verify", verify.map { PaneItem.Line(if (it.label == it.command) it.command else "${it.label}: ${it.command}") })
+    }
+    val baseline = view.baseline
+    val keys = baseline?.keys.orEmpty().map { k ->
+        val head = if (k.command != null && k.command != k.key) "${k.key}: ${k.command}" else k.key
+        PaneItem.Line(listOfNotNull(head, k.source.ifEmpty { null }, k.exit?.let { "exit $it" }, plural(k.findings, "finding"),
+                                    k.recordedAt, k.commit?.take(10)).joinToString(" · "))
+    }
+    val errors = baseline?.errors.orEmpty().map { PaneItem.Line("Error: $it") }
+    found += PaneSection("Baseline", (keys + errors).ifEmpty { listOf(PaneItem.Line("None recorded")) })
     return found
 }
 

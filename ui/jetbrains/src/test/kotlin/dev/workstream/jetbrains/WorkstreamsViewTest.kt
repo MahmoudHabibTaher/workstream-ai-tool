@@ -63,8 +63,8 @@ class WorkstreamsViewTest : SampleTestCase() {
         }
     }
 
-    /** The pane as drawn, top to bottom: `#` before a heading, `>` before a link. */
-    private fun paneText(): List<String> {
+    /** A pane as drawn, top to bottom: `#` before a heading, `>` before a link. */
+    private fun paneText(pane: TaskPane = panel.pane): List<String> {
         val out = mutableListOf<String>()
         fun walk(c: Component) {
             when (c) {
@@ -74,8 +74,16 @@ class WorkstreamsViewTest : SampleTestCase() {
                 is Container -> c.components.forEach(::walk)
             }
         }
-        walk(panel.pane.component)
+        walk(pane.component)
         return out
+    }
+
+    /** The Graph tab's tree as drawn, indented by depth. */
+    private fun graphText(): List<String> = (0 until panel.graphTree.rowCount).map { i ->
+        val path = panel.graphTree.getPathForRow(i)
+        val c = panel.graphTree.cellRenderer.getTreeCellRendererComponent(panel.graphTree, path.lastPathComponent, false, true,
+                                                                          false, i, false) as GraphRenderer
+        "  ".repeat(path.pathCount - 2) + c.getCharSequence(false)
     }
 
     private fun selectTask(id: String) {
@@ -112,6 +120,36 @@ class WorkstreamsViewTest : SampleTestCase() {
         settle()
         assertEquals(listOf<List<String>>(), tableRows())
         assertEquals(listOf<String>(), paneText())
+    }
+
+    fun testTheGraphAndOverviewTabsShowTheSamplesTreeAndSections() {
+        val root = openSample(rich = true)
+        assertEquals(listOf(TASKS_TAB, GRAPH_TAB, OVERVIEW_TAB), (0 until panel.tabs.tabCount).map { panel.tabs.getTitleAt(it) })
+        assertEquals(listOf("A-1  First  todo · ★ ready", "  A-2  Second  todo · waits on A-1"), graphText())
+
+        // Selecting a node selects its task, and selecting a task selects its node.
+        panel.graphTree.selectionPath = panel.graphTree.getPathForRow(1)
+        UIUtil.dispatchAllInvocationEvents()
+        assertEquals("A-2", panel.selectedTask()?.task?.id)
+        assertEquals("A-2: Second", paneText()[0])
+        selectTask("A-1")
+        assertEquals("A-1", panel.selectedGraphNode()?.task?.task?.id)
+
+        val folder = root.resolve("workstreams").resolve("alpha")
+        // The row's dates and base are the sample's own, so they are read back from the row the list drew.
+        val row = panel.selectedWorkstream()!!.row
+        assertEquals(listOf(
+            "# Documents", "> <html>Plan</html>", "> <html>Progress</html>", "> <html>Decisions</html>", "> <html>Handoff</html>",
+            "# Registry", "alpha: Alpha", "sample", "active · standard tier", "0/2 done",
+            "created ${row.created} · started ${row.startedAt}", "Base ${row.baseCommit}",
+            "# Open claims", "None",
+            "# Baseline", "None recorded",
+        ), paneText(panel.overviewPane))
+        assertEquals(sh(root, "git", "rev-parse", "--short", "HEAD~1").trim(), row.baseCommit)
+        val plan = panel.overviewPane.links.getValue(PaneItem.FileLink(folder.resolve("PLAN.md").path, "Plan"))
+        plan.doClick()
+        UIUtil.dispatchAllInvocationEvents()
+        assertEquals(listOf(folder.resolve("PLAN.md").path), FileEditorManager.getInstance(project).selectedFiles.map { it.path })
     }
 
     fun testAJumpLinkSelectsTheTaskItNames() {

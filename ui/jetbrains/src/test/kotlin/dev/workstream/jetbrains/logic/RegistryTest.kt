@@ -135,4 +135,56 @@ class RegistryTest {
         assertFalse(underRefresh("/p/ws/alphabet/PLAN.md", watches))
         assertFalse(underRefresh("/p/src/main.kt", watches))
     }
+
+    @Test
+    fun theGraphGrowsFromTheTasksNothingKnownBlocksAndShowsARepeatOnlyOnce() {
+        val tasks = listOf(t("B-1", unblocks = listOf("B-2", "B-3")), t("B-2", blockedBy = listOf("B-1"), unblocks = listOf("B-4")),
+                           t("B-3", blockedBy = listOf("B-1", "Z-9"), unblocks = listOf("B-4")),
+                           t("B-4", status = "blocked", blockedBy = listOf("B-2", "B-3"), title = "Last"),
+                           t("C-1", blockedBy = listOf("C-2"), unblocks = listOf("C-2")), t("C-2", blockedBy = listOf("C-1"), unblocks = listOf("C-1")))
+        val rows = taskRows("beta", WsView(tasks, null, mapOf()), 0)
+        fun lines(nodes: List<GraphNode>, depth: Int = 0): List<String> = nodes.flatMap { n ->
+            val l = graphLabel(n)
+            listOf("  ".repeat(depth) + listOf(l.id, l.title, l.detail).filter { it.isNotEmpty() }.joinToString(" | ")) + lines(n.children, depth + 1)
+        }
+        assertEquals(listOf(
+            "B-1 | todo",
+            "  B-2 | todo",
+            "    B-4 | Last | blocked",
+            "  B-3 | todo",
+            "    B-4 | Last | blocked · shown above",
+            "C-1 | todo",
+            "  C-2 | todo",
+            "    C-1 | todo · shown above",
+        ), lines(graph(rows)))
+    }
+
+    @Test
+    fun theOverviewShowsDocumentsTheRowClaimsScopeVerifyAndBaseline() {
+        val now = Instant.parse("2026-01-01T03:00:00Z").toEpochMilli()
+        val row = Row("alpha", "active", title = "Alpha", summary = "sum", progress = Progress(1, 3, 1), dependsOn = listOf("base"),
+                      tier = "standard", created = "2025-12-30", startedAt = "2025-12-31", baseCommit = "abc1234", notes = "a note")
+        val v = view.copy(
+            tasks = view.tasks + Task("A-4", status = "in-progress", claimedBy = "agent-1", startedAt = "2026-01-01T00:00:00Z",
+                                      verifyCommands = listOf(VerifyCommand("test", "make test"), VerifyCommand("make lint", "make lint"))) +
+                Task("A-5", verifyCommands = listOf(VerifyCommand("test", "make test"))),
+            scope = Scope(listOf("src"), listOf("docs"), "Stay in src"),
+            baseline = Baseline(listOf(BaselineKey("test", "workstream", "make test", 0, 2, "2026-01-01T00:00:00Z", "0123456789abcdef")), listOf("lint: no record")),
+        )
+        val found = overview(row, v, now)
+        assertEquals(listOf("Documents", "Registry", "Open claims", "Scope", "In scope", "Out of scope", "Verify", "Baseline"), found.map { it.heading })
+        assertEquals(listOf(PaneItem.FileLink("/p/ws/alpha/PLAN.md", "Plan"), PaneItem.FileLink("/p/ws/alpha/session_handoff.md", "Handoff")), found[0].items)
+        assertEquals(listOf("alpha: Alpha", "sum", "active · standard tier", "1/3 done · 1 claimed", "Depends on base",
+                            "created 2025-12-30 · started 2025-12-31", "Base abc1234", "a note").map { PaneItem.Line(it) }, found[1].items)
+        assertEquals(listOf(PaneItem.TaskLink("A-4", "A-4 · agent-1 · 3h ago")), found[2].items)
+        assertEquals(listOf(PaneItem.Line("Stay in src")), found[3].items)
+        assertEquals(listOf(PaneItem.Line("test: make test"), PaneItem.Line("make lint")), found[6].items)
+        assertEquals(listOf(PaneItem.Line("test: make test · workstream · exit 0 · 2 findings · 2026-01-01T00:00:00Z · 0123456789"),
+                            PaneItem.Line("Error: lint: no record")), found[7].items)
+
+        // Nothing to say still says so for claims and the baseline; no row, scope or verify leaves those out.
+        val bare = overview(null, WsView(listOf(t("A-1")), null, mapOf()), now)
+        assertEquals(listOf("Open claims", "Baseline"), bare.map { it.heading })
+        assertEquals(listOf(listOf(PaneItem.Line("None")), listOf(PaneItem.Line("None recorded"))), bare.map { it.items })
+    }
 }
