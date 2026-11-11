@@ -14,7 +14,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from workstream import graph, registry, tasks
+from workstream import baseline, graph, registry, tasks
 from workstream.config import Config
 from workstream.errors import WsError
 from workstream.fsutil import sha256
@@ -310,7 +310,7 @@ def _read_queue(project: Project, ws: dict, ids: set[str]) -> tuple[dict, str | 
     warnings = [w for w in warnings if not w.endswith(tasks.MISSING_FILES_SUFFIX)]
     folder = project.folder(ws)
     path = folder / TASKS_NAME
-    entry = {"tasks": [], "evidence": [], "errors": errors, "warnings": warnings}
+    entry = {"tasks": [], "evidence": [], "errors": errors, "warnings": warnings, "scope": None}
     if not path.exists():
         return entry, None
     raw = path.read_bytes()
@@ -318,12 +318,73 @@ def _read_queue(project: Project, ws: dict, ids: set[str]) -> tuple[dict, str | 
         queue = tasks.read_raw(path)
     except WsError:  # validate_entry already reported it
         return entry, sha256(raw)
+    entry["scope"] = scope_facts(queue.get("scope"))
     # validate_entry reports a malformed task; the read model still draws the others.
     entry["tasks"] = [tasks.normalize_task(t, project.config) for t in queue["tasks"]
                       if tasks.is_queueable(t)]
     evidence = folder / "evidence"
     entry["evidence"] = sorted(p.stem for p in evidence.glob("*.md")) if evidence.is_dir() else []
     return entry, sha256(raw)
+
+
+def scope_facts(scope: object) -> dict | None:
+    """The queue's scope with only its well-typed fields, or None when it has none."""
+    if not isinstance(scope, dict):
+        return None
+    found = {}
+    for key in ("inScope", "outOfScope"):
+        value = scope.get(key)
+        if isinstance(value, list) and all(isinstance(v, str) for v in value):
+            found[key] = value
+    if isinstance(scope.get("rule"), str):
+        found["rule"] = scope["rule"]
+    return found
+
+
+def task_graph_facts(task_list: list[dict]) -> dict[str, dict]:
+    """id -> {unblocks, waitingOn}: the tasks naming it in blockedBy, in queue order (what
+    `ws show` prints as "unblocks"), and its blockedBy ids not yet done, which is what keeps
+    graph.actionable from picking it."""
+    blocked_by = graph.blocked_by_graph(task_list)
+    done = {t["id"] for t in task_list if t.get("status") == "done"}
+    return {tid: {"unblocks": [other for other, blockers in blocked_by.items() if tid in blockers],
+                  "waitingOn": [b for b in blockers if b not in done]}
+            for tid, blockers in blocked_by.items()}
+
+
+def _baseline_key(key: str, entry: object, source: str, record: dict) -> dict:
+    entry = entry if isinstance(entry, dict) else {}
+    findings = entry.get("findings")
+    exit_code = entry.get("exit")
+
+    def text(value: object) -> str | None:
+        return value if isinstance(value, str) else None
+
+    return {"key": key, "source": source, "parser": text(entry.get("parser")),
+            "command": text(entry.get("command")),
+            "exit": exit_code if isinstance(exit_code, int) and not isinstance(exit_code, bool)
+            else None,
+            "findings": len(findings) if isinstance(findings, list) else 0,
+            "recordedAt": text(record.get("recordedAt")), "commit": text(record.get("commit"))}
+
+
+def baseline_facts(project: Project, folder: Path) -> dict:
+    """What `ws verify` judges this workstream against, one entry per key in key order: the
+    project's record (`ws init`) with the workstream's own (`ws baseline record`) taking over,
+    as baseline.load_for merges them. `findings` is how many are known. A record that can't be
+    read is named in `errors` and the other still draws."""
+    keys: dict[str, dict] = {}
+    errors = []
+    for source, where in (("project", baseline.project_folder(project)), ("workstream", folder)):
+        try:
+            record = baseline.load(where)
+        except WsError as e:
+            errors.append(str(e))
+            continue
+        for key, entry in record["keys"].items():
+            if isinstance(key, str):
+                keys[key] = _baseline_key(key, entry, source, record)
+    return {"keys": [keys[k] for k in sorted(keys)], "errors": errors}
 
 
 def _paths(folder: Path, task_list: list[dict]) -> dict:
@@ -405,7 +466,8 @@ def build_snapshot(project: Project, ws_id: str | None = None,
                    stale_hours: float = DEFAULT_STALE_HOURS,
                    now: datetime | None = None) -> dict:
     """The whole read model. Raises WsError for an unknown ws_id. With ws_id it adds that
-    workstream's tasks, wave and narrative paths."""
+    workstream's tasks (each with its unblocks and waitingOn), wave, scope, baseline and
+    narrative paths."""
     reg = registry.load(project)
     registry_raw = project.registry_path.read_bytes()
     rows = reg["workstreams"]
@@ -447,8 +509,12 @@ def build_snapshot(project: Project, ws_id: str | None = None,
     if ws_id is not None:
         task_list = sorted(queues[ws_id]["tasks"], key=lambda t: t["priority"])
         ws = next(w for w in rows if w["id"] == ws_id)
-        snapshot.update(tasks=[_for_display(t, project.config) for t in task_list],
+        facts_by_id = task_graph_facts(task_list)
+        snapshot.update(tasks=[{**_for_display(t, project.config), **facts_by_id[t["id"]]}
+                               for t in task_list],
                         wave=graph.compute_wave(task_list),
+                        scope=queues[ws_id]["scope"],
+                        baseline=baseline_facts(project, project.folder(ws)),
                         paths=_paths(project.folder(ws), task_list), watch=watch_paths(project, ws))
     now = now or datetime.now(timezone.utc)
     snapshot["health"] = health_findings(project, reg, queues, facts, now, stale_hours)
