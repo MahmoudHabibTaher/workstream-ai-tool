@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `bf36f9b`.
 
 ---
 
+## 2026-11-11: JX-07: Toolbar groups, Tools menu, empty states, status bar
+
+Merged as `3860811bb6`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-07.md).
+
 ## 2026-11-11: JX-06: Graph and Overview tabs
 
 Merged as `2fa3c527c3`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-06.md).

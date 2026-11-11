@@ -369,9 +369,9 @@
       "progress": {
         "total": 10,
         "todo": 3,
-        "in-progress": 1,
+        "in-progress": 0,
         "blocked": 0,
-        "done": 6,
+        "done": 7,
         "deferred": 0
       },
       "notes": ""

@@ -121,3 +121,23 @@ Rejected: a workstream-level verify list (the snapshot has none, so the plugin w
 - `tests/test_jetbrains_files.py` updates its shape check: the `append(` list gains the GraphRenderer's three calls, the ActionLink arguments become `Text.html(item.label)`, and it asserts `GraphRenderer : ColoredTreeCellRenderer()` and the Overview pane. T6 asks for this test to be updated for new views, and no new view file was added.
 - `PaneItem.TaskLink` and `PaneItem.FileLink` gain a `label` that defaults to the id or path, so the Overview's claims and documents can carry their own text.
 Rejected: a separate parser in the view. **Closed.**
+
+## D023 (2026-11-11, JX-07): Run This Task… is left out of the Run group until JX-08
+
+The snapshot offers `run-task` on no row and no task. The schema says "run-task pins a task, so a row doesn't offer it", and a task carries no `launches`. Its prompt comes only from `ws launch argv --prompt-kind run-task`, which JX-08's launch dialog calls (D-DIALOG: "a task pin (Run This Task…)"). An action the snapshot never offers could never be enabled, so the Run group holds Run…, Coordinate…, Close… and Abandon…. This differs from D-MENUS' list, so it is recorded here. Rejected: a Run This Task… action enabled on any open task, which would be the plugin deciding what is offered (plan T3), with no prompt source in JX-07. **Open.**
+
+## D024 (2026-11-11, JX-07): the status text keeps the error count after the claim
+
+While a task is claimed, the text is `● <ws> · <task> · <age>`, as D-MENUS says, followed by ` · N errors` when there are errors, as the wave form already was. The age is left out when the claim has no `startedAt`. The claimed task is the first `in-progress` task of the active workstream's own snapshot. Rejected: dropping the error count while a claim shows (the status bar would hide errors exactly while work runs). **Closed.**
+
+## D025 (2026-11-11, JX-07): groups are submenus in the popups, and the actions' text is short
+
+The list, table and Health popups (`Workstreams.Registry.Popup`) and Tools ▸ Workstreams hold the four groups as submenus, the same as the toolbar's popups. Each action's text is now the menu label (`Pause`, `Run…`, `Tasks File`). An `<override-text place="GoToAction">` keeps Find Action's `Workstreams: …` names. Each group is a `WsGroup` with `isHideGroupIfEmpty`, so a group with nothing offered hides. The launches keep the plan's `…` although only Abandon asks something before JX-08's dialog. Rejected: flat popups with separators (they would no longer be the same groups as the toolbar's). **Closed.**
+
+## D026 (2026-11-11, JX-07): files touched outside the task's list
+
+- `logic/Registry.kt` gains `claimedTask(view)` and a `statusText` with optional `claimed`/`now`, so JUnit covers the status text (logic stays platform-free).
+- `Workstreams.kt` gains `missing` (set from `Rooted.Problem.missing`, cleared on a root and in `forget()`). The list can then tell "ws not found" from other empty states.
+- `tests/test_jetbrains_files.py`'s plugin.xml check now lists the 13 action ids in group order and asserts the four `WsGroup` popup groups and the `ToolsMenu` entry.
+
+Rejected: re-running the CLI from the view to find out whether ws exists. **Closed.**
