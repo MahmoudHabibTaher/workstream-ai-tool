@@ -41,11 +41,13 @@ class FormatTest {
 
     @Test
     fun badgesComeFromTheTaskAndTheWave() {
-        val tasks = listOf(task("A", status = "done"), task("B", blockedBy = listOf("A", "C")),
+        // What B waits on is the snapshot's waitingOn, not worked out from blockedBy (plan T3).
+        val tasks = listOf(task("A", status = "done"), task("B", blockedBy = listOf("A", "C")).copy(waitingOn = listOf("C")),
                            task("C", status = "in-progress", startedAt = "2026-11-03T11:00:00Z"))
         val now = at("2026-11-03T12:00:00Z")
-        fun texts(t: Task) = badgesOf(t, tasks, listOf("C"), now).map { it.text }
+        fun texts(t: Task) = badgesOf(t, listOf("C"), now).map { it.text }
         assertEquals(listOf("waits on C"), texts(tasks[1]))
+        assertEquals(listOf<String>(), texts(task("E", blockedBy = listOf("C"))))
         assertEquals(listOf("★ ready", "claimed 1h"), texts(tasks[2]))
         assertEquals(listOf("foreground", "needs decision"), texts(task("D", mode = "foreground", needsUserDecision = true)))
     }

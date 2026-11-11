@@ -35,7 +35,7 @@ object Snapshots {
             status = r.str("status") ?: "",
             title = r.str("title"),
             summary = r.str("summary"),
-            progress = r.obj("progress")?.let { Progress(it.int("done") ?: 0, it.int("total") ?: 0) },
+            progress = r.obj("progress")?.let { Progress(it.int("done") ?: 0, it.int("total") ?: 0, it.int("in-progress") ?: 0) },
             dependsOn = r.strings("dependsOn"),
             actions = r.strings("actions"),
             launches = r.arr("launches").objects().mapNotNull { l ->
@@ -101,12 +101,24 @@ object Snapshots {
                 val command = v.str("command") ?: return@mapNotNull null
                 VerifyCommand(v.str("label") ?: command, command)
             },
+            unblocks = t.strings("unblocks"),
+            waitingOn = t.strings("waitingOn"),
+            files = t.strings("files"),
+            notes = t.str("notes"),
+            claimedBy = t.str("claimedBy"),
         )
     }
+
+    /**
+     * The workstream's tasks file. `ws snapshot -w` names no such path, but its `watch` lists the
+     * registry first, then the tasks file, then narrative files `paths` also gives when they exist.
+     */
+    fun tasksFile(snap: JsonObject, docs: Map<String, String>): String? =
+        snap.strings("watch").drop(1).firstOrNull { it !in docs.values }
 
     fun view(snap: JsonObject): WsView {
         val paths = snap.obj("paths")
         val docs = paths?.entrySet()?.filter { it.value.isJsonPrimitive }?.associate { it.key to it.value.asString } ?: mapOf()
-        return WsView(tasks(snap), wave(snap), docs, revisions(snap), health(snap))
+        return WsView(tasks(snap), wave(snap), docs, revisions(snap), health(snap), snap.str("repoRoot"), tasksFile(snap, docs))
     }
 }

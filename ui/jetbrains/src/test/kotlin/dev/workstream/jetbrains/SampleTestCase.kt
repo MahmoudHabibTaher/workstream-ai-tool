@@ -65,8 +65,11 @@ abstract class SampleTestCase : BasePlatformTestCase() {
 
     protected fun ws(cwd: File, vararg args: String): String = sh(cwd, *(branchCli + args).toTypedArray())
 
-    /** `ws init`, then `alpha`, active with two tasks, all committed; `closed` adds an abandoned `old`. */
-    protected fun sampleProject(firstTitle: String = "First", closed: Boolean = false): File {
+    /**
+     * `ws init`, then `alpha`, active with two tasks, all committed; `closed` adds an abandoned `old`,
+     * and `rich` gives A-1 a summary, a file, acceptance and notes.
+     */
+    protected fun sampleProject(firstTitle: String = "First", closed: Boolean = false, rich: Boolean = false): File {
         val root = tmp.resolve("project").toFile().apply { mkdirs() }
         sh(root, "git", "init", "-q", "-b", "main")
         ws(root, "init", "--integration", "main")
@@ -76,7 +79,12 @@ abstract class SampleTestCase : BasePlatformTestCase() {
         ws(root, "new", "alpha", "--title", "Alpha", "--summary", "sample", "--base", base)
         val seed = tmp.resolve("seed.json").toFile()
         val title = com.google.gson.JsonPrimitive(firstTitle).toString()
-        seed.writeText("""[{"id": "A-1", "phase": 1, "priority": 10, "title": $title},
+        val more = if (!rich) "" else {
+            root.resolve("src").mkdirs()
+            root.resolve("src").resolve("a.txt").writeText("a\n")
+            """, "summary": "The first task.", "files": ["src/a.txt"], "acceptance": ["It works"], "notes": "A note""""
+        }
+        seed.writeText("""[{"id": "A-1", "phase": 1, "priority": 10, "title": $title$more},
             {"id": "A-2", "phase": 1, "priority": 20, "title": "Second", "blockedBy": ["A-1"]}]""")
         ws(root, "seed", "-w", "alpha", seed.path)
         ws(root, "set-status", "-w", "alpha", "active")

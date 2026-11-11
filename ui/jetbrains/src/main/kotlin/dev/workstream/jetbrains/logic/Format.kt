@@ -31,9 +31,18 @@ data class Task(
     val blockedReason: String? = null,
     val acceptanceText: List<String> = listOf(),
     val verifyCommands: List<VerifyCommand> = listOf(),
+    /** The ids of the tasks naming this one in `blockedBy`, as the snapshot listed them (D003). */
+    val unblocks: List<String> = listOf(),
+    /** The `blockedBy` ids not done yet, as the snapshot listed them (D003). */
+    val waitingOn: List<String> = listOf(),
+    /** Repo-relative paths the task expects to touch. */
+    val files: List<String> = listOf(),
+    val notes: String? = null,
+    val claimedBy: String? = null,
 )
 
-data class Progress(val done: Int, val total: Int)
+/** A row's task counts; `inProgress` is how many of its tasks are claimed. */
+data class Progress(val done: Int, val total: Int, val inProgress: Int = 0)
 
 data class Row(
     val id: String,
@@ -77,9 +86,9 @@ fun ageOf(startedAt: String, now: Long): String {
     return if (hours < 48) "${hours}h" else "${hours / 24}d"
 }
 
-fun badgesOf(task: Task, tasks: List<Task>, waveIds: List<String>?, now: Long): List<Badge> {
-    val statusOf = tasks.associate { it.id to it.status }
-    val waitsOn = task.blockedBy.filter { statusOf[it] != "done" }
+/** A task's badges. What it waits on is the snapshot's `waitingOn`: the plugin works out no graph fact (plan T3). */
+fun badgesOf(task: Task, waveIds: List<String>?, now: Long): List<Badge> {
+    val waitsOn = task.waitingOn
     val badges = mutableListOf<Badge>()
     if (waveIds != null && task.id in waveIds) badges += Badge("★ ready", "good")
     if (task.mode == "foreground") badges += Badge("foreground", "")

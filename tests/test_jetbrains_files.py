@@ -32,9 +32,9 @@ SINK = re.compile(
     r"|Messages\.show|toolTipText\s*=|setToolTipText\(|\.comment\(|JEditorPane|HTMLEditorKit|JBCef"
     r"|text/html|getTooltipText\(\)|\.tooltip\s*=|setTooltip\(")
 ESCAPED = re.compile(r"Text\.(html|escaped|tip)\(")
-# The places that draw repo text: a tree label goes through ColoredTreeCellRenderer.append, which
-# never reads markup, and a tooltip through Text.tip.
-REGISTRY = KOTLIN / "RegistryView.kt"
+# The places that draw repo text: a tree, list or table cell goes through a Colored*CellRenderer's
+# append, which never reads markup, and a tooltip through Text.tip.
+WORKSTREAMS = KOTLIN / "WorkstreamsView.kt"
 REVIEW = KOTLIN / "ReviewView.kt"
 HEALTH = KOTLIN / "HealthView.kt"
 STATUS = KOTLIN / "StatusWidget.kt"
@@ -57,7 +57,8 @@ def lines(paths: list[Path]):
 class NamesNoProjectTests(unittest.TestCase):
     def test_finds_the_sources(self) -> None:
         found = sources()
-        for path in (CLI, TEXT, REGISTRY, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
+        self.assertNotIn(KOTLIN / "RegistryView.kt", found)
+        for path in (CLI, TEXT, WORKSTREAMS, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
                      KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", KOTLIN / "logic" / "Review.kt",
                      KOTLIN / "logic" / "Health.kt", HEALTH,
                      REVIEW, KOTLIN / "Reviews.kt", LAUNCH, KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
@@ -77,12 +78,28 @@ class NamesNoProjectTests(unittest.TestCase):
                  if p != TEXT and SINK.search(line) and not ESCAPED.search(line)]
         self.assertEqual(found, [])
 
-    def test_the_registry_draws_repo_text_as_text(self) -> None:
-        registry = REGISTRY.read_text()
-        self.assertIn("class RegistryRenderer : ColoredTreeCellRenderer()", registry)
-        self.assertIn("toolTipText = Text.tip(s.tip)", registry)
-        self.assertEqual(re.findall(r"\bappend\(([^,]*),", registry), ["s.label", '"  ${s.description}"'])
-        self.assertNotRegex(registry, r"\bJLabel\(|\.setText\(|\.text\s*=")
+    def test_the_workstreams_tab_draws_repo_text_as_text(self) -> None:
+        """The list and the table draw through Colored*CellRenderer.append; the task pane puts a
+        line in a read-only JBTextArea, which never reads markup, a link's text through Text.html,
+        and a heading (the plugin's constant) through SimpleColoredComponent.append (plan T6)."""
+        view = WORKSTREAMS.read_text()
+        self.assertIn("class WorkstreamsRenderer : ColoredListCellRenderer<WorkstreamNode>()", view)
+        self.assertIn("class TaskCellRenderer : ColoredTableCellRenderer()", view)
+        self.assertEqual(view.count("toolTipText = Text.tip(shown(node).tip)"), 2)
+        self.assertEqual(re.findall(r"\bappend\(([^,]*),", view),
+                         ["node.row.id", '"  ${details.joinToString(" · ")}"', 'value as? String ?: ""', "heading",
+                          'node.row.title?.let { "${node.row.id}: $it" } ?: node.row.id', '"  $line"', '"  ${it.error}"'])
+        self.assertEqual(re.findall(r"\bActionLink\(([^)]*\)?)", view),
+                         ["Text.html(item.id)", "Text.html(item.path)", "Text.html(label)"])
+        self.assertIn("cell(JBTextArea(item.text).apply {", view)
+        self.assertIn("isEditable = false", view)
+        # StatusText draws through SimpleColoredComponent too, so the list's empty text may be set.
+        self.assertEqual(re.findall(r"\bJ(?:B)?Label\(|\blabel\(|(?<!emptyText)\.setText\(|\.text\s*=|JEditorPane|\bcomment\(", view), [])
+        # The table's cells all go through the one renderer, never JTable's default JLabel one.
+        self.assertIn("override fun getRenderer(item: TaskNode?): TableCellRenderer = CELL_RENDERER", view)
+        # A view is read off the EDT; a write keeps the node's own revisions (plan T7).
+        self.assertIn("executeOnPooledThread {", view)
+        self.assertIn("selected()?.let { sink[WS_NODE] = it }", view)
         status = STATUS.read_text()
         self.assertIn("override fun getTooltipText(): String? = active()?.let { Text.tip(shown(it).tip) }", status)
 
@@ -98,7 +115,7 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertIn("Text.notify(project, got.text,", review)
         self.assertIn('LightVirtualFile("${node.task}.md", node.text).apply { isWritable = false }', review)
         self.assertNotRegex(review, r"\"git\"|VcsUtil|GitRepository")
-        self.assertIn('addTab(toolWindow, ReviewPanel(project, review), "Review", review)', REGISTRY.read_text())
+        self.assertIn('addTab(toolWindow, ReviewPanel(project, review), "Review", review)', WORKSTREAMS.read_text())
 
     def test_health_and_budget_draw_repo_text_as_text_and_notify_through_text_kt(self) -> None:
         health = HEALTH.read_text()
@@ -113,7 +130,7 @@ class NamesNoProjectTests(unittest.TestCase):
         # The health notification's body goes through Text.notify, so it is escaped (plan T2, T12).
         service = (KOTLIN / "Workstreams.kt").read_text()
         self.assertIn("Text.notify(project, line, NotificationType.ERROR, HEALTH_NOTICE, listOf(ShowHealthAction()))", service)
-        registry = REGISTRY.read_text()
+        registry = WORKSTREAMS.read_text()
         self.assertIn("addTab(toolWindow, HealthPanel(project, health), HEALTH_TAB, health)", registry)
         self.assertIn("budgetPanel.setShowing(manager.isSelected(budgetTab))", registry)
 

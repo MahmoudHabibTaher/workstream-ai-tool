@@ -16,22 +16,20 @@ import com.intellij.openapi.ui.TestDialog
 import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.ui.TestInputDialog
 import com.intellij.openapi.util.Disposer
-import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestActionEvent
-import com.intellij.util.ui.tree.TreeUtil
 import dev.workstream.jetbrains.logic.AGENT_SETTING
 import dev.workstream.jetbrains.logic.Acted
 import dev.workstream.jetbrains.logic.Confirm
-import dev.workstream.jetbrains.logic.DocumentNode
 import dev.workstream.jetbrains.logic.Node
 import dev.workstream.jetbrains.logic.TaskNode
 import dev.workstream.jetbrains.logic.WorkstreamNode
+import kotlinx.coroutines.runBlocking
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 
 class WsActionsTest : SampleTestCase() {
-    private lateinit var panel: RegistryPanel
+    private lateinit var panel: WorkstreamsPanel
     private val asked = CopyOnWriteArrayList<String>()
     private val opened = CopyOnWriteArrayList<List<String>>()
     private lateinit var savedAgent: List<String>
@@ -41,7 +39,7 @@ class WsActionsTest : SampleTestCase() {
 
     override fun setUp() {
         super.setUp()
-        panel = RegistryPanel(project, Disposer.newDisposable(testRootDisposable, "registry"))
+        panel = WorkstreamsPanel(project, Disposer.newDisposable(testRootDisposable, "workstreams"))
         savedAgent = WsSettings.getInstance().agentCommand
         TestDialogManager.setTestDialog(TestDialog { message -> asked += message; Messages.OK }, testRootDisposable)
         TerminalTarget.opener = TerminalOpener { _: Project, cwd, tab, argv -> opened += listOf(cwd, tab) + argv }
@@ -62,19 +60,14 @@ class WsActionsTest : SampleTestCase() {
         WsSettings.getInstance().wsCommand = branchCli
         open(root)
         Workstreams.of(project).showDone = true
-        repeat(2) {
-            PlatformTestUtil.waitForFuture(panel.model.invalidateAsync())
-            PlatformTestUtil.expandAll(panel.tree)
-            PlatformTestUtil.waitWhileBusy(panel.tree)
-        }
+        assertTrue(waitFor(30_000) { panel.idle && panel.view != null && panel.listModel.size == 2 })
         return root
     }
 
-    private fun nodes(): List<Node> = (0 until panel.tree.rowCount).mapNotNull {
-        (TreeUtil.getUserObject(panel.tree.getPathForRow(it).lastPathComponent) as? RegistryDescriptor)?.node
-    }
+    /** The list's rows, then the selected workstream's table rows: what the writes act on. */
+    private fun nodes(): List<Node> = panel.listModel.items + panel.tableModel.items
 
-    private fun row(id: String): WorkstreamNode = nodes().filterIsInstance<WorkstreamNode>().single { it.row.id == id }
+    private fun row(id: String): WorkstreamNode = panel.listModel.items.single { it.row.id == id }
 
     private fun action(name: String): AnAction = ActionManager.getInstance().getAction("Workstreams.$name")!!
 
@@ -137,20 +130,52 @@ class WsActionsTest : SampleTestCase() {
         assertEquals(before, head(root))
     }
 
+    /**
+     * The panel hands the actions the selected list row, or the task when the table was used last,
+     * each pinned to the snapshot it was drawn from: a reload draws new nodes, and a node held from
+     * before keeps its revisions, so its write is refused rather than re-pinned (plan T7).
+     */
+    fun testTheSelectedRowOrTaskIsWhatActsPinnedToTheSnapshotItWasDrawnFrom() {
+        val root = openSample()
+        val ws = Workstreams.of(project)
+        val drawn = panel.selected() as WorkstreamNode
+        assertEquals("alpha", drawn.row.id)
+        assertEquals(Snapshots.revisions(ws.snapshot!!), drawn.revisions)
+        assertTrue(panel.selectTask("A-1"))
+        val task = panel.selected() as TaskNode
+        assertEquals("A-1", task.task.id)
+        assertEquals((panel.view as dev.workstream.jetbrains.logic.Loaded.Value).value.revisions, task.revisions)
+
+        ws(root, "new", "beta", "--title", "Beta", "--summary", "later", "--base", head(root))
+        sh(root, "git", "add", "-A")
+        sh(root, "git", "commit", "-qm", "beta")
+        runBlocking { ws.refresh().join() }
+        assertTrue(waitFor(30_000) { panel.idle && panel.listModel.size == 3 })
+        val redrawn = row("alpha")
+        assertNotSame(drawn, redrawn)
+        assertFalse(drawn.revisions == redrawn.revisions)
+        assertEquals(Snapshots.revisions(ws.snapshot!!), redrawn.revisions)
+
+        val before = head(root)
+        perform("Pause", drawn)
+        assertTrue(asked.single(), asked.single().contains(Text.escaped("This has changed since the tree drew it")))
+        assertTrue("no act notification", waitFor(30_000) { notes.isNotEmpty() })
+        assertEquals(NotificationType.ERROR, notes.single().type)
+        assertEquals(before, head(root))
+    }
+
     fun testActionsAreEnabledOnlyWhereTheRowOrFindingOffersThem() {
         openSample()
         val alpha = row("alpha")
         val old = row("old")
         val task = nodes().filterIsInstance<TaskNode>().firstOrNull { it.task.id == "A-1" }
         assertNotNull(nodes().toString(), task)
-        val doc = nodes().filterIsInstance<DocumentNode>().first()
         assertEquals(listOf("pause"), alpha.writes)
         assertEquals(listOf("Pause") + launches, enabled(alpha))
         assertEquals(listOf<String>(), old.writes)
         assertEquals(listOf<String>(), old.row.launches)
         assertEquals(listOf<String>(), enabled(old))
         assertEquals(listOf<String>(), enabled(task))
-        assertEquals(listOf<String>(), enabled(doc))
         assertEquals(listOf<String>(), enabled(null))
         // A write the node doesn't offer never reaches act, even when called directly.
         action("Resume").actionPerformed(event("Resume", alpha))
