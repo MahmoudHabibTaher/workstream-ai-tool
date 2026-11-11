@@ -36,15 +36,20 @@ ACTION_STATUSES = {"pause": ("planned", "active"), "resume": ("paused",), "uncla
 # The status writes a registry row offers. `unclaim` is a task's, and `sync` is offered only
 # when the recorded progress is stale.
 ROW_ACTIONS = ("pause", "resume")
-# What each launch an open row offers hands to an agent, with `{ws}` for the row's id. The same
-# texts as promptText in assets/web/logic.js, held equal by a test until those copies go.
-# Abandon's prompt stops at ": ", and the UI appends the reason it asks for.
+# What each launch hands to an agent, with `{ws}` for the workstream's id and, for run-task,
+# `{task}` for the task it pins. The row kinds are the same texts as promptText in
+# assets/web/logic.js, held equal by a test until those copies go. Abandon's prompt stops at
+# ": ", and the UI appends the reason it asks for.
 LAUNCH_PROMPTS = {
     "run": "Use the ws-run skill to run workstream {ws}.",
     "coordinate": "Use the ws-coordinate skill on workstream {ws}.",
     "close": "Use the ws-coordinate skill to close workstream {ws}.",
     "abandon": "Use the ws-coordinate skill to abandon workstream {ws}: ",
+    "run-task": "Use the ws-run skill to run only task {task} of workstream {ws}.",
 }
+# The launches a registry row offers, in order. run-task pins a task, so a task offers it, not
+# a row.
+ROW_LAUNCHES = ("run", "coordinate", "close", "abandon")
 # The launches that ask the person something first, by the field they ask for.
 LAUNCH_ASKS = {"abandon": "reason"}
 # The statuses whose rows offer no launches.
@@ -426,9 +431,9 @@ def row_launches(ws_id: object, status: object) -> list[dict]:
     run, coordinate, close, abandon. A done or abandoned row offers none."""
     if status in CLOSED_STATUSES:
         return []
-    return [{"kind": kind, "prompt": text.format(ws=ws_id),
+    return [{"kind": kind, "prompt": LAUNCH_PROMPTS[kind].format(ws=ws_id),
              **({"ask": LAUNCH_ASKS[kind]} if kind in LAUNCH_ASKS else {})}
-            for kind, text in LAUNCH_PROMPTS.items()]
+            for kind in ROW_LAUNCHES]
 
 
 def git_refresh(root: Path) -> list[dict]:

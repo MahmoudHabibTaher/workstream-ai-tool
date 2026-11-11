@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -1055,8 +1056,27 @@ def cmd_act(args: argparse.Namespace) -> int:
 
 def cmd_launch(args: argparse.Namespace) -> int:
     """`launch check`: the pre-flight checks. Exits 0 whenever the checks ran, whatever they
-    found; the result is in each check's ok and blocking."""
+    found; the result is in each check's ok and blocking. `launch agents`: the presets a
+    picker offers. `launch argv`: the command line that starts an agent on a launch's prompt."""
+    if args.action == "agents":
+        agents = launch.presets()
+        if args.json:
+            print(json.dumps({"agents": agents}, indent=2))
+            return 0
+        for a in agents:
+            print(f"{a['agent']:<14} effort: {', '.join(a['effortLevels']) or '-'}; "
+                  f"permissions: {', '.join(a['permissionChoices']) or '-'}")
+        return 0
     project = _project(args)
+    if args.action == "argv":
+        ws = _resolve_ws(project, args)
+        prompt = launch.prompt_text(project, ws["id"], args.prompt_kind, args.task)
+        if args.prompt is not None:
+            prompt = args.prompt
+        result = launch.build_argv(args.agent, prompt, effort=args.effort,
+                                   permissions=args.permissions)
+        print(json.dumps(result, indent=2) if args.json else shlex.join(result["argv"]))
+        return 0
     ws = _resolve_ws(project, args)
     result = launch.run_checks(project, ws["id"], args.kind, task_id=args.task, agent=args.agent)
     if args.json:
@@ -1371,6 +1391,18 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--kind", required=True, choices=launch.KINDS)
     q.add_argument("--task", help=f"the task a {launch.TASK_KIND} launch pins")
     q.add_argument("--agent", help="also check `ws adapt` installed this agent's skills")
+    q.add_argument("--json", action="store_true")
+    q = actions.add_parser("agents", parents=[common],
+                           help="each agent's launch preset: effort levels, permission choices")
+    q.add_argument("--json", action="store_true")
+    q = actions.add_parser("argv", parents=[common],
+                           help="the command line that starts an agent on a launch's prompt")
+    q.add_argument("--agent", required=True, help="an adapter with a [launch] table")
+    q.add_argument("--effort", help="one of the agent's effort levels; none adds no flag")
+    q.add_argument("--permissions", help="one of the agent's permission choices; none adds no flag")
+    q.add_argument("--prompt-kind", required=True, choices=list(snapshot.LAUNCH_PROMPTS))
+    q.add_argument("--task", help=f"the task a {launch.TASK_KIND} launch pins")
+    q.add_argument("--prompt", help="the person's edited text, in place of the kind's prompt")
     q.add_argument("--json", action="store_true")
 
     p = command("review", cmd_review, "one task's review data as JSON: evidence path, diff range "

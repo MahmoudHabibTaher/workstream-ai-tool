@@ -75,7 +75,8 @@
                     "run",
                     "coordinate",
                     "close",
-                    "abandon"
+                    "abandon",
+                    "run-task"
                   ]
                 },
                 "prompt": {
@@ -88,7 +89,7 @@
                 }
               }
             },
-            "description": "What an open row offers to hand an agent, in the order run, coordinate, close, abandon. A launch with ask wants that from the person, appended to its prompt. Empty for a done or abandoned row."
+            "description": "What an open row offers to hand an agent, in the order run, coordinate, close, abandon. A launch with ask wants that from the person, appended to its prompt. Empty for a done or abandoned row. The kind enum is every launch `ws launch argv` builds; run-task pins a task, so a row doesn't offer it."
           }
         }
       }

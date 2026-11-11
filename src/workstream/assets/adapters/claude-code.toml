@@ -50,3 +50,21 @@ worker_name = "workstream:ws-worker"
 # Read by `ws audit usage`. Numbers come out, and nothing else.
 root = "~/.claude/projects"
 reader = "message-lines"
+
+[launch]
+# How `ws launch argv` starts this agent in a terminal, read from `claude --help` (2.1.316).
+command = "claude"
+# The prompt is the last argument: `claude [options] [prompt]` starts an interactive session on it.
+prompt = "last"
+effort_flag = "--effort"
+effort_levels = ["low", "medium", "high", "xhigh", "max"]
+
+# Each choice a picker offers, and the flags it adds. No choice adds nothing: the agent's own
+# default, or its settings, decide.
+[launch.permissions]
+manual = ["--permission-mode", "manual"]
+acceptEdits = ["--permission-mode", "acceptEdits"]
+plan = ["--permission-mode", "plan"]
+auto = ["--permission-mode", "auto"]
+dontAsk = ["--permission-mode", "dontAsk"]
+bypassPermissions = ["--permission-mode", "bypassPermissions"]

@@ -39,3 +39,18 @@ file_content = """{
 # Read by `ws audit usage`. Numbers come out, and nothing else.
 root = "~/.copilot/session-state"
 reader = "event-lines"
+
+[launch]
+# How `ws launch argv` starts this agent in a terminal, read from `copilot --help` (1.0.108).
+command = "copilot"
+# `-i <prompt>` starts interactive mode and runs the prompt; `-p` would exit after it.
+prompt = "flag"
+prompt_flag = "-i"
+effort_flag = "--reasoning-effort"
+# The help says the levels a model supports depend on the model.
+effort_levels = ["none", "minimal", "low", "medium", "high", "xhigh", "max"]
+
+# Each choice a picker offers, and the flags it adds. No choice adds nothing: the agent asks.
+[launch.permissions]
+allow-all-tools = ["--allow-all-tools"]
+allow-all = ["--allow-all"]

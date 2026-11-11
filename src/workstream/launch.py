@@ -20,6 +20,12 @@ the module that owns the rule, so a UI decides nothing itself:
 so a passing check still says how it would count. A check that can't read what it needs fails,
 with what it couldn't read as its message, rather than raising: one broken file names itself
 and the other checks still run.
+
+`ws launch agents --json` lists each adapter's [launch] preset for a picker, and
+`ws launch argv --agent A [--effort E] [--permissions P] --prompt-kind K -w id [--task T]
+[--prompt TEXT] --json` prints `{argv, effortLevels, permissionChoices}`: the command line a UI
+runs as it is. The flags come from the adapter's data file, the prompt from
+`snapshot.LAUNCH_PROMPTS` unless `--prompt` gives the person's edited text.
 """
 
 from __future__ import annotations
@@ -28,8 +34,8 @@ from workstream import adapt, baseline, graph, registry, snapshot, tasks
 from workstream.errors import WsError
 from workstream.project import Project
 
-# The launch that pins one task. JX-04 adds its prompt to snapshot.LAUNCH_PROMPTS; until then
-# the kind is accepted here so a UI can check before it builds the prompt.
+# The launch that pins one task. Its prompt is snapshot.LAUNCH_PROMPTS' entry; the kind is
+# added here too (D008), which changes nothing now the prompt exists.
 TASK_KIND = "run-task"
 KINDS = tuple(dict.fromkeys([*snapshot.LAUNCH_PROMPTS, TASK_KIND]))
 # The kinds that start a worker on the queue, so another open claim matters.
@@ -157,3 +163,61 @@ def run_checks(project: Project, ws_id: str, kind: str, task_id: str | None = No
 def blocked(result: dict) -> bool:
     """Whether any blocking check failed."""
     return any(c["blocking"] and not c["ok"] for c in result["checks"])
+
+
+# --- argv ---------------------------------------------------------------------------------
+
+
+def presets() -> list[dict]:
+    """Every adapter with a [launch] table, as {agent, label, command, effortLevels,
+    permissionChoices}, in name order."""
+    out = []
+    for name in adapt.names():
+        adapter = adapt.load(name)
+        preset = adapt.launch_preset(adapter)
+        if preset is None:
+            continue
+        out.append({"agent": adapter.name, "label": adapter.label, "command": preset["command"],
+                    "effortLevels": preset["effortLevels"],
+                    "permissionChoices": list(preset["permissions"])})
+    return out
+
+
+def prompt_text(project: Project, ws_id: str, kind: str, task_id: str | None = None) -> str:
+    """The kind's prompt from snapshot.LAUNCH_PROMPTS for this workstream (and task)."""
+    if kind not in snapshot.LAUNCH_PROMPTS:
+        raise WsError(f"unknown launch kind {kind!r}; one of {', '.join(snapshot.LAUNCH_PROMPTS)}")
+    if kind == TASK_KIND and not task_id:
+        raise WsError(f"{TASK_KIND} needs --task")
+    if task_id and kind != TASK_KIND:
+        raise WsError(f"--task applies only to {TASK_KIND}, not {kind}")
+    ws = registry.find(registry.load(project), ws_id)
+    if task_id:
+        rows = tasks.load(project.tasks_path(ws), project.config)["tasks"]
+        if task_id not in {t["id"] for t in rows}:
+            raise WsError(f"{task_id}: no such task in {ws['id']}")
+    return snapshot.LAUNCH_PROMPTS[kind].format(ws=ws["id"], task=task_id)
+
+
+def build_argv(agent: str, prompt: str, effort: str | None = None,
+               permissions: str | None = None) -> dict:
+    """The command line that starts `agent` on `prompt`, as {argv, effortLevels,
+    permissionChoices}. No effort or permissions adds no flag for it."""
+    adapter = adapt.load(agent)
+    preset = adapt.launch_preset(adapter)
+    if preset is None:
+        raise WsError(f"{agent}: its adapter has no [launch] table")
+    argv = [preset["command"]]
+    if effort is not None:
+        if effort not in preset["effortLevels"]:
+            raise WsError(f"{agent}: unknown effort {effort!r}; one of "
+                          f"{', '.join(preset['effortLevels']) or '(none)'}")
+        argv += [preset["effortFlag"], effort]
+    if permissions is not None:
+        if permissions not in preset["permissions"]:
+            raise WsError(f"{agent}: unknown permissions {permissions!r}; one of "
+                          f"{', '.join(preset['permissions']) or '(none)'}")
+        argv += preset["permissions"][permissions]
+    argv += [preset["promptFlag"], prompt] if preset["prompt"] == "flag" else [prompt]
+    return {"argv": argv, "effortLevels": preset["effortLevels"],
+            "permissionChoices": list(preset["permissions"])}

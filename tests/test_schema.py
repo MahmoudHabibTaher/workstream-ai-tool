@@ -86,6 +86,7 @@ class SchemaAgainstCodeTests(unittest.TestCase):
         self.assertIn("actions", row["required"])
         launch = row["properties"]["launches"]["items"]
         self.assertEqual(launch["properties"]["kind"]["enum"], list(snapshot.LAUNCH_PROMPTS))
+        self.assertIn("run-task", launch["properties"]["kind"]["enum"])
         self.assertEqual(launch["properties"]["ask"]["enum"],
                          sorted(set(snapshot.LAUNCH_ASKS.values())))
         self.assertIn("launches", row["required"])
@@ -110,6 +111,13 @@ class LaunchesSchemaTests(unittest.TestCase):
         self.assertEqual(len(data["registry"][0]["launches"]), 4)
         self.assertEqual(problems(data, schema, schema), [])
         self.assertEqual(problems(self.snapshot_with([]), schema, schema), [])
+
+    def test_a_run_task_launch_passes(self) -> None:
+        schema = load_schema("snapshot")
+        prompt = snapshot.LAUNCH_PROMPTS["run-task"].format(ws="alpha", task="AL-01")
+        found = problems(self.snapshot_with([{"kind": "run-task", "prompt": prompt}]),
+                         schema, schema)
+        self.assertEqual(found, [])
 
     def test_an_unknown_launch_kind_is_rejected(self) -> None:
         schema = load_schema("snapshot")

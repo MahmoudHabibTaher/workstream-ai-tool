@@ -1,11 +1,12 @@
-"""`ws launch check`: each pre-flight check passing and failing, through the CLI a UI calls."""
+"""`ws launch check`: each pre-flight check passing and failing, and `ws launch agents`/`argv`:
+the presets and the command lines they build, through the CLI a UI calls."""
 
 from __future__ import annotations
 
 import json
 
 from tests.helpers import WsTestCase, task
-from workstream import adapt, launch
+from workstream import adapt, launch, snapshot
 
 WS_ID = "alpha"
 
@@ -202,6 +203,135 @@ class LaunchCheckTests(WsTestCase):
     def test_an_unknown_kind_is_refused(self) -> None:
         code, _, _ = self.ws("launch", "check", "-w", WS_ID, "--kind", "nope")
         self.assertNotEqual(code, 0)
+
+
+# The flags each preset adds, as each CLI's --help gives them: (agent, flag, levels, choices).
+EFFORT = {
+    "claude-code": ("--effort", ["low", "medium", "high", "xhigh", "max"]),
+    "copilot-cli": ("--reasoning-effort",
+                    ["none", "minimal", "low", "medium", "high", "xhigh", "max"]),
+}
+PERMISSIONS = {
+    "claude-code": {m: ["--permission-mode", m] for m in
+                    ("manual", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions")},
+    "copilot-cli": {"allow-all-tools": ["--allow-all-tools"], "allow-all": ["--allow-all"]},
+}
+COMMAND = {"claude-code": "claude", "copilot-cli": "copilot"}
+RUN_PROMPT = "Use the ws-run skill to run workstream alpha."
+
+
+def with_prompt(agent: str, prompt: str) -> list[str]:
+    """Where each agent takes its prompt: claude-code's last argument, copilot-cli's -i."""
+    return ["-i", prompt] if agent == "copilot-cli" else [prompt]
+
+
+class LaunchArgvTests(WsTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.new_ws(WS_ID, "AL")
+        self.seed_ok([task("AL-01", 10)], WS_ID)
+        self.commit_all("seed")
+
+    def argv(self, *extra: str) -> dict:
+        data = json.loads(self.ok("launch", "argv", "-w", WS_ID, *extra, "--json"))
+        self.assertEqual(list(data), ["argv", "effortLevels", "permissionChoices"])
+        return data
+
+    def test_agents_lists_each_preset(self) -> None:
+        data = json.loads(self.ok("launch", "agents", "--json"))
+        agents = {a["agent"]: a for a in data["agents"]}
+        self.assertEqual(sorted(agents), sorted(EFFORT))
+        for agent, a in agents.items():
+            self.assertEqual(sorted(a), ["agent", "command", "effortLevels", "label",
+                                         "permissionChoices"])
+            self.assertEqual(a["command"], COMMAND[agent])
+            self.assertEqual(a["effortLevels"], EFFORT[agent][1])
+            self.assertEqual(a["permissionChoices"], list(PERMISSIONS[agent]))
+
+    def test_no_effort_or_permissions_adds_no_flag(self) -> None:
+        for agent in EFFORT:
+            with self.subTest(agent=agent):
+                data = self.argv("--agent", agent, "--prompt-kind", "run")
+                self.assertEqual(data["argv"], [COMMAND[agent], *with_prompt(agent, RUN_PROMPT)])
+                self.assertEqual(data["effortLevels"], EFFORT[agent][1])
+                self.assertEqual(data["permissionChoices"], list(PERMISSIONS[agent]))
+
+    def test_each_effort_level(self) -> None:
+        for agent, (flag, levels) in EFFORT.items():
+            for level in levels:
+                with self.subTest(agent=agent, level=level):
+                    data = self.argv("--agent", agent, "--effort", level, "--prompt-kind", "run")
+                    self.assertEqual(data["argv"], [COMMAND[agent], flag, level,
+                                                    *with_prompt(agent, RUN_PROMPT)])
+
+    def test_each_permission_choice(self) -> None:
+        for agent, choices in PERMISSIONS.items():
+            for choice, flags in choices.items():
+                with self.subTest(agent=agent, choice=choice):
+                    data = self.argv("--agent", agent, "--permissions", choice,
+                                     "--prompt-kind", "run")
+                    self.assertEqual(data["argv"], [COMMAND[agent], *flags,
+                                                    *with_prompt(agent, RUN_PROMPT)])
+
+    def test_effort_and_permissions_together(self) -> None:
+        data = self.argv("--agent", "claude-code", "--effort", "high",
+                         "--permissions", "acceptEdits", "--prompt-kind", "close")
+        self.assertEqual(data["argv"], ["claude", "--effort", "high", "--permission-mode",
+                                        "acceptEdits",
+                                        "Use the ws-coordinate skill to close workstream alpha."])
+        data = self.argv("--agent", "copilot-cli", "--effort", "xhigh",
+                         "--permissions", "allow-all-tools", "--prompt-kind", "coordinate")
+        self.assertEqual(data["argv"], ["copilot", "--reasoning-effort", "xhigh",
+                                        "--allow-all-tools", "-i",
+                                        "Use the ws-coordinate skill on workstream alpha."])
+
+    def test_each_kind_takes_its_prompt_from_the_snapshot(self) -> None:
+        for kind, text in snapshot.LAUNCH_PROMPTS.items():
+            with self.subTest(kind=kind):
+                extra = ("--task", "AL-01") if kind == launch.TASK_KIND else ()
+                data = self.argv("--agent", "claude-code", "--prompt-kind", kind, *extra)
+                self.assertEqual(data["argv"][-1], text.format(ws=WS_ID, task="AL-01"))
+
+    def test_run_task_names_the_task(self) -> None:
+        data = self.argv("--agent", "claude-code", "--prompt-kind", "run-task", "--task", "AL-01")
+        self.assertEqual(data["argv"][-1],
+                         "Use the ws-run skill to run only task AL-01 of workstream alpha.")
+
+    def test_prompt_replaces_the_snapshots_text(self) -> None:
+        edited = 'Use the ws-coordinate skill to abandon workstream alpha: it\'s "done"; $(rm -rf)'
+        for agent in EFFORT:
+            with self.subTest(agent=agent):
+                data = self.argv("--agent", agent, "--prompt-kind", "abandon", "--prompt", edited)
+                self.assertEqual(data["argv"], [COMMAND[agent], *with_prompt(agent, edited)])
+                self.assertNotIn(snapshot.LAUNCH_PROMPTS["abandon"].format(ws=WS_ID),
+                                 data["argv"])
+
+    def test_text_output_is_one_shell_line(self) -> None:
+        out = self.ok("launch", "argv", "-w", WS_ID, "--agent", "copilot-cli",
+                      "--prompt-kind", "run")
+        self.assertEqual(out.strip(), f"copilot -i '{RUN_PROMPT}'")
+
+    def test_what_the_caller_got_wrong_is_refused(self) -> None:
+        base = ("launch", "argv", "-w", WS_ID, "--prompt-kind", "run")
+        self.assertIn("unknown effort", self.fails(*base, "--agent", "claude-code",
+                                                   "--effort", "none"))
+        self.assertIn("unknown permissions", self.fails(*base, "--agent", "copilot-cli",
+                                                        "--permissions", "plan"))
+        self.assertIn("no adapter", self.fails(*base, "--agent", "nobody"))
+        self.assertIn("applies only to run-task", self.fails(*base, "--agent", "claude-code",
+                                                             "--task", "AL-01"))
+        self.assertIn("needs --task", self.fails("launch", "argv", "-w", WS_ID, "--agent",
+                                                 "claude-code", "--prompt-kind", "run-task"))
+        self.assertIn("no such task", self.fails("launch", "argv", "-w", WS_ID, "--agent",
+                                                 "claude-code", "--prompt-kind", "run-task",
+                                                 "--task", "AL-99"))
+        code, _, _ = self.ws("launch", "argv", "-w", WS_ID, "--agent", "claude-code",
+                             "--prompt-kind", "nope")
+        self.assertNotEqual(code, 0)
+
+    def test_an_adapter_without_a_launch_table_has_no_preset(self) -> None:
+        bare = adapt.Adapter("bare", "Bare", "X.md", "x/{name}.md", {})
+        self.assertIsNone(adapt.launch_preset(bare))
 
 
 if __name__ == "__main__":
