@@ -71,6 +71,9 @@ class LaunchDialogTest : SampleTestCase() {
         assertEquals(listOf("validate"), d.blocking())
         assertFalse(d.isOKActionEnabled)
         assertNull(d.accepted())
+        // D037: what blocks is listed first and named by the buttons.
+        assertEquals("validate", d.shownChecks().first().id)
+        assertEquals("Blocked by validate: fix these checks to launch.", d.blockedText)
 
         val preset = d.agents().first()
         assertTrue(preset.effortLevels.size > 1 && preset.permissionChoices.isNotEmpty())
@@ -117,6 +120,7 @@ class LaunchDialogTest : SampleTestCase() {
         first.pick(target = TERMINAL, agent = preset.agent, effort = effort)
         settled(first)
         assertEquals(listOf<String>(), first.blocking())
+        assertNull(first.blockedText)
         assertTrue(first.isOKActionEnabled)
         val argv = (first.argv as Loaded.Value).value
         assertEquals(cliArgv(root, "--agent", preset.agent, "--prompt-kind", "run", "--effort", effort), argv)

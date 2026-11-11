@@ -181,7 +181,7 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertEqual(runs, ["Cli.kt", "Launch.kt"])
         launch = LAUNCH.read_text()
         self.assertIn("TerminalToolWindowManager.getInstance(project).createNewSession(LocalTerminalDirectRunner.createTerminalRunner(project), state)", launch)
-        self.assertIn("myShellCommand = argv", launch)
+        self.assertIn('myShellCommand = shellArgv(System.getenv("SHELL"), argv)', launch)
         self.assertNotRegex(launch, r"sendText|createShellWidget|createLocalShellWidget")
         for path in (KOTLIN / "logic").rglob("*.kt"):
             self.assertNotIn("com.intellij", path.read_text(), path.name)

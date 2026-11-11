@@ -7,13 +7,17 @@ package dev.workstream.jetbrains
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.CollectionListModel
 import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.dsl.builder.AlignX
@@ -75,7 +79,22 @@ object Launches {
     fun blocked(checks: List<LaunchCheck>): Boolean = checks.any { it.blocking && !it.ok }
 
     /** A check as one line of the dialog: blocks, warning or ok, then its id and message. */
-    fun line(c: LaunchCheck): String = "${if (c.ok) "ok" else if (c.blocking) "BLOCKS" else "warning"}  ${c.id}: ${c.message}"
+    fun line(c: LaunchCheck): String = "${state(c)}  ${c.id}: ${c.message}"
+
+    /** What a check's row says first: BLOCKS, warning or ok. */
+    fun state(c: LaunchCheck): String = if (c.ok) "ok" else if (c.blocking) "BLOCKS" else "warning"
+
+    /**
+     * The checks as the dialog lists them (D037): failed blocking ones first, then warnings, then
+     * the passed ones, each group in the CLI's order, so what stops the launch is never scrolled away.
+     */
+    fun ordered(checks: List<LaunchCheck>): List<LaunchCheck> =
+        checks.sortedBy { if (it.ok) 2 else if (it.blocking) 0 else 1 }
+
+    /** Why OK is off, shown by the buttons (D037); null when no blocking check failed. */
+    fun blockedLine(checks: List<LaunchCheck>): String? =
+        checks.filter { it.blocking && !it.ok }.map { it.id }.takeIf { it.isNotEmpty() }
+            ?.let { "Blocked by ${it.joinToString(", ")}: fix these checks to launch." }
 }
 
 /** An agent the Terminal can start: a preset of `ws launch agents`, or the Agent command setting. */
@@ -90,7 +109,23 @@ class LaunchDialog(
     private val cli: Cli = Cli.fromSettings(Workstreams.of(project).run),
     targets: List<Pair<String, String>> = Launcher.choices(),
 ) : DialogWrapper(project) {
-    private val checksArea = JBTextArea(4, 60).apply { isEditable = false; lineWrap = true; wrapStyleWord = true }
+    // One row per check, with its state's icon (D037); repo text goes in through append, never markup.
+    private val checksModel = CollectionListModel<LaunchCheck>()
+    private val checksList = JBList(checksModel).apply {
+        visibleRowCount = 6
+        emptyText.text = "Checking…"
+        cellRenderer = object : ColoredListCellRenderer<LaunchCheck>() {
+            override fun customizeCellRenderer(list: JList<out LaunchCheck>, value: LaunchCheck?, index: Int, selected: Boolean, hasFocus: Boolean) {
+                val c = value ?: return
+                icon = if (c.ok) AllIcons.General.InspectionsOK else if (c.blocking) AllIcons.General.Error else AllIcons.General.Warning
+                val first = if (c.ok) SimpleTextAttributes.REGULAR_ATTRIBUTES
+                    else if (c.blocking) SimpleTextAttributes.ERROR_ATTRIBUTES else SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES
+                append(Launches.state(c), first)
+                append("  ${c.id}", SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+                append("  ${c.message}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            }
+        }
+    }
     private val argvArea = JBTextArea(2, 60).apply { isEditable = false; lineWrap = true }
     private val promptArea = JBTextArea(setup.prompt, 4, 60).apply { lineWrap = true; wrapStyleWord = true }
     private val pinBox = ComboBox((listOf(NO_PIN) + setup.tasks).toTypedArray()).apply {
@@ -116,6 +151,13 @@ class LaunchDialog(
         private set
     @Volatile private var presets: List<AgentPreset> = listOf()
 
+    /** Why OK is off, as shown by the buttons; null when nothing blocks. */
+    @Volatile var blockedText: String? = null
+        private set
+
+    /** The check rows, in the order the dialog lists them. */
+    fun shownChecks(): List<LaunchCheck> = checksModel.items
+
     /** True once the agents and the current choices' checks and argv are shown. */
     @Volatile var idle = false
         private set
@@ -123,7 +165,6 @@ class LaunchDialog(
     init {
         title = "Launch: ${setup.title}"
         isOKActionEnabled = false
-        checksArea.text = "Checking…"
         init()
         pinRow?.visible(setup.kind == RUN && setup.tasks.isNotEmpty())
         val last = WsSettings.getInstance().lastLaunch
@@ -144,7 +185,7 @@ class LaunchDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row("Checks:") { cell(JBScrollPane(checksArea)).align(AlignX.FILL) }
+        row("Checks:") { cell(JBScrollPane(checksList)).align(AlignX.FILL) }
         pinRow = row("Pin task:") { cell(pinBox) }
         row("Target:") { cell(targetBox) }
         terminalRows += row("Agent:") { cell(agentBox) }
@@ -270,10 +311,14 @@ class LaunchDialog(
                 checks = checked
                 argv = built
                 if (asked == null && shown is Loaded.Value) setPrompt(shown.value)
-                checksArea.text = when (checked) {
-                    is Loaded.Error -> checked.error
-                    is Loaded.Value -> checked.value.joinToString("\n", transform = Launches::line)
+                // A check that couldn't run at all is shown as one failed blocking row.
+                val rows = when (checked) {
+                    is Loaded.Error -> listOf(LaunchCheck("launch check", ok = false, blocking = true, message = checked.error))
+                    is Loaded.Value -> Launches.ordered(checked.value)
                 }
+                checksModel.replaceAll(rows)
+                blockedText = Launches.blockedLine(rows)
+                setErrorText(blockedText?.let { Text.html(it) }, checksList)
                 argvArea.text = when (built) {
                     null -> ""
                     is Loaded.Error -> built.error
