@@ -125,6 +125,21 @@ class RegistryTest {
     }
 
     @Test
+    fun theStatusBarNamesTheClaimedTaskAndItsAgeWhileATaskIsClaimed() {
+        assertNull(claimedTask(view))
+        assertNull(claimedTask(null))
+        val start = "2026-01-01T00:00:00Z"
+        val now = Instant.parse(start).toEpochMilli() + 5 * 60 * 60_000L
+        val claimed = view.copy(tasks = view.tasks + Task("A-4", status = "in-progress", claimedBy = "agent-1", startedAt = start))
+        assertEquals("A-4", claimedTask(claimed)?.id)
+        assertEquals("● alpha · A-4 · 5h", statusText("alpha", claimed.wave, 0, claimedTask(claimed), now))
+        assertEquals("● alpha · A-4 · 5h · 2 errors", statusText("alpha", claimed.wave, 2, claimedTask(claimed), now))
+        // A claim with no start, or one that doesn't parse, shows no age.
+        assertEquals("● alpha · A-5", statusText("alpha", null, 0, Task("A-5", status = "in-progress"), now))
+        assertEquals("● alpha · A-5", statusText("alpha", null, 0, Task("A-5", status = "in-progress", startedAt = "soon"), now))
+    }
+
+    @Test
     fun aChangeCountsOnlyUnderARefreshPathKeepingItsRecursiveFlag() {
         val watches = listOf(Watch("/p/reg.json", false), Watch("/p/ws/alpha", true), Watch("/p/.git/refs/heads", true), Watch("/p/.git", false))
         assertTrue(underRefresh("/p/reg.json", watches))

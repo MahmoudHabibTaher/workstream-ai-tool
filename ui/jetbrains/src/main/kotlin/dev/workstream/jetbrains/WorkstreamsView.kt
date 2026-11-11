@@ -1,7 +1,8 @@
 // The Workstreams tool window's Workstreams tab (D-LAYOUT): a list of workstreams on the left and,
 // for the selected one, a Tasks tab with a table above a task pane, a Graph tab with the tree of
 // what waits on what, and an Overview tab. It arranges what Workstreams
-// holds, which holds only what the CLI printed. Repo text is drawn as text: list and table cells
+// holds, which holds only what the CLI printed. The toolbar carries the Run, Workstream, Task and
+// Open groups (D-MENUS), and the list's empty state says what to do next. Repo text is drawn as text: list and table cells
 // through ColoredListCellRenderer, ColoredTableCellRenderer and ColoredTreeCellRenderer, pane lines in read-only text areas,
 // link labels through Text.html, and tooltips through Text.tip (plan T2, T6).
 package dev.workstream.jetbrains
@@ -19,6 +20,7 @@ import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -104,6 +106,10 @@ const val TASKS_TAB = "Tasks"
 const val GRAPH_TAB = "Graph"
 const val OVERVIEW_TAB = "Overview"
 const val POPUP_GROUP = "Workstreams.Registry.Popup"
+/** The toolbar's popups, in order; each is also under Tools > Workstreams and in POPUP_GROUP (D-MENUS). */
+val TOOLBAR_GROUPS = listOf("Workstreams.RunGroup", "Workstreams.WorkstreamGroup", "Workstreams.TaskGroup", "Workstreams.OpenGroup")
+/** The list's empty state when there are no workstreams: how to plan one. */
+const val HOW_TO_PLAN = "To plan one, run ws new <id>, then ws seed it from an approved plan."
 
 private val STATUS_ICONS: Map<String, Icon> = mapOf(
     "active" to AllIcons.Actions.Execute, "paused" to AllIcons.Actions.Pause, "done" to AllIcons.Actions.Checked,
@@ -290,8 +296,11 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
         split.firstComponent = ScrollPaneFactory.createScrollPane(list, true)
         split.secondComponent = detail
 
+        val manager = ActionManager.getInstance()
         val actions = DefaultActionGroup(ShowDoneAction(), RefreshAction())
-        val toolbar = ActionManager.getInstance().createActionToolbar("WorkstreamsList", actions, true)
+        actions.addSeparator()
+        TOOLBAR_GROUPS.forEach { id -> manager.getAction(id)?.let(actions::add) }
+        val toolbar = manager.createActionToolbar("WorkstreamsList", actions, true)
         toolbar.targetComponent = this
         setToolbar(toolbar.component)
         setContent(split)
@@ -305,12 +314,16 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
 
     fun selectedTask(): TaskNode? = table.selectedObject
 
+    /** The selected workstream's own snapshot, once its view has loaded: what the Open group opens. */
+    fun shownView(): WsView? = if (shownWs != null && shownWs == selectedWorkstream()?.row?.id) (view as? Loaded.Value)?.value else null
+
     /** What the writes and launches act on: the task when the table was used last, else the workstream. */
     fun selected(): Any? = (if (taskFocus) selectedTask() else null) ?: selectedWorkstream()
 
     override fun uiDataSnapshot(sink: DataSink) {
         super.uiDataSnapshot(sink)
         selected()?.let { sink[WS_NODE] = it }
+        shownView()?.let { sink[WS_VIEW] = it }
     }
 
     /** Draws the list from the snapshot, keeping the selection by id, then reads the selected one's view again. */
@@ -327,8 +340,33 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
         } finally {
             rebuilding = false
         }
-        ws.error?.let { list.emptyText.setText(it, SimpleTextAttributes.ERROR_ATTRIBUTES) } ?: list.emptyText.setText("No workstreams")
+        drawEmpty(ws, snap)
         loadView()
+    }
+
+    /**
+     * The list's empty state: ws not found with a Configure… link, the reload's failure, no
+     * workstreams with how to plan one, or only closed ones with how to show them.
+     */
+    private fun drawEmpty(ws: Workstreams, snap: com.google.gson.JsonObject?) {
+        val error = ws.error
+        when {
+            ws.missing -> {
+                list.emptyText.setText("ws not found", SimpleTextAttributes.ERROR_ATTRIBUTES)
+                list.emptyText.appendLine("Configure…", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+                    ShowSettingsUtil.getInstance().showSettingsDialog(project, WsConfigurable::class.java)
+                }
+            }
+            error != null -> list.emptyText.setText(error, SimpleTextAttributes.ERROR_ATTRIBUTES)
+            snap != null && Snapshots.rows(snap).isNotEmpty() -> {
+                list.emptyText.setText("No open workstreams")
+                list.emptyText.appendLine("Show Done lists the done and abandoned ones.")
+            }
+            else -> {
+                list.emptyText.setText("No workstreams")
+                list.emptyText.appendLine(HOW_TO_PLAN)
+            }
+        }
     }
 
     /** Selects the workstream with this id, which loads its view. */

@@ -275,10 +275,23 @@ fun shown(node: Node): Shown = when (node) {
 fun activeWorkstream(rows: List<Row>, health: List<Finding>): Pair<Row, Int>? =
     rows.firstOrNull { it.status == "active" }?.let { it to errorCount(health, it.id) }
 
-fun statusText(id: String, wave: Wave?, errors: Int): String {
-    val line = waveLine(wave)
-    return listOf(if (line.isNotEmpty()) "$id: $line" else id, if (errors > 0) plural(errors, "error") else "")
-        .filter { it.isNotEmpty() }.joinToString(" · ")
+/** The status bar's claimed task: the first in-progress task of the workstream's snapshot, in queue order. */
+fun claimedTask(view: WsView?): Task? = view?.tasks?.firstOrNull { it.status == "in-progress" }
+
+/**
+ * `● <ws> · <claimed task> · <age>` while a task is claimed (the age only when the claim has a
+ * start), else `<ws>: <wave line>`; either way followed by the error count when there are errors.
+ */
+fun statusText(id: String, wave: Wave?, errors: Int, claimed: Task? = null, now: Long = 0): String {
+    val count = if (errors > 0) plural(errors, "error") else ""
+    val head = if (claimed != null) {
+        val age = claimed.startedAt?.let { runCatching { ageOf(it, now) }.getOrNull() }
+        listOfNotNull("● $id", claimed.id, age).joinToString(" · ")
+    } else {
+        val line = waveLine(wave)
+        if (line.isNotEmpty()) "$id: $line" else id
+    }
+    return listOf(head, count).filter { it.isNotEmpty() }.joinToString(" · ")
 }
 
 /** Whether a changed `path` falls under one of the snapshot's refresh entries. */

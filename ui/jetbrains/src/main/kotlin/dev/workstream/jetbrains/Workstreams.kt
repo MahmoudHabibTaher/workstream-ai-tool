@@ -84,6 +84,11 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
     var error: String? = null
         private set
 
+    /** Whether the ws command itself didn't start when the project was opened: the list then offers Configure…. */
+    @Volatile
+    var missing: Boolean = false
+        private set
+
     @Volatile
     var showDone: Boolean = false
         set(value) {
@@ -167,11 +172,13 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
             is Rooted.Problem -> {
                 root = null
                 snapshot = null
+                missing = found.missing
                 Text.notify(project, found.message)
                 changed()
             }
             is Rooted.Root -> {
                 root = found.path
+                missing = false
                 reload()?.let { Text.notify(project, it) }
             }
         }
@@ -300,6 +307,7 @@ class Workstreams(private val project: Project, private val scope: CoroutineScop
         root = null
         snapshot = null
         error = null
+        missing = false
         watches = listOf()
         views.clear()
         reviews.clear()

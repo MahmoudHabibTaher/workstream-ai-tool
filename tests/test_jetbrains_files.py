@@ -215,7 +215,12 @@ class PackageTests(unittest.TestCase):
         self.assertIn('implementation="dev.workstream.jetbrains.StatusWidgetFactory"', xml)
         self.assertIn('<extensionPoint qualifiedName="dev.workstream.jetbrains.launchTarget"', xml)
         self.assertEqual(re.findall(r'<action id="Workstreams\.(\w+)"', xml),
-                         ["Pause", "Resume", "Sync", "Unclaim", "Run", "Coordinate", "Close", "Abandon"])
+                         ["Run", "Coordinate", "Close", "Abandon", "Pause", "Resume", "Sync", "Unclaim",
+                          "OpenPlan", "OpenProgress", "OpenDecisions", "OpenHandoff", "OpenTasks"])
+        # The four groups (D-MENUS) hide when empty, and go under Tools > Workstreams.
+        self.assertEqual(re.findall(r'<group id="Workstreams\.(\w+)" class="dev\.workstream\.jetbrains\.WsGroup" popup="true"', xml),
+                         ["RunGroup", "WorkstreamGroup", "TaskGroup", "OpenGroup"])
+        self.assertIn('<add-to-group group-id="ToolsMenu" anchor="last"/>', xml)
 
     def test_the_build_targets_262(self) -> None:
         build = (PACKAGE / "build.gradle.kts").read_text()

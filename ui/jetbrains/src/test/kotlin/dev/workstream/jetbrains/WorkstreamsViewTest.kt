@@ -45,6 +45,29 @@ class WorkstreamsViewTest : SampleTestCase() {
         return root
     }
 
+    /** The list's empty state, a line per fragment as drawn. */
+    private fun emptyLines(): List<String> = panel.list.emptyText.wrappedFragmentsIterable
+        .map { (it as SimpleColoredComponent).getCharSequence(false).toString() }.filter { it.isNotEmpty() }
+
+    fun testWsNotFoundOffersConfigureAndNoWorkstreamsSaysHowToPlanOne() {
+        val root = tmp.resolve("bare").toFile().apply { mkdirs() }
+        sh(root, "git", "init", "-q", "-b", "main")
+        ws(root, "init", "--integration", "main")
+        sh(root, "git", "add", "-A")
+        sh(root, "git", "commit", "-qm", "init")
+
+        WsSettings.getInstance().wsCommand = listOf(tmp.resolve("no-such-ws").toString())
+        open(root)
+        assertTrue(Workstreams.of(project).missing)
+        assertTrue(emptyLines().toString(), waitFor(10_000) { emptyLines() == listOf("ws not found", "Configure…") })
+
+        WsSettings.getInstance().wsCommand = branchCli
+        open(root)
+        assertFalse(Workstreams.of(project).missing)
+        assertTrue(emptyLines().toString(), waitFor(30_000) { panel.idle && emptyLines() == listOf("No workstreams", HOW_TO_PLAN) })
+        assertEquals(0, panel.listModel.size)
+    }
+
     private fun settle() {
         assertTrue("the view never settled", waitFor(30_000) { panel.idle && panel.view != null })
     }
