@@ -141,3 +141,29 @@ The list, table and Health popups (`Workstreams.Registry.Popup`) and Tools ▸ W
 - `tests/test_jetbrains_files.py`'s plugin.xml check now lists the 13 action ids in group order and asserts the four `WsGroup` popup groups and the `ToolsMenu` entry.
 
 Rejected: re-running the CLI from the view to find out whether ws exists. **Closed.**
+
+## D027 (2026-11-11, JX-08): the task pin lives in Run…'s dialog, and no separate Run This Task… action is added
+
+Run…'s dialog has a "Pin task" picker. It lists the queue's tasks that aren't `done` (from the view the tab already loaded). Pinning one makes the launch `run-task`: the checks are `ws launch check --kind run-task --task T`, and the prompt is the last argument of `ws launch argv --prompt-kind run-task --task T`, so the plugin holds no prompt text. The checks then decide whether the pinned task can start. D023 can then be closed as it stands: the Run group keeps Run…, Coordinate…, Close… and Abandon…. Rejected: a Run This Task… action on the task table, which D023 already rejected as the plugin deciding what is offered. **Open.** (D023 is open and should be settled with this.) **Closed.**
+
+## D028 (2026-11-11, JX-08): the run-task prompt is read from the argv's last element
+
+`ws launch argv` prints no separate prompt field. For both prompt styles (bare last argument, or `promptFlag` then prompt) the prompt is the argv's last element, so the dialog takes `argv.last()`. It uses the chosen preset, or else the first preset. Rejected: adding a `prompt` field to `ws launch argv --json`, which is a CLI change outside this task (D013 fixed its shape). **Closed.**
+
+## D029 (2026-11-11, JX-08): the Agent command setting stays as an agent choice
+
+When `Settings | Tools | Workstreams | Agent command` is set, the agent picker offers it after the presets as "Agent command setting". Its argv is that command plus the prompt, and it has no effort or permissions. It is remembered as `:command`. Rejected: dropping the setting, which would break every existing setup and the clipboard line that names it. **Closed.**
+
+## D030 (2026-11-11, JX-08): the targets are the registered `launchTarget`s, then Clipboard
+
+The picker lists each `Launcher.TARGETS` extension (today only Terminal, registered only when its plugin is on) and then Clipboard. `LaunchTarget` gains a `label`, which defaults to its id. `Launcher.launch(project, request, target)` starts only the named target and falls back to the clipboard if that target can't take the launch. `target = CLIPBOARD` copies with "Copied the <title> prompt to the clipboard." A null target keeps the old first-that-takes-it order. `LaunchRequest` gains `argv`, the Terminal's command line from `ws launch argv`, and `TerminalTarget` uses it before the Agent command. Rejected: hiding Clipboard as a choice (it is the only target when the Terminal plugin is off). **Closed.**
+
+## D031 (2026-11-11, JX-08): an edited prompt goes as `--prompt=<text>`
+
+This makes a prompt that starts with `-` an option value rather than a flag for argparse (JX-04's gotcha). The test covers it with `-edited text`. The agent side is unchanged: claude-code still gets a bare last argument. Rejected: `--prompt <text>` as two arguments, which argparse refuses when the text starts with `-`. **Closed.**
+
+## D032 (2026-11-11, JX-08): files touched outside the task's list
+
+- `WsActions.kt`: `LaunchAction` opens the dialog (through `LaunchDialog.show`, which a test swaps), disposes it, and passes the chosen target to `Launcher.launch`. The Ask question for abandon's reason still comes first.
+- `SampleTestCase.kt` (under the expected test folder) gains `filled`, which fills alpha's template placeholders so that no check blocks.
+Rejected: opening the dialog from Launcher, which would make Launch.kt depend on the UI. **Closed.**

@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `bf36f9b`.
 
 ---
 
+## 2026-11-11: JX-08: Launch dialog with pre-flight, presets and targets
+
+Merged as `45521654b3`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-08.md).
+
 ## 2026-11-11: JX-07: Toolbar groups, Tools menu, empty states, status bar
 
 Merged as `3860811bb6`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-07.md).
