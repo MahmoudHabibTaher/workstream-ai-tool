@@ -91,6 +91,22 @@ fun terminalArgv(agent: List<String>, prompt: String): List<String>? {
     return agent + prompt
 }
 
+/** The shells whose `-c 'exec "$@"' name args...` runs args as given; others aren't wrapped. */
+private val POSIX_SHELLS = setOf("sh", "bash", "zsh", "ksh", "dash")
+
+/**
+ * The process a Terminal tab runs for `argv`: the person's login, interactive shell exec'ing it,
+ * so the PATH, version managers and aliases their own Terminal tabs see apply to the agent too
+ * (D037: an IDE started from the Dock has no `~/.zshrc` PATH, so a bare agent name wasn't found).
+ * The arguments go to the shell as `"$@"`, so no shell parses the prompt. With no shell, or one
+ * whose `-c` doesn't take `"$@"` (fish, nu, Windows), `argv` runs as it is.
+ */
+fun shellArgv(shell: String?, argv: List<String>): List<String> {
+    val name = shell?.substringAfterLast('/')?.takeIf { shell.startsWith("/") } ?: return argv
+    if (name !in POSIX_SHELLS) return argv
+    return listOf(shell, "-l", "-i", "-c", "exec \"\$@\"", "ws-launch") + argv
+}
+
 fun terminalLine(argv: List<String>, title: String): String = "Started ${argv[0]} in a Terminal tab: $title"
 
 /** Why a launch went to the clipboard, named so the person knows what to change. */

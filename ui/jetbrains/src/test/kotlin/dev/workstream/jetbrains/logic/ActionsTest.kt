@@ -57,6 +57,13 @@ class ActionsTest {
         assertEquals("drop w: not needed", promptOf(launches[1], "not needed"))
         assertNull(terminalArgv(listOf(), "go w"))
         assertNull(terminalArgv(listOf(" "), "go w"))
+        // D037: a POSIX shell exec's the argv as "$@"; anything else runs the argv as it is.
+        val argv = listOf("agent", "--effort", "medium", "a \"quoted\" \$HOME prompt")
+        assertEquals(listOf("/bin/zsh", "-l", "-i", "-c", "exec \"\$@\"", "ws-launch") + argv, shellArgv("/bin/zsh", argv))
+        assertEquals("/opt/homebrew/bin/bash", shellArgv("/opt/homebrew/bin/bash", argv)[0])
+        assertEquals(argv, shellArgv("/opt/homebrew/bin/fish", argv))
+        assertEquals(argv, shellArgv(null, argv))
+        assertEquals(argv, shellArgv("zsh", argv))
         assertEquals("Run w", launchTitle("run", "w"))
         assertTrue(clipboardLine("Run w", "go w", terminal = true, agentSet = false).contains(AGENT_SETTING))
         assertTrue(clipboardLine("Run w", "go w", terminal = false, agentSet = true).contains("Terminal plugin is not enabled"))

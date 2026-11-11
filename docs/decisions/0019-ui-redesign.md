@@ -40,6 +40,33 @@ the other workstream plugin is a work project. We take ideas from using it, neve
 
 **Agent names stay out of code, with one exception: `ChatTargets.kt`.** `tests/test_no_project_literals.py` bans agent names in `src/workstream/`, and `tests/test_jetbrains_files.py` bans them in `ui/jetbrains/src`. Agent flags for presets go in a new `[launch]` table in each `src/workstream/assets/adapters/*.toml`, which the core scan already skips. A chat target, though, has to name the other plugin's action ids and classes, so those names live in one file, `ChatTargets.kt`, which the JetBrains scan allows by name once the chat targets land. Every other file stays clean, and the test checks that the exception covers that file only.
 
+## What was built
+
+Ten tasks (JX-01 to JX-10); the workstream's `DECISIONS.md` holds the smaller calls (D002 to D037).
+
+- **The CLI** gives the facts the views need: `ws snapshot -w` now carries each task's `unblocks` and `waitingOn`, the queue's `scope` and its `baseline`. Three new commands feed the launch dialog: `ws launch check` (pre-flight), `ws launch agents` (presets) and `ws launch argv` (the command line for a preset, from the adapter TOML's `[launch]` table). `run-task` is a launch kind of its own, used when a task is pinned.
+- **The Workstreams tab** replaces the Registry tree: the list, then Tasks (table and task pane), Graph and Overview.
+- **Menus** sit in four groups, shared by the toolbar, context menus and Tools | Workstreams.
+- **The launch dialog** opens before every launch. The task pin is a picker in Run…'s dialog rather than a separate Run This Task… action (D023, D027).
+- **The chat targets** are always registered in `plugin.xml` and offered only while their plugin is installed, enabled and its classes load, rather than registered through optional `<depends>` files (D033). Their tests use fakes under their own names, not the real plugins' (D034).
+- **The Terminal launch runs inside the person's login shell** (D037). The hand check found that a Terminal tab running the agent's argv directly doesn't see the PATH that `~/.zshrc` sets, so a bare `claude` wasn't found from an IDE started from the Dock. The tab now runs `$SHELL -l -i -c 'exec "$@"' ws-launch <argv>`. The prompt is still an argument that no shell parses. Fish and other shells whose `-c` doesn't take `"$@"` run the argv as it is.
+- **Blocking checks are shown first** (D037). The hand check found the dialog's checks were plain text scrolled past the blocking lines, with no reason by the disabled OK. They are now one row each with a state icon, blocking ones first, and the line by the buttons names what blocks.
+
+## What was seen (JX-10)
+
+The owner installed the plugin in IntelliJ IDEA 2026.3 and Android Studio 2026.2.2, both from the same build (`0.1.0.20261111152831`, published to a local plugin repository so each fix arrived as an update). The sample came from a wheel: `ws` 0.1.0 installed into a clean venv built `alpha` (S-1 claimed and backdated, S-2 claimed with work on `task/s-2`, S-3 blocked by S-1) and `beta`, then main moved. The plugin's ws command pointed at that venv's `ws`.
+
+| Check | IntelliJ IDEA 2026.3 | Android Studio 2026.2.2 |
+|---|---|---|
+| List, Tasks, Graph and Overview draw; a dependency link jumps | Yes: "2 claimed" on alpha, a Claim section on S-1 and S-2, S-3 under S-1 in the Graph, both claims under Open claims | Yes |
+| A launch with a blocking check can't be confirmed | Yes: alpha blocked by validate, wave and claim, listed first, OK off | Yes |
+| Run starts Claude Code in a Terminal tab with the preset's flags | Yes: `/bin/zsh -l -i -c exec "$@" ws-launch claude --effort medium --permission-mode acceptEdits …` (IDE log, 15:55) | Yes: the same wrap (IDE log, 16:03) |
+| Copilot Chat opens a new agent session holding the prompt | Yes | Yes |
+| Air opens its prompt holding the prompt | Yes | Yes, once Android Studio's Air plugin shipped `intellij.air.frontend.prompt.ui`; before that the target was left out |
+| A stale Pause is refused | Yes: `d443747` committed from a shell while the box was open; OK was refused and HEAD stayed `d443747` | Yes: `22cf098` the same way; HEAD stayed `22cf098` |
+
+Two setup slips were caught on the way and are worth knowing. The old M10 sample and the old `ws` drew S-1 as unclaimed and a flat Graph, because that `ws` emits no `unblocks`. The `ws` path had been pasted into the Agent command setting. The README now says the Agent command is not the `ws` command.
+
 ## Rules for changing it
 
 - A new idea from the other workstream plugin comes in as a description of behaviour, written here, never as its code or text.

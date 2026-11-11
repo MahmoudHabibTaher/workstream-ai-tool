@@ -11,6 +11,7 @@ import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import dev.workstream.jetbrains.logic.clipboardLine
+import dev.workstream.jetbrains.logic.shellArgv
 import dev.workstream.jetbrains.logic.terminalArgv
 import dev.workstream.jetbrains.logic.terminalLine
 import org.jetbrains.plugins.terminal.LocalTerminalDirectRunner
@@ -63,11 +64,12 @@ class TerminalTarget : LaunchTarget {
     companion object {
         // The tab state's shellCommand is the tab process's argv. The five-argument
         // createNewSession(workingDir, tabName, command, ...) does the same but is @ApiStatus.Internal.
+        // The argv runs inside the person's own shell (shellArgv, D037), so their PATH applies.
         private val OPEN = TerminalOpener { project, cwd, tab, argv ->
             val state = TerminalTabState().apply {
                 myTabName = tab
                 myIsUserDefinedTabTitle = true
-                myShellCommand = argv
+                myShellCommand = shellArgv(System.getenv("SHELL"), argv)
                 myWorkingDirectory = cwd
             }
             TerminalToolWindowManager.getInstance(project).createNewSession(LocalTerminalDirectRunner.createTerminalRunner(project), state)
