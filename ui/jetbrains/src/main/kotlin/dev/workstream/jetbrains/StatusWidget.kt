@@ -1,5 +1,5 @@
-// The status bar's Workstreams widget: the first active workstream's wave line and error count, as
-// the VS Code extension's is. Clicking it opens the tool window.
+// The status bar's Workstreams widget: the first active workstream's claimed task and its age, or
+// its wave line when none is claimed, then its error count (D-MENUS). Clicking it opens the tool window.
 package dev.workstream.jetbrains
 
 import com.intellij.openapi.application.ApplicationManager
@@ -11,6 +11,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.util.Consumer
 import dev.workstream.jetbrains.logic.WorkstreamNode
 import dev.workstream.jetbrains.logic.activeWorkstream
+import dev.workstream.jetbrains.logic.claimedTask
 import dev.workstream.jetbrains.logic.shown
 import dev.workstream.jetbrains.logic.statusText
 import java.awt.Component
@@ -25,7 +26,8 @@ class StatusWidgetFactory : StatusBarWidgetFactory {
     override fun createWidget(project: Project): StatusBarWidget = StatusWidget(project)
 }
 
-class StatusWidget(private val project: Project) : StatusBarWidget, StatusBarWidget.TextPresentation {
+class StatusWidget(private val project: Project, private val now: () -> Long = System::currentTimeMillis) :
+    StatusBarWidget, StatusBarWidget.TextPresentation {
     private var bar: StatusBar? = null
 
     override fun ID(): String = STATUS_WIDGET
@@ -48,8 +50,8 @@ class StatusWidget(private val project: Project) : StatusBarWidget, StatusBarWid
     /** Plain text: the status bar draws it as a label's text, which this never starts with markup. */
     override fun getText(): String {
         val node = active() ?: return ""
-        val wave = Workstreams.of(project).cachedView(node.row.id)?.wave
-        return statusText(node.row.id, wave, node.errors)
+        val view = Workstreams.of(project).cachedView(node.row.id)
+        return statusText(node.row.id, view?.wave, node.errors, claimedTask(view), now())
     }
 
     override fun getAlignment(): Float = Component.CENTER_ALIGNMENT

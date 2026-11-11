@@ -27,26 +27,86 @@
                     dynamic="true"/>
   </extensionPoints>
 
-  <!-- Each is enabled only where the selected node offers it; Find Action lists them too. -->
+  <!-- Run, Workstream, Task and Open (D-MENUS): each action is enabled only where the selected node or
+       its snapshot offers it, and a group with none hides. The toolbar, Tools > Workstreams and the
+       list's, table's and Health tree's popup menus show the same four groups. -->
   <actions>
+    <group id="Workstreams.RunGroup" class="dev.workstream.jetbrains.WsGroup" popup="true" text="Run"
+           description="Hand this workstream to an agent" icon="AllIcons.Actions.Execute">
+      <action id="Workstreams.Run" class="dev.workstream.jetbrains.RunAction" text="Run…"
+              description="Start the agent on this workstream's run prompt">
+        <override-text place="GoToAction" text="Workstreams: Run…"/>
+      </action>
+      <action id="Workstreams.Coordinate" class="dev.workstream.jetbrains.CoordinateAction" text="Coordinate…"
+              description="Start the agent on this workstream's coordinate prompt">
+        <override-text place="GoToAction" text="Workstreams: Coordinate…"/>
+      </action>
+      <action id="Workstreams.Close" class="dev.workstream.jetbrains.CloseAction" text="Close…"
+              description="Start the agent on this workstream's close prompt">
+        <override-text place="GoToAction" text="Workstreams: Close…"/>
+      </action>
+      <action id="Workstreams.Abandon" class="dev.workstream.jetbrains.AbandonAction" text="Abandon…"
+              description="Ask why, then start the agent on this workstream's abandon prompt">
+        <override-text place="GoToAction" text="Workstreams: Abandon…"/>
+      </action>
+    </group>
+    <group id="Workstreams.WorkstreamGroup" class="dev.workstream.jetbrains.WsGroup" popup="true" text="Workstream"
+           description="Change this workstream's status through ws act" icon="AllIcons.Actions.Pause">
+      <action id="Workstreams.Pause" class="dev.workstream.jetbrains.PauseAction" text="Pause"
+              description="Pause this workstream through ws act">
+        <override-text place="GoToAction" text="Workstreams: Pause"/>
+      </action>
+      <action id="Workstreams.Resume" class="dev.workstream.jetbrains.ResumeAction" text="Resume"
+              description="Resume this workstream through ws act">
+        <override-text place="GoToAction" text="Workstreams: Resume"/>
+      </action>
+      <action id="Workstreams.Sync" class="dev.workstream.jetbrains.SyncAction" text="Sync"
+              description="Record this workstream's live progress through ws act">
+        <override-text place="GoToAction" text="Workstreams: Sync"/>
+      </action>
+    </group>
+    <group id="Workstreams.TaskGroup" class="dev.workstream.jetbrains.WsGroup" popup="true" text="Task"
+           description="Change this task through ws act" icon="AllIcons.Nodes.Tag">
+      <action id="Workstreams.Unclaim" class="dev.workstream.jetbrains.UnclaimAction" text="Unclaim"
+              description="Release this task's stale claim through ws act">
+        <override-text place="GoToAction" text="Workstreams: Unclaim"/>
+      </action>
+    </group>
+    <group id="Workstreams.OpenGroup" class="dev.workstream.jetbrains.WsGroup" popup="true" text="Open"
+           description="Open one of this workstream's files" icon="AllIcons.Actions.MenuOpen">
+      <action id="Workstreams.OpenPlan" class="dev.workstream.jetbrains.OpenPlanAction" text="Plan"
+              description="Open this workstream's plan">
+        <override-text place="GoToAction" text="Workstreams: Plan"/>
+      </action>
+      <action id="Workstreams.OpenProgress" class="dev.workstream.jetbrains.OpenProgressAction" text="Progress"
+              description="Open this workstream's progress file">
+        <override-text place="GoToAction" text="Workstreams: Progress"/>
+      </action>
+      <action id="Workstreams.OpenDecisions" class="dev.workstream.jetbrains.OpenDecisionsAction" text="Decisions"
+              description="Open this workstream's decisions file">
+        <override-text place="GoToAction" text="Workstreams: Decisions"/>
+      </action>
+      <action id="Workstreams.OpenHandoff" class="dev.workstream.jetbrains.OpenHandoffAction" text="Handoff"
+              description="Open this workstream's session handoff">
+        <override-text place="GoToAction" text="Workstreams: Handoff"/>
+      </action>
+      <action id="Workstreams.OpenTasks" class="dev.workstream.jetbrains.OpenTasksAction" text="Tasks File"
+              description="Open this workstream's tasks file, at the selected task">
+        <override-text place="GoToAction" text="Workstreams: Tasks File"/>
+      </action>
+    </group>
     <group id="Workstreams.Registry.Popup" text="Workstreams">
-      <action id="Workstreams.Pause" class="dev.workstream.jetbrains.PauseAction" text="Workstreams: Pause"
-              description="Pause this workstream through ws act"/>
-      <action id="Workstreams.Resume" class="dev.workstream.jetbrains.ResumeAction" text="Workstreams: Resume"
-              description="Resume this workstream through ws act"/>
-      <action id="Workstreams.Sync" class="dev.workstream.jetbrains.SyncAction" text="Workstreams: Sync Progress"
-              description="Record this workstream's live progress through ws act"/>
-      <action id="Workstreams.Unclaim" class="dev.workstream.jetbrains.UnclaimAction" text="Workstreams: Unclaim"
-              description="Release this task's stale claim through ws act"/>
-      <separator/>
-      <action id="Workstreams.Run" class="dev.workstream.jetbrains.RunAction" text="Workstreams: Run"
-              description="Start the agent on this workstream's run prompt"/>
-      <action id="Workstreams.Coordinate" class="dev.workstream.jetbrains.CoordinateAction" text="Workstreams: Coordinate"
-              description="Start the agent on this workstream's coordinate prompt"/>
-      <action id="Workstreams.Close" class="dev.workstream.jetbrains.CloseAction" text="Workstreams: Close"
-              description="Start the agent on this workstream's close prompt"/>
-      <action id="Workstreams.Abandon" class="dev.workstream.jetbrains.AbandonAction" text="Workstreams: Abandon"
-              description="Ask why, then start the agent on this workstream's abandon prompt"/>
+      <reference ref="Workstreams.RunGroup"/>
+      <reference ref="Workstreams.WorkstreamGroup"/>
+      <reference ref="Workstreams.TaskGroup"/>
+      <reference ref="Workstreams.OpenGroup"/>
+    </group>
+    <group id="Workstreams.Menu" popup="true" text="Workstreams" description="The selected workstream's actions">
+      <reference ref="Workstreams.RunGroup"/>
+      <reference ref="Workstreams.WorkstreamGroup"/>
+      <reference ref="Workstreams.TaskGroup"/>
+      <reference ref="Workstreams.OpenGroup"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
     </group>
   </actions>
 </idea-plugin>
