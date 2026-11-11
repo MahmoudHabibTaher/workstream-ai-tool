@@ -258,7 +258,7 @@
         "test",
         "make test-jetbrains"
       ],
-      "branch": "",
+      "branch": "task/jx-05",
       "blockedBy": [
         "JX-02"
       ],
@@ -267,10 +267,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-11T08:55:53Z",
+      "baseCommit": "f09c466ef90e51e8a03071beaa366db51ed61296",
+      "claimedBy": "ws-run",
       "completedAt": null,
       "commit": null,
       "verification": null,
