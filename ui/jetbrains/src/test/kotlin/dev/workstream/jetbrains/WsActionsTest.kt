@@ -59,20 +59,38 @@ class WsActionsTest : SampleTestCase() {
         savedAgent = WsSettings.getInstance().agentCommand
         TestDialogManager.setTestDialog(TestDialog { message -> asked += message; Messages.OK }, testRootDisposable)
         TerminalTarget.opener = TerminalOpener { _: Project, cwd, tab, argv -> opened += listOf(cwd, tab) + argv }
+        savedLast = WsSettings.getInstance().lastLaunch
+    }
+
+    private lateinit var savedLast: WsSettings.LastLaunch
+
+    /** The dialogs the launches opened, each driven by `drive` and then OK'd if OK is enabled. */
+    private val dialogs = CopyOnWriteArrayList<LaunchDialog>()
+
+    private fun driveDialogs(drive: (LaunchDialog) -> Unit) {
+        LaunchDialog.show = { d ->
+            dialogs += d
+            assertTrue("the dialog loads", waitFor(30_000) { d.idle })
+            drive(d)
+            assertTrue("the dialog reloads", waitFor(30_000) { d.idle })
+            d.isOKActionEnabled
+        }
     }
 
     override fun tearDown() {
         try {
             TestDialogManager.setTestInputDialog(TestInputDialog.DEFAULT)
             TerminalTarget.reset()
+            LaunchDialog.reset()
             WsSettings.getInstance().agentCommand = savedAgent
+            WsSettings.getInstance().lastLaunch = savedLast
         } finally {
             super.tearDown()
         }
     }
 
-    private fun openSample(): File {
-        val root = sampleProject(closed = true)
+    private fun openSample(filled: Boolean = false): File {
+        val root = sampleProject(closed = true, filled = filled)
         WsSettings.getInstance().wsCommand = branchCli
         open(root)
         Workstreams.of(project).showDone = true
@@ -232,10 +250,11 @@ class WsActionsTest : SampleTestCase() {
     }
 
     fun testRunAndAbandonBuildTheTerminalArgvAndNoAgentCommandCopiesThePrompt() {
-        val root = openSample()
+        val root = openSample(filled = true)
         val alpha = row("alpha")
         val prompts = alpha.row.launches.associate { it.kind to it.prompt }
         WsSettings.getInstance().agentCommand = listOf("agent", "--flag")
+        driveDialogs { it.pick(target = TERMINAL, agent = LaunchDialog.COMMAND) }
         perform("Run", alpha)
         assertEquals(listOf(listOf(root.path, "Workstreams: Run alpha", "agent", "--flag", prompts.getValue("run"))), opened.toList())
 
@@ -247,13 +266,22 @@ class WsActionsTest : SampleTestCase() {
                      opened.last())
         assertEquals("reason", alpha.row.launches.single { it.kind == "abandon" }.ask)
 
+        // The Clipboard target copies the prompt as it is.
         WsSettings.getInstance().agentCommand = listOf()
+        WsSettings.getInstance().lastLaunch = WsSettings.LastLaunch(null, null, null, null)
         notes.clear()
+        driveDialogs { it.pick(target = CLIPBOARD) }
         perform("Run", alpha)
         assertEquals(2, opened.size)
         assertEquals(prompts.getValue("run"), CopyPasteManager.getInstance().getContents<String>(DataFlavor.stringFlavor))
-        assertTrue(notes.single().content, notes.single().content.contains(AGENT_SETTING))
-        assertTrue(notes.single().content.contains("no agent command is set"))
+        assertTrue(notes.single().content, notes.single().content.contains("Copied the Run alpha prompt to the clipboard."))
+        // The Launcher's own fallback: a Terminal that can't take the launch copies the prompt and says why.
+        notes.clear()
+        val started = Launcher.launch(project, LaunchRequest("Run alpha", prompts.getValue("run"), root.path), TERMINAL)
+        assertEquals(CLIPBOARD, started.target)
+        assertTrue(started.said, started.said.contains(AGENT_SETTING))
+        assertTrue(started.said.contains("no agent command is set"))
+        assertEquals(2, opened.size)
     }
 
     fun testTheFourGroupsHoldTheirActionsAndAreOnTheToolbarToolsMenuAndPopups() {

@@ -1,5 +1,6 @@
 // The plugin's two settings, for the whole IDE: the argv that runs `ws`, and the agent argv the
-// launcher starts. Both are argv lists, never a shell line.
+// launcher starts. Both are argv lists, never a shell line. Beside them, the launch dialog's last
+// target, agent, effort and permissions.
 package dev.workstream.jetbrains
 
 import com.intellij.openapi.components.PersistentStateComponent
@@ -20,7 +21,26 @@ class WsSettings : PersistentStateComponent<WsSettings.Values> {
     class Values {
         var wsCommand: MutableList<String> = mutableListOf("ws")
         var agentCommand: MutableList<String> = mutableListOf()
+
+        // The launch dialog's last choices (D-DIALOG); "" is none chosen yet, or the agent's default.
+        var lastTarget: String = ""
+        var lastAgent: String = ""
+        var lastEffort: String = ""
+        var lastPermissions: String = ""
     }
+
+    /** What the launch dialog chose last, so the next one opens on it. */
+    data class LastLaunch(val target: String?, val agent: String?, val effort: String?, val permissions: String?)
+
+    var lastLaunch: LastLaunch
+        get() = LastLaunch(values.lastTarget.ifEmpty { null }, values.lastAgent.ifEmpty { null },
+                           values.lastEffort.ifEmpty { null }, values.lastPermissions.ifEmpty { null })
+        set(last) {
+            values.lastTarget = last.target ?: ""
+            values.lastAgent = last.agent ?: ""
+            values.lastEffort = last.effort ?: ""
+            values.lastPermissions = last.permissions ?: ""
+        }
 
     private var values = Values()
 
