@@ -39,6 +39,8 @@ REVIEW = KOTLIN / "ReviewView.kt"
 HEALTH = KOTLIN / "HealthView.kt"
 STATUS = KOTLIN / "StatusWidget.kt"
 LAUNCH = KOTLIN / "Launch.kt"
+# The chat targets name their plugins' classes, so this is the one file allowed an agent's name (plan T1).
+CHAT = KOTLIN / "ChatTargets.kt"
 # createNewSession starts the agent as a Terminal tab's process (plan T7).
 PROCESS = re.compile(r"GeneralCommandLine|ProcessBuilder|Runtime\.getRuntime|CapturingProcessHandler|OSProcessHandler"
                      r"|createNewSession|ProcessHandler|PtyProcess")
@@ -61,14 +63,26 @@ class NamesNoProjectTests(unittest.TestCase):
         for path in (CLI, TEXT, WORKSTREAMS, STATUS, KOTLIN / "logic" / "Model.kt", KOTLIN / "logic" / "Format.kt",
                      KOTLIN / "logic" / "Registry.kt", KOTLIN / "logic" / "Actions.kt", KOTLIN / "logic" / "Review.kt",
                      KOTLIN / "logic" / "Health.kt", HEALTH,
-                     REVIEW, KOTLIN / "Reviews.kt", LAUNCH, KOTLIN / "LaunchDialog.kt", KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
+                     REVIEW, KOTLIN / "Reviews.kt", LAUNCH, CHAT, KOTLIN / "LaunchDialog.kt", KOTLIN / "WsActions.kt", SRC / "main" / "resources" / "META-INF" / "plugin.xml",
                      SRC / "test" / "kotlin" / "dev" / "workstream" / "jetbrains" / "OpenTest.kt"):
             self.assertIn(path, found)
 
     def test_the_plugins_code_is_generic(self) -> None:
         found = [f"{p.relative_to(PACKAGE)}:{n}: {line.strip()}" for p, n, line in lines(sources())
-                 if FORBIDDEN.search(line)]
+                 if p != CHAT and FORBIDDEN.search(line)]
         self.assertEqual(found, [])
+
+    def test_only_chat_targets_names_an_agent(self) -> None:
+        """The allowance is for ChatTargets.kt alone: no other file of that name, and no xml or
+        test, gets it. The file does use it, so the allowance isn't a dead letter."""
+        self.assertEqual([p for p in sources() if p.name == CHAT.name], [CHAT])
+        self.assertRegex(CHAT.read_text(), FORBIDDEN)
+        chat = CHAT.read_text()
+        self.assertIn('class ChatSessionTarget : ChatTarget()', chat)
+        self.assertIn('class PromptPopupTarget : ChatTarget()', chat)
+        # Their classes load through an action's classloader, never ours (plan T5).
+        self.assertIn("actions.getAction(it)?.javaClass?.classLoader", chat)
+        self.assertNotIn("Class.forName", chat)
 
     def test_no_unescaped_markup_sink(self) -> None:
         """Outside Text.kt, a markup sink in the plugin only ever takes Text.html, Text.escaped or
@@ -214,6 +228,8 @@ class PackageTests(unittest.TestCase):
         self.assertIn('factoryClass="dev.workstream.jetbrains.WorkstreamsToolWindow"', xml)
         self.assertIn('implementation="dev.workstream.jetbrains.StatusWidgetFactory"', xml)
         self.assertIn('<extensionPoint qualifiedName="dev.workstream.jetbrains.launchTarget"', xml)
+        self.assertEqual(re.findall(r'<launchTarget implementation="([\w.]+)" order="last"/>', xml),
+                         ["dev.workstream.jetbrains.ChatSessionTarget", "dev.workstream.jetbrains.PromptPopupTarget"])
         self.assertEqual(re.findall(r'<action id="Workstreams\.(\w+)"', xml),
                          ["Run", "Coordinate", "Close", "Abandon", "Pause", "Resume", "Sync", "Unclaim",
                           "OpenPlan", "OpenProgress", "OpenDecisions", "OpenHandoff", "OpenTasks"])
