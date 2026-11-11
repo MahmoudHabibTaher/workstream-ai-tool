@@ -136,7 +136,7 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/jx-03",
       "blockedBy": [
         "JX-02"
       ],
@@ -145,10 +145,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-11T08:33:33Z",
+      "baseCommit": "807e4497f67ec5106065292a7bed5cd697ced2ef",
+      "claimedBy": "ws-run",
       "completedAt": null,
       "commit": null,
       "verification": null,
