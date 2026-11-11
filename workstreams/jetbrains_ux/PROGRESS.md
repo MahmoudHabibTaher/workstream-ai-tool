@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `bf36f9b`.
 
 ---
 
+## 2026-11-11: JX-09: Copilot Chat and Air launch targets
+
+Merged as `dc23088203`. Verified: test pass, make test-jetbrains pass, make verify-jetbrains pass. [Evidence](evidence/JX-09.md).
+
 ## 2026-11-11: JX-08: Launch dialog with pre-flight, presets and targets
 
 Merged as `45521654b3`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-08.md).

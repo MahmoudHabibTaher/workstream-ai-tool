@@ -518,13 +518,34 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": "none",
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-11T10:12:18Z",
       "baseCommit": "7142a5cc279ff98ce70cb1ab940fde1572ff9b6f",
       "claimedBy": "ws-run",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-11T10:28:08Z",
+      "commit": "dc23088203635de67cdfccb040f003ab302abc1a",
+      "verification": {
+        "tree": "fdde860b951685dea11dec400164f705d0c1b89f",
+        "at": "2026-11-11T10:27:36Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-jetbrains",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make verify-jetbrains",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {

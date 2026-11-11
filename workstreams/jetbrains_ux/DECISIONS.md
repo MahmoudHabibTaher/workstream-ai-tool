@@ -167,3 +167,20 @@ This makes a prompt that starts with `-` an option value rather than a flag for 
 - `WsActions.kt`: `LaunchAction` opens the dialog (through `LaunchDialog.show`, which a test swaps), disposes it, and passes the chosen target to `Launcher.launch`. The Ask question for abandon's reason still comes first.
 - `SampleTestCase.kt` (under the expected test folder) gains `filled`, which fills alpha's template placeholders so that no check blocks.
 Rejected: opening the dialog from Launcher, which would make Launch.kt depend on the UI. **Closed.**
+
+## D033 (2026-11-11, JX-09): the chat targets register in plugin.xml, not through optional `<depends>` config files
+
+The Copilot plugin's id is `com.github.copilot`, and it has no module alias. An optional `<depends>` on it would put an agent name in plugin.xml, and acceptance 2 (with plan T1's "every other file stays clean") rules that out. So `plugin.xml` registers `ChatSessionTarget` and `PromptPopupTarget` unconditionally with `order="last"`. `LaunchTarget` gains `available` (default true). A chat target is available only while its anchor class loads through `ActionClasses`, which first checks that the plugin is installed and enabled. `Launcher.choices()` lists only available targets, and a launch with no target named tries only available ones. A named target whose plugin is missing still goes to the clipboard, with "<label> isn't installed or enabled". This touches `Launch.kt`, which isn't on the task's list: `available`, the two filters and the header comment. It differs from D-CHAT's "registered through optional `<depends>` config files".
+Rejected: optional depends files (they put the agent's plugin id in plugin.xml). Rejected: an optional depends for Air alone (`com.intellij.air` is clean), which would mean two registration paths. Rejected: widening the scan to the depends line. **Open.**
+
+## D034 (2026-11-11, JX-09): the fakes are stand-ins under their own names, not classes under the plugins' names
+
+D-CHAT says "fake classes under the same names in src/test". Those would be packages like `com.github.copilot.api` in `src/test`, which the FORBIDDEN scan covers, so they would break acceptance 2. Instead each target loads its classes through a `PluginClasses` seam (`ChatSessionTarget.classes` / `PromptPopupTarget.classes`, reset in tearDown). The test maps ChatTargets' name constants to fakes (`FakeChatService`, `FakeOptions`, `FakePopupService`, …) and registers the fake services in the test project, so the reflection, `project.getService` and `Launcher.launch` all run for real. The production loader uses `ClassLoader.loadClass(name)` (no `Class.forName` name check). Rejected: fakes under the real package names. **Open.**
+
+## D035 (2026-11-11, JX-09): a chat target never returns null; on any failure it copies the prompt itself
+
+`Launcher.launch`'s own fallback line explains the Terminal and the agent command, which would be the wrong reason here. So `ChatTarget.start` catches each `Exception` or `LinkageError`, unwraps `InvocationTargetException`, rethrows `ControlFlowException`, copies the chat prompt and returns `Started(CLIPBOARD, "Copied the <title> prompt to the clipboard, because <why> Prompt: <prompt>")`. Success says `Sent the <title> prompt to <label>.` Rejected: returning null and letting Launcher copy it, which loses the reason. **Closed.**
+
+## D036 (2026-11-11, JX-09): the repository-root line
+
+When `project.basePath` (canonical) isn't the request's root, the chat prompt starts with `The repository root is <root>.` and a blank line. The clipboard fallback copies that same text. Air also gets the root as the request's working project path. Rejected: appending the line at the end, where an agent may read it after it has already started. **Closed.**

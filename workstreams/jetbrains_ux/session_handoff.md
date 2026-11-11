@@ -1,15 +1,16 @@
 # Session handoff
 
-**State:** 8/10 done on `main` at `4552165`, as of 2026-11-11.
+**State:** 9/10 done on `main` at `dc23088`, as of 2026-11-11.
 
-**Just landed:** JX-08 (`45521654b3`)
+**Just landed:** JX-09 (`dc23088203`)
 
 **Open decisions:**
-- D023: Run This Task… is left out of the Run group until JX-08 (waiting: JX-09, JX-10)
+- D023: Run This Task… is left out of the Run group until JX-08 (waiting: JX-10)
+- D033: the chat targets register in plugin.xml, not through optional `<depends>` config files (waiting: JX-10)
+- D034: the fakes are stand-ins under their own names, not classes under the plugins' names (waiting: JX-10)
 
-**Next:** `ws claim --commit JX-09` (phase 3).
+**Next:** `ws claim --commit JX-10` (phase 4).
 
 **Gotchas:**
-- JX-08: - JX-04's suggestion to split the prompts on `{task}` too in `NoPromptTextTests` doesn't work. It yields the piece `of workstream`, which flags ordinary comments (`WorkstreamsView.kt:1`), so I left the split on `{ws}` only.
-- The checks area and the argv area are read-only `JBTextArea`s, and each combo draws through a `ColoredListCellRenderer`. No markup sink takes repo text. No file test asserts that for LaunchDialog.kt yet.
-- Every prompt keystroke reloads the checks and the argv after 300 ms (two `ws` calls).
+- JX-09: - On the local 2026.2 IDE, the installed Air plugin has no `AgentPromptPalettePopupService` (its `lib/modules` has no `intellij.air.frontend.prompt.ui.jar`). There, Air isn't offered. It is offered on 2026.3 (bundled Air 263.7307.200), where the classes and both anchor actions (`Air.Prompt.NewSession.Send`, `Air.Prompt.Pin`) exist. Copilot 1.20/1.21 has `CopilotChatService.query(DataContext, Function1)` and the `QueryOptionBuilder` methods used, registered as a project service, with `copilot.chat.show` in the same module.
+- Neither target has been tried by hand against the real plugins in a running IDE. Only the signatures were checked, with `javap` against the installed jars.
