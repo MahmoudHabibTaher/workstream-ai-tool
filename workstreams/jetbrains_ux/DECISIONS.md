@@ -184,3 +184,9 @@ D-CHAT says "fake classes under the same names in src/test". Those would be pack
 ## D036 (2026-11-11, JX-09): the repository-root line
 
 When `project.basePath` (canonical) isn't the request's root, the chat prompt starts with `The repository root is <root>.` and a blank line. The clipboard fallback copies that same text. Air also gets the root as the request's working project path. Rejected: appending the line at the end, where an agent may read it after it has already started. **Closed.**
+
+## D037 (2026-11-11, user): JX-10 fixes the two launch findings from the hand check, in LaunchDialog.kt and Launch.kt
+
+Changes: JX-10.
+
+In IntelliJ 2026.3 the owner found (A) the launch dialog's blocking checks were plain text scrolled out of view, with no reason by the disabled OK, and (B) Run in a Terminal failed: the agent argv ran as the tab's process, so ~/.zshrc's PATH never applied and claude in ~/.local/bin wasn't found. The owner chose to fix both inside JX-10 before the Android Studio pass. Rejected: landing JX-10 with them as follow-ups, which would leave acceptance 1's Terminal run unproven. **Closed.**
