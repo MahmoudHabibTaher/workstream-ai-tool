@@ -359,6 +359,86 @@ class BuildSnapshotTests(RepoTestCase):
         self.assertIn("heldBack", schema["properties"]["wave"]["required"])
 
 
+class DetailFactsTests(RepoTestCase):
+    """What a detail view shows that the IDE must not work out: graph facts, scope, baseline."""
+
+    def build(self) -> dict:
+        return snapshot.build_snapshot(self.project(), "alpha", now=NOW, stale_hours=10_000)
+
+    def assert_schema(self, data: dict) -> None:
+        schema = load_schema("snapshot")
+        self.assertEqual(problems(data, schema, schema), [])
+
+    def test_a_three_task_chain_gives_unblocks_and_waiting_on(self) -> None:
+        self.write_queue([task("AL-01", 10, status="done", commit="abc"),
+                          task("AL-02", 20, status="todo", blockedBy=["AL-01"]),
+                          task("AL-03", 30, status="todo", blockedBy=["AL-02"])])
+        data = self.build()
+        facts = {t["id"]: (t["unblocks"], t["waitingOn"]) for t in data["tasks"]}
+        self.assertEqual(facts, {"AL-01": (["AL-02"], []),
+                                 "AL-02": (["AL-03"], []),
+                                 "AL-03": ([], ["AL-02"])})
+        self.assert_schema(data)
+
+    def test_a_task_lists_every_dependent_and_every_unfinished_blocker(self) -> None:
+        self.write_queue([task("AL-01", 10, status="todo"),
+                          task("AL-02", 20, status="todo", blockedBy=["AL-01"]),
+                          task("AL-03", 30, status="todo", blockedBy=["AL-01", "AL-02"])])
+        facts = {t["id"]: (t["unblocks"], t["waitingOn"]) for t in self.build()["tasks"]}
+        self.assertEqual(facts["AL-01"], (["AL-02", "AL-03"], []))
+        self.assertEqual(facts["AL-03"], ([], ["AL-01", "AL-02"]))
+
+    def test_scope_and_baseline_for_one_workstream(self) -> None:
+        path = self.folder / "tasks_list.json"
+        data = json.loads(path.read_text())
+        data["scope"] = {"inScope": ["src/"], "outOfScope": ["ui/"], "rule": "reads only"}
+        tasks.save(path, data)
+        (self.root / ".workstream").mkdir(exist_ok=True)
+        (self.root / ".workstream" / "baseline.json").write_text(json.dumps({
+            "schemaVersion": 1, "commit": "c0", "recordedAt": "2026-10-01T00:00:00Z",
+            "keys": {"lint": {"parser": "regex", "command": "ruff", "exit": 1,
+                              "findings": ["a", "b"]},
+                     "test": {"parser": "exit-code", "command": "make test", "exit": 0,
+                              "findings": []}}}))
+        (self.folder / "baseline.json").write_text(json.dumps({
+            "schemaVersion": 1, "commit": "c1", "recordedAt": "2026-10-20T00:00:00Z",
+            "keys": {"test": {"parser": "exit-code", "command": "make test", "exit": 2,
+                              "findings": []}}}))
+        snap = self.build()
+        self.assertEqual(snap["scope"], {"inScope": ["src/"], "outOfScope": ["ui/"],
+                                         "rule": "reads only"})
+        self.assertEqual(snap["baseline"], {"keys": [
+            {"key": "lint", "source": "project", "parser": "regex", "command": "ruff",
+             "exit": 1, "findings": 2, "recordedAt": "2026-10-01T00:00:00Z", "commit": "c0"},
+            {"key": "test", "source": "workstream", "parser": "exit-code",
+             "command": "make test", "exit": 2, "findings": 0,
+             "recordedAt": "2026-10-20T00:00:00Z", "commit": "c1"},
+        ], "errors": []})
+        self.assert_schema(snap)
+
+    def test_no_scope_and_no_baseline_are_null_and_empty(self) -> None:
+        snap = self.build()
+        self.assertIsNone(snap["scope"])
+        self.assertEqual(snap["baseline"], {"keys": [], "errors": []})
+        self.assert_schema(snap)
+
+    def test_a_broken_baseline_is_named_and_the_other_still_draws(self) -> None:
+        (self.folder / "baseline.json").write_text("{broken")
+        (self.root / ".workstream").mkdir(exist_ok=True)
+        (self.root / ".workstream" / "baseline.json").write_text(json.dumps(
+            {"recordedAt": "2026-10-01T00:00:00Z", "keys": {"lint": {"findings": ["x"]}}}))
+        found = self.build()["baseline"]
+        self.assertEqual([(k["key"], k["findings"], k["exit"]) for k in found["keys"]],
+                         [("lint", 1, None)])
+        self.assertEqual(len(found["errors"]), 1)
+        self.assertIn("not valid JSON", found["errors"][0])
+
+    def test_the_snapshot_without_w_has_none_of_them(self) -> None:
+        snap = snapshot.build_snapshot(self.project(), now=NOW)
+        self.assertNotIn("scope", snap)
+        self.assertNotIn("baseline", snap)
+
+
 class RowActionsTests(RepoTestCase):
     def build(self) -> dict:
         return snapshot.build_snapshot(self.project(), now=NOW)

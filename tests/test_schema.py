@@ -123,6 +123,65 @@ class LaunchesSchemaTests(unittest.TestCase):
         self.assertTrue(problems(self.snapshot_with([{"kind": "run"}]), schema, schema))
 
 
+class DetailFactsSchemaTests(unittest.TestCase):
+    """unblocks and waitingOn on each task, and scope and baseline under -w."""
+
+    def snapshot_with(self, **extra) -> dict:
+        return {"snapshotVersion": snapshot.SNAPSHOT_VERSION, "repoRoot": "/r",
+                "integrationBranch": "main", "registry": [],
+                "revisions": {"registry": "x", "tasks": {}}, "watch": [], "refresh": [],
+                "health": [], "git": {}, **extra}
+
+    @staticmethod
+    def a_task(**fields) -> dict:
+        return {"id": "AL-01", "phase": 1, "priority": 10, "title": "t", "status": "todo",
+                "mode": "background", "unblocks": ["AL-02"], "waitingOn": [], **fields}
+
+    @staticmethod
+    def a_key(**fields) -> dict:
+        return {"key": "lint", "source": "project", "parser": "regex", "command": "ruff",
+                "exit": 1, "findings": 2, "recordedAt": "2026-10-01T00:00:00Z",
+                "commit": "c0", **fields}
+
+    def check(self, **extra) -> list[str]:
+        schema = load_schema("snapshot")
+        return problems(self.snapshot_with(**extra), schema, schema)
+
+    def test_the_new_fields_pass(self) -> None:
+        self.assertEqual(self.check(
+            tasks=[self.a_task()],
+            scope={"inScope": ["src/"], "outOfScope": [], "rule": "r"},
+            baseline={"keys": [self.a_key(), self.a_key(key="test", source="workstream",
+                                                       exit=None, parser=None)],
+                      "errors": []}), [])
+        self.assertEqual(self.check(scope=None, baseline={"keys": [], "errors": ["bad"]}), [])
+
+    def test_a_task_needs_both_graph_facts_as_id_lists(self) -> None:
+        task_ = self.a_task()
+        del task_["waitingOn"]
+        self.assertTrue(any("missing waitingOn" in p for p in self.check(tasks=[task_])))
+        self.assertTrue(self.check(tasks=[self.a_task(unblocks="AL-02")]))
+        self.assertTrue(self.check(tasks=[self.a_task(waitingOn=[1])]))
+
+    def test_scope_and_baseline_are_closed(self) -> None:
+        self.assertTrue(self.check(scope={"inScope": [], "extra": 1}))
+        self.assertTrue(self.check(scope="src/"))
+        self.assertTrue(self.check(baseline={"keys": []}))
+        self.assertTrue(self.check(baseline={"keys": [self.a_key(x=1)], "errors": []}))
+        self.assertTrue(self.check(baseline={"keys": [self.a_key(source="elsewhere")],
+                                             "errors": []}))
+        self.assertTrue(self.check(baseline={"keys": [self.a_key(findings=["a"])],
+                                             "errors": []}))
+
+    def test_the_schema_requires_what_the_code_always_writes(self) -> None:
+        snap = load_schema("snapshot")["properties"]
+        self.assertTrue({"unblocks", "waitingOn"} <= set(snap["tasks"]["items"]["required"]))
+        self.assertEqual(snap["baseline"]["required"], ["keys", "errors"])
+        key = snapshot._baseline_key("lint", {}, "project", {})
+        self.assertEqual(set(snap["baseline"]["properties"]["keys"]["items"]["required"]),
+                         set(key))
+
+
 class ChecksTheCheckerTests(unittest.TestCase):
     def test_it_catches_what_it_should(self) -> None:
         schema = {"type": "object", "required": ["a"], "additionalProperties": False,

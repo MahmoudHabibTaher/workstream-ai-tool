@@ -119,9 +119,130 @@
           "priority",
           "title",
           "status",
-          "mode"
-        ]
+          "mode",
+          "unblocks",
+          "waitingOn"
+        ],
+        "properties": {
+          "unblocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ids of the tasks that name this one in blockedBy, in priority order."
+          },
+          "waitingOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "This task's blockedBy ids that are not done yet."
+          }
+        }
       }
+    },
+    "scope": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "inScope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outOfScope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rule": {
+          "type": "string"
+        }
+      },
+      "description": "The queue's scope, or null when it has none."
+    },
+    "baseline": {
+      "type": "object",
+      "required": [
+        "keys",
+        "errors"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "source",
+              "parser",
+              "command",
+              "exit",
+              "findings",
+              "recordedAt",
+              "commit"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "project",
+                  "workstream"
+                ]
+              },
+              "parser": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "command": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "exit": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "findings": {
+                "type": "integer"
+              },
+              "recordedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "commit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "What ws verify judges this workstream against, one entry per key in key order: the project's record with the workstream's own taking over. findings counts the known ones; exit is the recorded exit code."
     },
     "wave": {
       "type": "object",
