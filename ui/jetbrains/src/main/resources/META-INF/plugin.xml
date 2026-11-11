@@ -27,6 +27,14 @@
                     dynamic="true"/>
   </extensionPoints>
 
+  <!-- The chat targets (ChatTargets.kt) register here rather than through an optional depends: that
+       would name an agent's plugin id in this file. Each is offered only while its plugin's classes
+       load, and comes after the Terminal. -->
+  <extensions defaultExtensionNs="dev.workstream.jetbrains">
+    <launchTarget implementation="dev.workstream.jetbrains.ChatSessionTarget" order="last"/>
+    <launchTarget implementation="dev.workstream.jetbrains.PromptPopupTarget" order="last"/>
+  </extensions>
+
   <!-- Run, Workstream, Task and Open (D-MENUS): each action is enabled only where the selected node or
        its snapshot offers it, and a group with none hides. The toolbar, Tools > Workstreams and the
        list's, table's and Health tree's popup menus show the same four groups. -->

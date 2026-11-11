@@ -1,7 +1,8 @@
 // Where a launch goes (D-ACTIONS, D-DIALOG). The launch dialog names a target; it starts the
 // launch if it can take it now, else the prompt goes to the clipboard. With no target named, the
 // first that can take it starts it. Today the targets are the Terminal, when an agent argv is
-// given or the agent command is set and the Terminal plugin is on, then the clipboard. Callers only
+// given or the agent command is set and the Terminal plugin is on, the chat targets in
+// ChatTargets.kt while their plugins are on, then the clipboard. Callers only
 // call `Launcher.launch` and show what it said, so they never know which target's class ran. Apart from Cli.kt, this is the only file that starts a process:
 // the agent, as a Terminal tab's own process (plan T7).
 package dev.workstream.jetbrains
@@ -32,6 +33,9 @@ interface LaunchTarget {
 
     /** What the launch dialog's target picker calls it. */
     val label: String get() = id
+
+    /** False while the target's plugin is missing, so the launch dialog doesn't offer it. */
+    val available: Boolean get() = true
 
     /** Null when this target can't take the request, so the next one is tried. */
     fun start(project: Project, request: LaunchRequest): Started?
@@ -86,7 +90,7 @@ object Launcher {
     val TARGETS: ExtensionPointName<LaunchTarget> = ExtensionPointName.create("dev.workstream.jetbrains.launchTarget")
 
     /** The targets a launch can go to now, in picker order: each registered one, then the clipboard. */
-    fun choices(): List<Pair<String, String>> = TARGETS.extensionList.map { it.id to it.label } + (CLIPBOARD to "Clipboard")
+    fun choices(): List<Pair<String, String>> = TARGETS.extensionList.filter { it.available }.map { it.id to it.label } + (CLIPBOARD to "Clipboard")
 
     /**
      * Starts the request with `target`, or with the first target that takes it when none is named;
@@ -99,7 +103,7 @@ object Launcher {
             CopyPasteManager.getInstance().setContents(StringSelection(request.prompt))
             return Started(CLIPBOARD, "Copied the ${request.title} prompt to the clipboard. Prompt: ${request.prompt}")
         }
-        for (each in targets.filter { target == null || it.id == target }) {
+        for (each in targets.filter { if (target == null) it.available else it.id == target }) {
             each.start(project, request)?.let { return it }
         }
         CopyPasteManager.getInstance().setContents(StringSelection(request.prompt))
