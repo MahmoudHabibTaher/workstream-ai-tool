@@ -1,16 +1,18 @@
 # Session handoff
 
-**State:** 9/10 done on `main` at `dc23088`, as of 2026-11-11.
+**State:** 10/10 done on `main` at `9a37df9`, as of 2026-11-11.
 
-**Just landed:** JX-09 (`dc23088203`)
+**Just landed:** JX-10 (`9a37df9a92`)
 
 **Open decisions:**
-- D023: Run This Task… is left out of the Run group until JX-08 (waiting: JX-10)
-- D033: the chat targets register in plugin.xml, not through optional `<depends>` config files (waiting: JX-10)
-- D034: the fakes are stand-ins under their own names, not classes under the plugins' names (waiting: JX-10)
+- D023: Run This Task… is left out of the Run group until JX-08 (no task waiting)
+- D033: the chat targets register in plugin.xml, not through optional `<depends>` config files (no task waiting)
+- D034: the fakes are stand-ins under their own names, not classes under the plugins' names (no task waiting)
 
-**Next:** `ws claim --commit JX-10` (phase 4).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- JX-09: - On the local 2026.2 IDE, the installed Air plugin has no `AgentPromptPalettePopupService` (its `lib/modules` has no `intellij.air.frontend.prompt.ui.jar`). There, Air isn't offered. It is offered on 2026.3 (bundled Air 263.7307.200), where the classes and both anchor actions (`Air.Prompt.NewSession.Send`, `Air.Prompt.Pin`) exist. Copilot 1.20/1.21 has `CopilotChatService.query(DataContext, Function1)` and the `QueryOptionBuilder` methods used, registered as a project service, with `copilot.chat.show` in the same module.
-- Neither target has been tried by hand against the real plugins in a running IDE. Only the signatures were checked, with `javap` against the installed jars.
+- JX-10: - Files outside the task's list, under D037: `Launch.kt`, `LaunchDialog.kt`, `logic/Actions.kt`, `LaunchDialogTest.kt`, `logic/ActionsTest.kt`, and `tests/test_jetbrains_files.py`, whose pinned line is now `myShellCommand = shellArgv(System.getenv("SHELL"), argv)`.
+- D023, D033 and D034 stay open for the owner. What was seen agrees with each: the Pin task picker, chat targets offered only while their plugin is installed (Air appeared in Android Studio once its plugin shipped the class), and fakes under their own names.
+- Not in this task's files, from JX-05: `ws show` still works out "unblocks" itself in `cli.py`; `logic/Actions.kt`'s confirm still says "since the tree drew it"; `WsActions.kt`'s header comment still says "Registry".
+- The plugin's version stays `0.1.0`. A local repository that stamps each build (`0.1.0.<timestamp>` via a Gradle init script) made the hand check's updates one click. It lives in the scratchpad and isn't part of the repo.

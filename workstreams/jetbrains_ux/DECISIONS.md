@@ -190,3 +190,11 @@ When `project.basePath` (canonical) isn't the request's root, the chat prompt st
 Changes: JX-10.
 
 In IntelliJ 2026.3 the owner found (A) the launch dialog's blocking checks were plain text scrolled out of view, with no reason by the disabled OK, and (B) Run in a Terminal failed: the agent argv ran as the tab's process, so ~/.zshrc's PATH never applied and claude in ~/.local/bin wasn't found. The owner chose to fix both inside JX-10 before the Android Studio pass. Rejected: landing JX-10 with them as follow-ups, which would leave acceptance 1's Terminal run unproven. **Closed.**
+
+## D038 (2026-11-11, JX-10): the Terminal tab runs the agent through the person's login, interactive shell
+
+Recorded as D037 by the owner; the shape is this task's. `TerminalTarget`'s opener sets `myShellCommand = shellArgv(System.getenv("SHELL"), argv)`, which for sh, bash, zsh, ksh and dash at an absolute path gives `[$SHELL, -l, -i, -c, 'exec "$@"', ws-launch, ...argv]`. Any other shell, or none, runs the argv as it is. From a bare `PATH=/usr/bin:/bin`, the wrap found `claude` 2.1.316 and passed `a "quoted" $HOME prompt` through unchanged. The dialog and `Started.argv` keep the plain argv. Rejected: reading the IDE's loaded shell environment (it had no `~/.zshrc` PATH here), and resolving the agent's absolute path in the plugin, which would miss version managers and aliases. **Closed.**
+
+## D039 (2026-11-11, JX-10): the checks are a list of rows, blocking first, and the dialog's error line names what blocks
+
+`LaunchDialog` lists the checks in a `JBList` drawn through `ColoredListCellRenderer`, with `AllIcons.General.Error`, `Warning` or `InspectionsOK`. `Launches.ordered` puts failed blocking checks first, then warnings, then passed checks. `setErrorText(Text.html("Blocked by validate, wave, claim: fix these checks to launch."))` shows the reason by the buttons. A check run that failed outright is one blocking row. Rejected: keeping the text area and only scrolling it to the top, which would still give no reason next to OK. **Closed.**
