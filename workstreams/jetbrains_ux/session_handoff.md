@@ -1,12 +1,13 @@
 # Session handoff
 
-**State:** 3/10 done on `main` at `5d6ad3d`, as of 2026-11-11.
+**State:** 4/10 done on `main` at `a04eb10`, as of 2026-11-11.
 
-**Just landed:** JX-03 (`5d6ad3dcfe`)
+**Just landed:** JX-04 (`a04eb10d31`)
 
-**Next:** `ws claim --commit JX-04` (phase 1).
+**Next:** `ws claim --commit JX-05` (phase 2).
 
 **Gotchas:**
-- JX-03: - The skills check uses only `adapt.adapted` (the manifest's list), as T4 says. It doesn't look at `adapt.drift`, so skills that were installed and then deleted or edited still pass. A later task could add drift as a second warning.
-- The `dirty` check uses the same owner filter as `act.check_checkout` (the registry, or this workstream's folder), written again in `launch.check_dirty` because `act.py` isn't in this task's files. A shared helper in snapshot.py would leave one copy.
-- JX-04/JX-05 need `ws launch check` added to `tests/test_jetbrains_files.py`'s argv list (T8) when Cli.kt calls it.
+- JX-04: - The ws-run skill doesn't describe running a single pinned task. The run-task prompt relies on the agent reading "run only task X". A later task could add a line to `src/workstream/assets/skills/ws-run/SKILL.md`.
+- For claude-code the prompt is a bare last argument. An edited `--prompt` that starts with `-` would be read as a flag. No prompt from `LAUNCH_PROMPTS` does that.
+- `tests/test_jetbrains_files.py:164` splits prompts only on `{ws}`, so the run-task pieces keep the literal `{task}`. The check still works (no Kotlin holds them), but splitting on `{task}` as well would make it tighter.
+- JX-05: when Cli.kt calls `ws launch argv`/`agents`, add them to `tests/test_jetbrains_files.py`'s argv list (T8).
