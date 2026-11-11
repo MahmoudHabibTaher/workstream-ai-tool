@@ -103,3 +103,21 @@ Rejected: keeping RegistryView.kt alongside (two views of the same data). **Clos
 
 `selected()` is the selected task when the table had focus last (or a jump link was clicked), else the selected list row; both popup menus use `POPUP_GROUP`. Each node keeps the revisions it was drawn with.
 Rejected: always preferring a selected task (Pause from the list would then need deselecting the table first). **Closed.**
+
+## D020 (2026-11-11, JX-06): the Graph expands a task once; later appearances are leaves marked "shown above"
+
+`graph()` in logic/Registry.kt roots the tree at the tasks whose `blockedBy` names none of the table's tasks. Children are the `unblocks` ids, in table order. A task reached a second time (a diamond, or a cycle) is drawn as a leaf with `status · shown above`. A task that no root reaches (a cycle) becomes an extra root. Only snapshot fields are used (plan T3). Selecting a task in the table selects where that task is expanded in the Graph.
+Rejected: repeating whole subtrees under every parent (the tree can grow without bound, and a cycle never ends). **Closed.**
+
+## D021 (2026-11-11, JX-06): Overview content and sources
+
+The sections, in order, are Documents (links from `paths`), Registry (the list's row: title, summary, status · tier, done/total · claimed, depends on, dates, base commit, notes), Open claims (the in-progress tasks, each a jump link `id · claimedBy · age`), Scope / In scope / Out of scope (the snapshot's `scope`), Verify (the distinct `verifyCommands` across the tasks) and Baseline (one line per key, then `Error: …` lines). Open claims and Baseline always show and say `None` / `None recorded` when empty. The other sections are left out when they have nothing to show. The Overview reuses the `TaskPane` class (D017's shape), so its text goes through JBTextArea and `Text.html` links.
+Rejected: a workstream-level verify list (the snapshot has none, so the plugin would be guessing). **Closed.**
+
+## D022 (2026-11-11, JX-06): files touched outside the task's list
+
+- `Snapshots.kt` parses `scope`, `baseline` and the registry row's `tier/created/startedAt/completedAt/baseCommit/notes`. It is the only place snapshot JSON is parsed (same reason as D015).
+- `logic/Format.kt` adds those six fields to `Row`, all optional.
+- `tests/test_jetbrains_files.py` updates its shape check: the `append(` list gains the GraphRenderer's three calls, the ActionLink arguments become `Text.html(item.label)`, and it asserts `GraphRenderer : ColoredTreeCellRenderer()` and the Overview pane. T6 asks for this test to be updated for new views, and no new view file was added.
+- `PaneItem.TaskLink` and `PaneItem.FileLink` gain a `label` that defaults to the id or path, so the Overview's claims and documents can carry their own text.
+Rejected: a separate parser in the view. **Closed.**

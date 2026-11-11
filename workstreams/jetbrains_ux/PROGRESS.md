@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `bf36f9b`.
 
 ---
 
+## 2026-11-11: JX-06: Graph and Overview tabs
+
+Merged as `2fa3c527c3`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-06.md).
+
 ## 2026-11-11: JX-05: Master-detail Workstreams tab: list, Tasks table, task pane
 
 Merged as `b4194c5985`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-05.md).
