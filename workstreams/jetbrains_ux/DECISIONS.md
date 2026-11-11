@@ -28,3 +28,28 @@ Rejected: transitive unblocks; adding a new function to graph.py. **Closed.**
 
 `scope` is always present under `-w`: null when the queue has none (or it isn't an object), else `inScope`/`outOfScope`/`rule` as present and well-typed. The schema closes it. Neither `scope` nor `baseline` appears without `-w`.
 Rejected: omitting the key when absent (a UI would have to tell "missing" from "old CLI"). **Closed.**
+
+## D005 (2026-11-11, JX-03): `validate` checks this workstream only, through `registry.validate_entry`
+
+The same call `ws validate -w <id>` makes. Another workstream's broken queue doesn't stop a launch on this one; the message gives the first error and points to `ws validate -w <id>` for the rest.
+Rejected: `registry.validate_all`, which would let any workstream's error block every launch. **Closed.**
+
+## D006 (2026-11-11, JX-03): the command exits 0 whenever the checks ran; the verdict is in the JSON
+
+`ws launch check` exits 0 even when a blocking check fails, so a UI reads each check's `ok`/`blocking` rather than treating a nonzero exit as "the CLI failed". Exit 1 is kept for what the caller got wrong (unknown workstream, `run-task` without `--task`, `--task` with another kind, a task the queue doesn't hold) and for argparse errors (an unknown `--kind`). The text form ends with `blocked` or `ready to launch`. `launch.blocked(result)` gives the verdict to Python callers.
+Rejected: exit 1 on a blocking failure (a UI would have to tell it apart from a real error). **Closed.**
+
+## D007 (2026-11-11, JX-03): only the checks that apply to the kind are listed; `skills` only with `--agent`
+
+`run` gets validate, wave, claim, dirty, baseline; `run-task` gets the same minus wave; coordinate/close/abandon get validate, dirty, baseline. `skills` is added when `--agent` is given. Every check carries `blocking` even when it passes, so a UI can show how each would count.
+Rejected: listing every check for every kind with a "not applicable" state (a fourth state the schema and UIs would have to draw). **Closed.**
+
+## D008 (2026-11-11, JX-03): `run-task` is accepted as a kind before its prompt exists
+
+`launch.KINDS` is `snapshot.LAUNCH_PROMPTS`' keys plus `run-task`, de-duplicated, so JX-04 adding the `run-task` prompt changes nothing here. For `run-task` the claim check names the pinned task when it's the one already claimed ("AL-01 is already claimed"); either way it's a warning, as D-PREFLIGHT says.
+Rejected: waiting for JX-04's prompt, or a second list of kinds. **Closed.**
+
+## D009 (2026-11-11, JX-03): a check that can't read its input fails, it doesn't raise
+
+An unreadable queue fails wave/claim/baseline with `cannot read the queue: ...` (keeping each check's own blocking), a broken `baseline.json` or adapters manifest fails its check with the read error, and a git failure fails `dirty` (blocking). The other checks still run, as D002 does for the snapshot.
+Rejected: raising, which would hide every other check behind one broken file. **Closed.**

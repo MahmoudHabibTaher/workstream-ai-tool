@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `bf36f9b`.
 
 ---
 
+## 2026-11-11: JX-03: ws launch check: pre-flight checks
+
+Merged as `5d6ad3dcfe`. Verified: test pass. [Evidence](evidence/JX-03.md).
+
 ## 2026-11-11: JX-01: Record the comparison and the rules it changes
 
 Merged as `d35bf0e318`. Verified: test pass. [Evidence](evidence/JX-01.md).
