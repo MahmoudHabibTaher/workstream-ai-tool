@@ -5,7 +5,10 @@ package dev.workstream.jetbrains
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import dev.workstream.jetbrains.logic.Baseline
+import dev.workstream.jetbrains.logic.BaselineKey
 import dev.workstream.jetbrains.logic.BudgetRow
+import dev.workstream.jetbrains.logic.Scope
 import dev.workstream.jetbrains.logic.Finding
 import dev.workstream.jetbrains.logic.Loaded
 import dev.workstream.jetbrains.logic.LaunchOffer
@@ -42,6 +45,12 @@ object Snapshots {
                 val kind = l.str("kind") ?: return@mapNotNull null
                 LaunchOffer(kind, l.str("prompt") ?: return@mapNotNull null, l.str("ask"))
             },
+            tier = r.str("tier"),
+            created = r.str("created"),
+            startedAt = r.str("startedAt"),
+            completedAt = r.str("completedAt"),
+            baseCommit = r.str("baseCommit"),
+            notes = r.str("notes"),
         )
     }
 
@@ -116,9 +125,19 @@ object Snapshots {
     fun tasksFile(snap: JsonObject, docs: Map<String, String>): String? =
         snap.strings("watch").drop(1).firstOrNull { it !in docs.values }
 
+    fun scope(snap: JsonObject): Scope? = snap.obj("scope")?.let { Scope(it.strings("inScope"), it.strings("outOfScope"), it.str("rule")) }
+
+    fun baseline(snap: JsonObject): Baseline? = snap.obj("baseline")?.let { b ->
+        Baseline(b.arr("keys").objects().mapNotNull { k ->
+            BaselineKey(k.str("key") ?: return@mapNotNull null, k.str("source") ?: "", k.str("command"), k.int("exit"),
+                        k.int("findings") ?: 0, k.str("recordedAt"), k.str("commit"))
+        }, b.strings("errors"))
+    }
+
     fun view(snap: JsonObject): WsView {
         val paths = snap.obj("paths")
         val docs = paths?.entrySet()?.filter { it.value.isJsonPrimitive }?.associate { it.key to it.value.asString } ?: mapOf()
-        return WsView(tasks(snap), wave(snap), docs, revisions(snap), health(snap), snap.str("repoRoot"), tasksFile(snap, docs))
+        return WsView(tasks(snap), wave(snap), docs, revisions(snap), health(snap), snap.str("repoRoot"), tasksFile(snap, docs),
+                      scope(snap), baseline(snap))
     }
 }

@@ -1,7 +1,8 @@
 // The Workstreams tool window's Workstreams tab (D-LAYOUT): a list of workstreams on the left and,
-// for the selected one, a Tasks tab with a table above a task pane. It arranges what Workstreams
+// for the selected one, a Tasks tab with a table above a task pane, a Graph tab with the tree of
+// what waits on what, and an Overview tab. It arranges what Workstreams
 // holds, which holds only what the CLI printed. Repo text is drawn as text: list and table cells
-// through ColoredListCellRenderer and ColoredTableCellRenderer, pane lines in read-only text areas,
+// through ColoredListCellRenderer, ColoredTableCellRenderer and ColoredTreeCellRenderer, pane lines in read-only text areas,
 // link labels through Text.html, and tooltips through Text.tip (plan T2, T6).
 package dev.workstream.jetbrains
 
@@ -29,6 +30,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ColoredTableCellRenderer
+import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
@@ -46,9 +48,12 @@ import com.intellij.ui.content.ContentManagerListener
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.table.TableView
+import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.ListTableModel
+import com.intellij.util.ui.tree.TreeUtil
+import dev.workstream.jetbrains.logic.GraphNode
 import dev.workstream.jetbrains.logic.Loaded
 import dev.workstream.jetbrains.logic.PaneItem
 import dev.workstream.jetbrains.logic.PaneSection
@@ -58,6 +63,9 @@ import dev.workstream.jetbrains.logic.WorkstreamNode
 import dev.workstream.jetbrains.logic.WsView
 import dev.workstream.jetbrains.logic.documents
 import dev.workstream.jetbrains.logic.filePath
+import dev.workstream.jetbrains.logic.graph
+import dev.workstream.jetbrains.logic.graphLabel
+import dev.workstream.jetbrains.logic.overview
 import dev.workstream.jetbrains.logic.rowDetails
 import dev.workstream.jetbrains.logic.shown
 import dev.workstream.jetbrains.logic.taskCells
@@ -83,12 +91,18 @@ import javax.swing.JPanel
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
 import javax.swing.Scrollable
+import javax.swing.JTree
 import javax.swing.SwingConstants
 import javax.swing.table.TableCellRenderer
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreePath
 
 const val TOOL_WINDOW = "Workstreams"
 const val WORKSTREAMS_TAB = "Workstreams"
 const val TASKS_TAB = "Tasks"
+const val GRAPH_TAB = "Graph"
+const val OVERVIEW_TAB = "Overview"
 const val POPUP_GROUP = "Workstreams.Registry.Popup"
 
 private val STATUS_ICONS: Map<String, Icon> = mapOf(
@@ -123,6 +137,19 @@ class TaskCellRenderer : ColoredTableCellRenderer() {
 
 private val CELL_RENDERER = TaskCellRenderer()
 
+/** A Graph node: its id, then its title, then its status and badges greyed, with the status icon. */
+class GraphRenderer : ColoredTreeCellRenderer() {
+    override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
+        val node = (value as? DefaultMutableTreeNode)?.userObject as? GraphNode ?: return
+        val label = graphLabel(node)
+        append(label.id, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
+        if (label.title.isNotEmpty()) append("  ${label.title}", SimpleTextAttributes.REGULAR_ATTRIBUTES)
+        append("  ${label.detail}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        icon = statusIcon(node.task.task.status)
+        toolTipText = Text.tip(shown(node.task).tip)
+    }
+}
+
 class TaskColumn(private val index: Int) : ColumnInfo<TaskNode, String>(TASK_COLUMNS[index]) {
     override fun valueOf(item: TaskNode): String = taskCells(item)[index]
     override fun getRenderer(item: TaskNode?): TableCellRenderer = CELL_RENDERER
@@ -139,7 +166,7 @@ private class WidthTracking : JPanel(BorderLayout()), Scrollable {
 }
 
 /**
- * The selected task's pane, built with the UI DSL from taskPane's sections. Headings are the
+ * A pane of sections: the selected task's, or the workstream's Overview, built with the UI DSL from taskPane's sections. Headings are the
  * plugin's constants, lines sit in read-only text areas, which never read markup, and links
  * carry their text through Text.html.
  */
@@ -171,8 +198,8 @@ class TaskPane(private val onTask: (String) -> Unit, private val onFile: (String
                                 isOpaque = false
                                 border = null
                             }).align(AlignX.FILL)
-                            is PaneItem.TaskLink -> cell(ActionLink(Text.html(item.id)) { onTask(item.id) }.also { drawn[item] = it })
-                            is PaneItem.FileLink -> cell(ActionLink(Text.html(item.path)) { onFile(item.path) }.also { drawn[item] = it })
+                            is PaneItem.TaskLink -> cell(ActionLink(Text.html(item.label)) { onTask(item.id) }.also { drawn[item] = it })
+                            is PaneItem.FileLink -> cell(ActionLink(Text.html(item.label)) { onFile(item.path) }.also { drawn[item] = it })
                         }
                     }
                 }
@@ -193,6 +220,8 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
     val tableModel = ListTableModel<TaskNode>(*TASK_COLUMNS.indices.map { TaskColumn(it) }.toTypedArray())
     val table = TableView(tableModel)
     val pane = TaskPane(::selectTask, ::openFile)
+    val graphTree = Tree(DefaultTreeModel(DefaultMutableTreeNode()))
+    val overviewPane = TaskPane(::selectTask, ::openFile)
     val tabs = JBTabbedPane()
 
     /** The selected workstream's name and wave line, and its documents as links. */
@@ -220,6 +249,13 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
         list.addListSelectionListener { if (!it.valueIsAdjusting && !rebuilding) loadView() }
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
         table.selectionModel.addListSelectionListener { if (!it.valueIsAdjusting && !rebuilding) drawPane() }
+        graphTree.isRootVisible = false
+        graphTree.showsRootHandles = true
+        graphTree.cellRenderer = GraphRenderer()
+        graphTree.selectionModel.selectionMode = javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION
+        graphTree.addTreeSelectionListener {
+            if (!rebuilding) selectedGraphNode()?.let { selectTask(it.task.task.id) }
+        }
         list.addFocusListener(object : FocusAdapter() {
             override fun focusGained(e: FocusEvent) { taskFocus = false }
         })
@@ -241,6 +277,8 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
         tasks.firstComponent = ScrollPaneFactory.createScrollPane(table, true)
         tasks.secondComponent = pane.component
         tabs.addTab(TASKS_TAB, tasks)
+        tabs.addTab(GRAPH_TAB, ScrollPaneFactory.createScrollPane(graphTree, true))
+        tabs.addTab(OVERVIEW_TAB, overviewPane.component)
         val detail = JPanel(BorderLayout())
         val top = JPanel(BorderLayout())
         top.add(header, BorderLayout.NORTH)
@@ -345,12 +383,49 @@ class WorkstreamsPanel(private val project: Project, parent: Disposable, private
         docs.removeAll()
         value?.let(::documents)?.forEach { (label, path) -> docs.add(ActionLink(Text.html(label)) { openPath(path) }) }
         docs.revalidate()
+        drawGraph(rows)
+        overviewPane.show(if (value == null) listOf() else overview(node?.row, value, now()))
         drawPane()
+    }
+
+    /** Builds the Graph tab's tree from the table's rows, all expanded. */
+    private fun drawGraph(rows: List<TaskNode>) {
+        val top = DefaultMutableTreeNode()
+        fun add(parent: DefaultMutableTreeNode, node: GraphNode) {
+            val child = DefaultMutableTreeNode(node)
+            parent.add(child)
+            node.children.forEach { add(child, it) }
+        }
+        graph(rows).forEach { add(top, it) }
+        rebuilding = true
+        try {
+            (graphTree.model as DefaultTreeModel).setRoot(top)
+            TreeUtil.expandAll(graphTree)
+        } finally {
+            rebuilding = false
+        }
+    }
+
+    fun selectedGraphNode(): GraphNode? = (graphTree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? GraphNode
+
+    /** Selects, in the Graph tab, where the table's task first appears, unless a node of it is already selected. */
+    private fun syncGraph(id: String?) {
+        if (selectedGraphNode()?.task?.task?.id == id) return
+        rebuilding = true
+        try {
+            val root = graphTree.model.root as DefaultMutableTreeNode
+            val found = if (id == null) null else root.depthFirstEnumeration().toList().filterIsInstance<DefaultMutableTreeNode>()
+                .firstOrNull { (it.userObject as? GraphNode)?.let { g -> g.task.task.id == id && !g.repeat } == true }
+            if (found == null) graphTree.clearSelection() else TreePath(found.path).let { graphTree.selectionPath = it; graphTree.scrollPathToVisible(it) }
+        } finally {
+            rebuilding = false
+        }
     }
 
     private fun drawPane() {
         val task = selectedTask()
         pane.show(if (task == null) listOf() else taskPane(task, tableModel.items.map { it.task.id }.toSet(), now()))
+        syncGraph(task?.task?.id)
     }
 
     /** A jump link: selects the task with this id in the table, which redraws the pane on it. */

@@ -81,16 +81,21 @@ class NamesNoProjectTests(unittest.TestCase):
     def test_the_workstreams_tab_draws_repo_text_as_text(self) -> None:
         """The list and the table draw through Colored*CellRenderer.append; the task pane puts a
         line in a read-only JBTextArea, which never reads markup, a link's text through Text.html,
-        and a heading (the plugin's constant) through SimpleColoredComponent.append (plan T6)."""
+        and a heading (the plugin's constant) through SimpleColoredComponent.append (plan T6). The
+        Graph tab's tree draws through ColoredTreeCellRenderer.append, and the Overview is a pane."""
         view = WORKSTREAMS.read_text()
         self.assertIn("class WorkstreamsRenderer : ColoredListCellRenderer<WorkstreamNode>()", view)
         self.assertIn("class TaskCellRenderer : ColoredTableCellRenderer()", view)
+        self.assertIn("class GraphRenderer : ColoredTreeCellRenderer()", view)
         self.assertEqual(view.count("toolTipText = Text.tip(shown(node).tip)"), 2)
+        self.assertEqual(view.count("toolTipText = Text.tip(shown(node.task).tip)"), 1)
         self.assertEqual(re.findall(r"\bappend\(([^,]*),", view),
-                         ["node.row.id", '"  ${details.joinToString(" · ")}"', 'value as? String ?: ""', "heading",
+                         ["node.row.id", '"  ${details.joinToString(" · ")}"', 'value as? String ?: ""',
+                          "label.id", '"  ${label.title}"', '"  ${label.detail}"', "heading",
                           'node.row.title?.let { "${node.row.id}: $it" } ?: node.row.id', '"  $line"', '"  ${it.error}"'])
         self.assertEqual(re.findall(r"\bActionLink\(([^)]*\)?)", view),
-                         ["Text.html(item.id)", "Text.html(item.path)", "Text.html(label)"])
+                         ["Text.html(item.label)", "Text.html(item.label)", "Text.html(label)"])
+        self.assertIn("val overviewPane = TaskPane(::selectTask, ::openFile)", view)
         self.assertIn("cell(JBTextArea(item.text).apply {", view)
         self.assertIn("isEditable = false", view)
         # StatusText draws through SimpleColoredComponent too, so the list's empty text may be set.

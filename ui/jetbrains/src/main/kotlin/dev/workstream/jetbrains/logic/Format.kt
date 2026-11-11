@@ -55,6 +55,13 @@ data class Row(
     val actions: List<String> = listOf(),
     /** What the row can launch, in the snapshot's order, each prompt already filled in. */
     val launches: List<LaunchOffer> = listOf(),
+    /** The rest of the registry row, as the Overview shows it. */
+    val tier: String? = null,
+    val created: String? = null,
+    val startedAt: String? = null,
+    val completedAt: String? = null,
+    val baseCommit: String? = null,
+    val notes: String? = null,
 )
 
 data class Finding(
