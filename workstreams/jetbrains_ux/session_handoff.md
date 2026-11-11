@@ -1,7 +1,12 @@
 # Session handoff
 
-**State: new.** Created 2026-11-10 from `main` at `bf36f9b`. No task has started.
+**State:** 1/10 done on `main` at `e739060`, as of 2026-11-11.
 
-**Next:** `ws claim --commit JX-01 JX-02` (phase 1).
+**Just landed:** JX-02 (`e73906035e`)
 
-**Gotchas:** None.
+**Still in progress:** JX-01 (ws-run)
+
+**Next:** `ws claim --commit JX-03` (phase 1).
+
+**Gotchas:**
+- JX-02: - `ws show` still computes "unblocks" inline in `src/workstream/cli.py` (`_print_task`); it could call `snapshot.task_graph_facts` or a shared graph helper so there's one copy. Not done here (cli.py is outside this task's files).
