@@ -516,7 +516,7 @@ class RowLaunchesTests(RepoTestCase):
 
     def test_the_prompts_match_promptText_in_logic_js(self) -> None:
         web = prompt_text_strings()
-        self.assertEqual(set(web), set(snapshot.LAUNCH_PROMPTS))
+        self.assertEqual(set(web), set(snapshot.ROW_LAUNCHES))
         for kind in ("run", "coordinate", "close"):
             self.assertEqual(snapshot.LAUNCH_PROMPTS[kind], web[kind], kind)
         # The web copy ends in a placeholder for the reason; the snapshot's stops before it.

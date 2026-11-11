@@ -59,6 +59,36 @@ def load(name: str) -> Adapter:
     return Adapter(raw["name"], raw["label"], raw["instructions"], raw["skill"], raw)
 
 
+PROMPT_PLACES = ("last", "flag")
+
+
+def launch_preset(adapter: Adapter) -> dict | None:
+    """The adapter's [launch] table as {command, prompt, promptFlag, effortFlag, effortLevels,
+    permissions: {choice: [flags]}}, or None when it has none. The flags are the agent's own,
+    so they live in its data file and nowhere in code."""
+    table = adapter.raw.get("launch")
+    if table is None:
+        return None
+    place = table.get("prompt", "last")
+    if place not in PROMPT_PLACES:
+        raise WsError(f"{adapter.name}: [launch] prompt must be one of {', '.join(PROMPT_PLACES)}")
+    if place == "flag" and not table.get("prompt_flag"):
+        raise WsError(f"{adapter.name}: [launch] prompt = \"flag\" needs prompt_flag")
+    if not table.get("command"):
+        raise WsError(f"{adapter.name}: [launch] needs a command")
+    levels = list(table.get("effort_levels", []))
+    if levels and not table.get("effort_flag"):
+        raise WsError(f"{adapter.name}: [launch] effort_levels needs effort_flag")
+    return {
+        "command": table["command"],
+        "prompt": place,
+        "promptFlag": table.get("prompt_flag"),
+        "effortFlag": table.get("effort_flag"),
+        "effortLevels": levels,
+        "permissions": {k: list(v) for k, v in table.get("permissions", {}).items()},
+    }
+
+
 def skill_text(adapter: Adapter, name: str, worker_name: str | None = None) -> str:
     """One skill as this agent gets it: the shared text and this agent's notes on it."""
     text = protocol.skill_text(name)
