@@ -1,12 +1,10 @@
 # Session handoff
 
-**State:** 1/10 done on `main` at `e739060`, as of 2026-11-11.
+**State:** 2/10 done on `main` at `d35bf0e`, as of 2026-11-11.
 
-**Just landed:** JX-02 (`e73906035e`)
-
-**Still in progress:** JX-01 (ws-run)
+**Just landed:** JX-01 (`d35bf0e318`)
 
 **Next:** `ws claim --commit JX-03` (phase 1).
 
 **Gotchas:**
-- JX-02: - `ws show` still computes "unblocks" inline in `src/workstream/cli.py` (`_print_task`); it could call `snapshot.task_graph_facts` or a shared graph helper so there's one copy. Not done here (cli.py is outside this task's files).
+- JX-01: - The record says the JetBrains scan allows `ChatTargets.kt` by name "once the chat targets land": `tests/test_jetbrains_files.py` doesn't have that exception yet, and the task that adds `ChatTargets.kt` has to add it.
