@@ -13,7 +13,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from workstream import act, adapt, adopt, audit, baseline, brief, decisions, doctor, evidence, gates, graph
-from workstream import gitutil, handoff, hook, importer, plan, protocol, registry, review, settle, snapshot, tasks, verify
+from workstream import gitutil, handoff, hook, importer, launch, plan, protocol, registry, review, settle, snapshot, tasks, verify
 from workstream import usage, worktree
 from workstream import __version__
 from workstream.errors import Refused, WsError
@@ -1053,6 +1053,22 @@ def cmd_act(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_launch(args: argparse.Namespace) -> int:
+    """`launch check`: the pre-flight checks. Exits 0 whenever the checks ran, whatever they
+    found; the result is in each check's ok and blocking."""
+    project = _project(args)
+    ws = _resolve_ws(project, args)
+    result = launch.run_checks(project, ws["id"], args.kind, task_id=args.task, agent=args.agent)
+    if args.json:
+        print(json.dumps(result, indent=2))
+        return 0
+    for c in result["checks"]:
+        state = "ok" if c["ok"] else ("BLOCKS" if c["blocking"] else "warning")
+        print(f"{state:<8} {c['id']:<9} {c['message']}")
+    print("blocked" if launch.blocked(result) else "ready to launch")
+    return 0
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     project = _project(args)
     if args.queue:
@@ -1347,6 +1363,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--expect-tasks",
                    help="sha256 of the queue as drawn (snapshot revisions.tasks); "
                         "required for unclaim")
+
+    p = command("launch", cmd_launch, "before a UI launches an agent: what would stop it")
+    actions = p.add_subparsers(dest="action", required=True)
+    q = actions.add_parser("check", parents=[common],
+                           help="the pre-flight checks, each blocking or a warning")
+    q.add_argument("--kind", required=True, choices=launch.KINDS)
+    q.add_argument("--task", help=f"the task a {launch.TASK_KIND} launch pins")
+    q.add_argument("--agent", help="also check `ws adapt` installed this agent's skills")
+    q.add_argument("--json", action="store_true")
 
     p = command("review", cmd_review, "one task's review data as JSON: evidence path, diff range "
                                       "and diffstat; with --file also that file's hunks")
