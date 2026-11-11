@@ -73,3 +73,33 @@ Rejected: a new skill name, because skills are outside this task. **Closed.**
 
 `ws launch argv --json` prints exactly `{argv, effortLevels, permissionChoices}`, with `permissionChoices` as a list of names (the flags are already in `argv`). Without `--json` it prints `shlex.join(argv)`. `ws launch agents --json` prints `{agents: [{agent, label, command, effortLevels, permissionChoices}]}`. `--prompt-kind` accepts the keys of `LAUNCH_PROMPTS`. `--prompt` replaces the text after the workstream, kind and task have been checked, so an edited prompt still names a real target. Unknown effort or permissions, an unknown agent, a missing or extra `--task`, or a task the queue doesn't hold exits 1, as D006 does for `check`.
 Rejected: `permissionChoices` as {choice: flags} objects (a UI only needs the names, since `ws launch argv` builds the flags), and `--prompt` skipping the checks. **Closed.**
+
+## D014 (2026-11-11, JX-05): the tasks file is the `watch` entry after the registry that `paths` doesn't name
+
+`ws snapshot -w` gives no tasks-file path, but its `watch` is the registry, then `project.tasks_path(ws)`, then handoff and progress (`snapshot.watch_paths`). `Snapshots.tasksFile` takes the first entry after the registry that isn't one of `paths`' documents, so double-click opens the file the CLI named rather than one the plugin guesses. Adding a `paths.tasks` to the snapshot would be cleaner but is a CLI and schema change outside this task (see Gotchas).
+Rejected: building `<folder>/tasks_list.json` in the plugin (a fact the CLI owns); a positional `watch[1]`. **Closed.**
+
+## D015 (2026-11-11, JX-05): Snapshots.kt reads the new task fields
+
+`unblocks`, `waitingOn`, `files`, `notes`, `claimedBy` and the row's `progress["in-progress"]` (the list's claim count) are read in `Snapshots.kt`, which isn't in the task's file list but is the only place snapshot JSON is parsed; `Task` and `Progress` in Format.kt gain the fields. `badgesOf` now takes `waitingOn` from the snapshot instead of working it out from `blockedBy` (plan T3), so its `tasks` parameter is gone.
+Rejected: parsing in the view (two parsers). **Closed.**
+
+## D016 (2026-11-11, JX-05): the workstream's claim is a count of its claimed tasks
+
+The list row shows `N claimed` from the registry row's `progress["in-progress"]`, since the top-level snapshot has no per-task claim for rows. A row reads `alpha  0/2 · active · 1 claimed · 9 errors`; the claimer and age appear in the task pane's Claim section (`claimedBy · 3h ago`, in-progress tasks only).
+Rejected: loading every workstream's `ws snapshot -w` to name claimers in the list (one CLI run per row per reload). **Closed.**
+
+## D017 (2026-11-11, JX-05): pane text is drawn by components that never read markup, inside a UI DSL panel
+
+The pane is a `panel { }` whose rows hold a read-only `JBTextArea` per line, a `SimpleColoredComponent` per heading and an `ActionLink(Text.html(...))` per link, so neither the DSL's `label()` (a JLabel, which reads `<html>`) nor JEditorPane is used. The test file checks this shape.
+Rejected: `label(Text.html(...))` for every line (works, but wraps poorly and turns every line into HTML). **Closed.**
+
+## D018 (2026-11-11, JX-05): documents move to links in the detail header; Graph and Overview are left for JX-06
+
+The tree's Documents node is gone with RegistryView.kt; the selected workstream's documents (from `paths`) are links under its name and wave line, so the plan stays one click away. The detail's `JBTabbedPane` has only Tasks for now. The tree-only builders (`PhaseNode`, `WaveNode`, `DocumentsNode`, `DocumentNode`, `MessageNode`, `workstreamChildren`, `phaseChildren`, `documentChildren`) are removed; `Shown.collapsible` stays because Review and Health use it. The tool window's first tab is now "Workstreams" (was "Registry").
+Rejected: keeping RegistryView.kt alongside (two views of the same data). **Closed.**
+
+## D019 (2026-11-11, JX-05): a writes target is the task only when the table was used last
+
+`selected()` is the selected task when the table had focus last (or a jump link was clicked), else the selected list row; both popup menus use `POPUP_GROUP`. Each node keeps the revisions it was drawn with.
+Rejected: always preferring a selected task (Pause from the list would then need deselecting the table first). **Closed.**

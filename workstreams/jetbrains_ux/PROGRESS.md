@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `bf36f9b`.
 
 ---
 
+## 2026-11-11: JX-05: Master-detail Workstreams tab: list, Tasks table, task pane
+
+Merged as `b4194c5985`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-05.md).
+
 ## 2026-11-11: JX-04: ws launch argv and agent presets, plus the run-task prompt
 
 Merged as `a04eb10d31`. Verified: test pass. [Evidence](evidence/JX-04.md).
