@@ -198,3 +198,9 @@ Recorded as D037 by the owner; the shape is this task's. `TerminalTarget`'s open
 ## D039 (2026-11-11, JX-10): the checks are a list of rows, blocking first, and the dialog's error line names what blocks
 
 `LaunchDialog` lists the checks in a `JBList` drawn through `ColoredListCellRenderer`, with `AllIcons.General.Error`, `Warning` or `InspectionsOK`. `Launches.ordered` puts failed blocking checks first, then warnings, then passed checks. `setErrorText(Text.html("Blocked by validate, wave, claim: fix these checks to launch."))` shows the reason by the buttons. A check run that failed outright is one blocking row. Rejected: keeping the text area and only scrolling it to the top, which would still give no reason next to OK. **Closed.**
+
+## D040 (2026-11-11, user): D023, D033 and D034 accepted as built
+
+Closes: D023, D033, D034.
+
+After the JX-10 hand check in IntelliJ IDEA 2026.3 and Android Studio 2026.2.2, the owner accepted all three as built: the task pin is a Pin task picker in Run…'s dialog, not a separate Run This Task… action (D023, D027); the chat targets are always registered in plugin.xml and offered only while their plugin is installed, enabled and its classes load (D033), which Air confirmed by appearing in Android Studio once its plugin shipped the prompt class; the test fakes keep their own names (D034). Rejected: reopening any of them. **Closed.**
