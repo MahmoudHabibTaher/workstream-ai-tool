@@ -509,7 +509,7 @@
         "make test-jetbrains",
         "make verify-jetbrains"
       ],
-      "branch": "",
+      "branch": "task/jx-09",
       "blockedBy": [
         "JX-08"
       ],
@@ -518,10 +518,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-11T10:12:18Z",
+      "baseCommit": "7142a5cc279ff98ce70cb1ab940fde1572ff9b6f",
+      "claimedBy": "ws-run",
       "completedAt": null,
       "commit": null,
       "verification": null,
