@@ -11,7 +11,7 @@ code --install-extension ui/vscode/workstreams.vsix
 
 The extension runs only in trusted workspaces, and not in virtual ones.
 
-It was first checked by hand in VS Code 1.139 on macOS (decision 0017, `docs/decisions/0017-vscode-extension.md` in this repository). The redesigned views and launch flow were checked by hand in VS Code 1.145.2 with Copilot Chat and Claude Code installed (decision 0019, `docs/decisions/0019-ui-redesign.md`).
+It was first checked by hand in VS Code 1.139 on macOS (decision 0017, `docs/decisions/0017-vscode-extension.md` in this repository). The redesigned views and launch flow were checked by hand in VS Code 1.145.2 with Copilot Chat and Claude Code installed, and the panel tabs, blocked-launch list, validate tab and shorter Terminal path in VS Code 1.146.0 (decision 0019, `docs/decisions/0019-ui-redesign.md`).
 
 ## What it shows
 
