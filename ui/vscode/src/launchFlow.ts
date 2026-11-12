@@ -1,5 +1,6 @@
 // Plan D-LAUNCH: what Run, Coordinate, Close and Abandon ask before they launch, as a chain of quick
-// picks. 1. the checks from `ws launch check`, where a blocking one ends the flow on a read-only list;
+// picks. 1. the checks from `ws launch check`, where a blocking one ends the flow on a read-only list
+// (beside a read-only tab of `ws validate -w <id>`'s output when validate is one of them);
 // 2. the target, from those that can take it, led by a repeat of the last terminal launch while it
 // is still offered; 3. for a terminal picked fresh, one preset pick of every agent (`ws launch
 // agents`, or the agentCommand setting) x effort x permissions, then the agent's own check; 4. an
@@ -11,8 +12,8 @@ import * as vscode from 'vscode'
 import { type Check, type Cli, loadAgents, loadArgv, loadChecks } from './cli.ts'
 import { agentCommand, offeredTargets, type Target } from './launch.ts'
 import {
-  agents, blockedChoices, blockedLine, type Combo, combos, HEALTH_CHECKS, type Last, LAST_KEY, lastCombo, lastFirst, lastOf, type Launch, launchTitle,
-  repeatChoice, verdict,
+  agents, blockedByValidate, blockedChoices, blockedLine, type Combo, combos, HEALTH_CHECKS, type Last, LAST_KEY, lastCombo, lastFirst, lastOf, type Launch, launchTitle,
+  repeatChoice, validateArgs, validateText, verdict,
 } from './logic/launch.ts'
 
 export type Step = 'blocked' | 'checks' | 'target' | 'preset'
@@ -49,16 +50,51 @@ function checkChoice(c: Check): Choice<true> {
   return { label: `${c.ok ? '$(pass)' : '$(warning)'} ${c.id}`, description: c.message, value: true }
 }
 
+// D011: the read-only documents that hold `ws validate -w <id>`'s whole output, one per root and
+// workstream. A content provider's document can't be edited or saved, and a rerun refreshes it.
+export const VALIDATE_SCHEME = 'workstreams-validate'
+
+export class ValidateDocuments implements vscode.TextDocumentContentProvider {
+  private readonly texts = new Map<string, string>()
+  private readonly changed = new vscode.EventEmitter<vscode.Uri>()
+  readonly onDidChange = this.changed.event
+  // Each tab's URI, in the order the flow opened them; the integration test reads it.
+  readonly opened: string[] = []
+
+  provideTextDocumentContent(uri: vscode.Uri): string {
+    return this.texts.get(uri.toString()) ?? ''
+  }
+
+  async show(flow: Flow, root: string, ws: string): Promise<void> {
+    const args = validateArgs(ws)
+    const text = validateText(await flow.cli.run([...flow.cli.command, ...args], root), flow.cli.command, ws)
+    const uri = vscode.Uri.from({ scheme: VALIDATE_SCHEME, path: `/${ws}/ws ${args.join(' ')}`, query: root })
+    this.texts.set(uri.toString(), text)
+    this.changed.fire(uri)
+    this.opened.push(uri.toString())
+    const doc = await vscode.workspace.openTextDocument(uri)
+    await vscode.window.showTextDocument(doc, { preview: false, preserveFocus: true })
+  }
+
+  dispose(): void {
+    this.changed.dispose()
+  }
+}
+
+export const validateDocuments = new ValidateDocuments()
+
 // Passes when nothing new blocks: says the blocking message and ends, or shows the warnings and
 // goes on when the person picks any line.
-async function passes(flow: Flow, title: string, checks: Check[], seen: Set<string>): Promise<boolean> {
+async function passes(flow: Flow, ask: Ask, title: string, checks: Check[], seen: Set<string>): Promise<boolean> {
   const fresh = checks.filter(c => !seen.has(c.id))
   fresh.forEach(c => seen.add(c.id))
   const { blocking, warnings } = verdict(fresh)
   if (blocking.length) {
     // A read-only list: picking a health-backed check shows Health; nothing launches either way.
+    // Validate's errors open in a tab first, so the list opens over it (D011).
     const line = blockedLine(title, blocking)
     flow.say(line, true)
+    if (blockedByValidate(blocking)) await validateDocuments.show(flow, ask.root, ask.ws)
     const picked = await flow.ui.pick('blocked', line, blockedChoices(fresh))
     if (picked !== undefined && HEALTH_CHECKS.includes(picked)) await vscode.commands.executeCommand('workstreams.health.focus')
     return false
@@ -82,7 +118,7 @@ export async function launchFlow(flow: Flow, ask: Ask): Promise<Settled | undefi
   const checked = await loadChecks(flow.cli, ask.root, ask.ws, ask.kind)
   if (checked.error !== undefined) return void flow.say(checked.error, true)
   const seen = new Set<string>()
-  if (!(await passes(flow, title, checked.value.checks, seen))) return undefined
+  if (!(await passes(flow, ask, title, checked.value.checks, seen))) return undefined
 
   // 2. The target, from those offered now (a chat target's extension is enabled) that can take
   // it: the terminal needs an agent to run.
@@ -116,7 +152,7 @@ export async function launchFlow(flow: Flow, ask: Ask): Promise<Settled | undefi
     if (preset) {
       const again = await loadChecks(flow.cli, ask.root, ask.ws, ask.kind, preset.agent)
       if (again.error !== undefined) return void flow.say(again.error, true)
-      if (!(await passes(flow, title, again.value.checks, seen))) return undefined
+      if (!(await passes(flow, ask, title, again.value.checks, seen))) return undefined
     }
   }
   const agent = combo?.agent

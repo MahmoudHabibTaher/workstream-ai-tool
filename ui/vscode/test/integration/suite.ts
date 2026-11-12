@@ -1,7 +1,7 @@
 // Runs inside VS Code's extension host. No test framework: `run` throws on the first failure,
 // which @vscode/test-electron reports as a failed run.
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { join, sep } from 'node:path'
 
@@ -441,9 +441,28 @@ async function launches(api: Api, root: string): Promise<void> {
   // Picking validate (the first row, as Enter would) shows Health.
   await config.update('agentCommand', ['/bin/echo', 'agent:'], vscode.ConfigurationTarget.Global)
   let launched = api.launched.length
+  let validated = api.validated.length
   await vscode.commands.executeCommand('workstreams.run', alpha)
-  assert.deepEqual(api.ran.at(-1), [...BRANCH_CLI, 'launch', 'check', '-w', 'alpha', '--kind', 'run', '--json'])
+  assert.deepEqual(api.ran.at(-2), [...BRANCH_CLI, 'launch', 'check', '-w', 'alpha', '--kind', 'run', '--json'])
   assert.equal(api.shown.at(-1), 'Run alpha is blocked by 3 checks')
+  // Validate blocks, so its whole `ws validate -w alpha` output opens in a read-only tab (D011),
+  // every error in it, not the check's one line.
+  assert.deepEqual(api.ran.at(-1), [...BRANCH_CLI, 'validate', '-w', 'alpha'])
+  assert.equal(api.validated.length, validated + 1)
+  const validateUri = String(api.validated.at(-1))
+  const tab = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === validateUri)
+  assert.ok(tab, `no editor shows ${validateUri}`)
+  const printed = spawnSync(BRANCH_CLI[0], [...BRANCH_CLI.slice(1), 'validate', '-w', 'alpha'], { cwd: root, encoding: 'utf8', env: { ...process.env, PYTHONPATH: process.env.WS_TEST_SRC } })
+  assert.equal(printed.status, 1)
+  const errors = printed.stdout.split('warnings:')[0].split('\n').filter(l => l.startsWith('  - '))
+  assert.ok(errors.length > 1, printed.stdout)
+  for (const e of errors) assert.ok(tab.document.getText().includes(e), `the tab lacks ${e}`)
+  assert.equal(tab.document.getText(), printed.stdout)
+  // A content provider's document: VS Code opens it read-only, with no file behind it to save.
+  assert.equal(tab.document.uri.scheme, 'workstreams-validate')
+  assert.equal(tab.document.isUntitled, false)
+  assert.equal(tab.document.isDirty, false)
+  console.log(`run, blocked: validate tab ${validateUri} holds ${errors.length} errors: ${JSON.stringify(errors)}`)
   assert.deepEqual(steps(), ['blocked'])
   assert.equal(offered[0].title, 'Run alpha is blocked by 3 checks')
   const ids = offered[0].labels.map(l => l.replace(/^\$\(\w+\) (\S+).*$/, '$1'))
@@ -474,6 +493,18 @@ async function launches(api: Api, root: string): Promise<void> {
   git(root, 'commit', '-qam', 'alpha planned')
   await vscode.commands.executeCommand('workstreams.refresh')
   await api.settled()
+
+  // Still blocked (A-1 is claimed), but not by validate: the list opens and no tab does.
+  offered = []
+  validated = api.validated.length
+  await vscode.commands.executeCommand('workstreams.run', alpha)
+  assert.deepEqual(steps(), ['blocked'])
+  assert.ok(offered[0].labels.some(l => l.startsWith('$(pass) validate')), JSON.stringify(offered[0].labels))
+  assert.equal(api.validated.length, validated)
+  assert.notDeepEqual(api.ran.at(-1), [...BRANCH_CLI, 'validate', '-w', 'alpha'])
+  assert.equal(api.launched.length, launched)
+  console.log(`run, blocked without validate: no tab; picks ${JSON.stringify(offered[0].labels)}`)
+  offered = []
 
   // 2. The agentCommand setting as the agent: the terminal runs it with the prompt as one argument.
   // A fresh terminal asks one preset pick of every agent x effort x permissions, the setting a row.
