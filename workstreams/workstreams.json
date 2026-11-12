@@ -448,8 +448,8 @@
       "baseCommit": "d24496e",
       "dependsOn": [],
       "progress": {
-        "total": 5,
-        "todo": 0,
+        "total": 6,
+        "todo": 1,
         "in-progress": 1,
         "blocked": 0,
         "done": 4,

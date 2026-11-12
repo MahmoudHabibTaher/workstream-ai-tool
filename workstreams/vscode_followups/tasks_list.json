@@ -258,6 +258,48 @@
       "blockedReason": null
     },
     {
+      "id": "VF-06",
+      "phase": 1,
+      "priority": 45,
+      "title": "A Run blocked by validate opens its errors in a tab",
+      "kind": "",
+      "findings": [],
+      "summary": "When a launch is blocked and validate is one of the blocking checks, open a read-only editor tab holding the full `ws validate -w <id>` output, beside the existing list of checks. The text comes from the ws CLI, not from the snapshot's one-line message.",
+      "files": [
+        "ui/vscode/src/launchFlow.ts",
+        "ui/vscode/src/logic/launch.ts",
+        "ui/vscode/src/extension.ts",
+        "ui/vscode/package.json",
+        "ui/vscode/test",
+        "ui/vscode/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A Run blocked by validate opens a read-only editor tab whose text is the full `ws validate -w <id>` output, every error listed (the integration suite asserts all of the sample's errors are in it)",
+        "The blocked list of checks still opens as before (D005), and a launch blocked only by other checks opens no tab",
+        "make test and make test-vscode pass"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
       "id": "VF-05",
       "phase": 2,
       "priority": 50,

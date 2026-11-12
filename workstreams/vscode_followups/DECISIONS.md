@@ -58,3 +58,9 @@ Rejected: a history row for chat and clipboard targets too. **Closed.**
 
 A combo's id is `agent/effort/permissions`, and the setting row's id is `setting`. The suite scripts answers by these ids. Labels write a none level as "no effort flag" or "no permissions flag". A preset with no levels of a kind leaves that part out of the label. A terminal launch now stores all four parts of the last choice. Missing effort or permissions in older state reads as none.
 Rejected: reusing "none (no flag)" in the combined label, which would not say which flag it is. **Closed.**
+
+## D011 (2026-11-12, user): A Run blocked by validate opens its errors in an editor tab (VF-06)
+
+Changes: VF-05.
+
+Hand check (VF-05): the validate row shows only the first error and "(and 8 more…)", and picking it opens Health, which holds the snapshot's findings, not validate's errors. The owner asked: "If run failed it should open a new tab showing the validation errors". Read as a read-only editor tab with the full ws validate output, opened with the list. Rejected: a second pick of errors; errors inline in the list; an output channel. **Closed.**
