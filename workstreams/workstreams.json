@@ -433,6 +433,29 @@
         "deferred": 0
       },
       "notes": ""
+    },
+    {
+      "id": "vscode_followups",
+      "title": "VS Code follow-ups",
+      "summary": "Review, Health and Budget in panel tabs of their own, a readable blocked launch, a shorter launch flow, and launch offers from the snapshot (vscode_ux D020).",
+      "status": "planned",
+      "taskPrefix": "VF",
+      "path": "workstreams/vscode_followups",
+      "tier": "standard",
+      "created": "2026-11-12",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "d24496e",
+      "dependsOn": [],
+      "progress": {
+        "total": 5,
+        "todo": 5,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }
