@@ -1,10 +1,10 @@
 # Session handoff
 
-**State:** 1/5 done on `main` at `cd59e0b`, as of 2026-11-12.
+**State:** 2/5 done on `main` at `83ac3e5`, as of 2026-11-12.
 
-**Just landed:** VF-01 (`cd59e0bb83`)
+**Just landed:** VF-02 (`83ac3e5a7c`)
 
-**Next:** `ws claim --commit VF-02` (phase 1).
+**Next:** `ws claim --commit VF-03` (phase 1).
 
 **Gotchas:**
-- VF-01: - Budget now lives in the panel, so working in the side bar no longer hides it. While the Budget tab is showing, every Refresh runs `ws audit context`. That is what D030 says should happen, but it will run more often than it did in the activity bar.
+- VF-02: - The integration suite's blocked Run now picks `validate` by default (Enter on the first row), which focuses the Health panel tab. The later steps passed with that; it also hides Budget, as D002's tab switch does.

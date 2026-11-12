@@ -23,3 +23,13 @@ Rejected: `workbench.action.closePanel`, which also hides it but says nothing ab
 
 Panel containers need an `icon`, so I added `ui/vscode/media/review.svg` (a page with a check), `health.svg` (a pulse line) and `budget.svg` (bars). All three use the same 24px stroke style as `workstreams.svg`.
 Rejected: reusing `workstreams.svg` for all four, which makes the tabs look the same when they are dragged into a side bar. **Closed.**
+
+## D004 (2026-11-12, VF-02): the health-backed checks are a fixed list, `HEALTH_CHECKS = ['validate', 'claim']` in logic/launch.ts
+
+`ws launch check --json` does not say which checks come from the health findings, and src/workstream is out of scope, so the two ids the plan names are kept as a constant that the unit test pins. Picking either runs `workstreams.health.focus` (a literal, since importing `HEALTH_VIEW` from views/health.ts would make an import cycle through commands.ts).
+Rejected: a `health` flag on each check from the CLI, which needs a change to src/workstream. **Closed.**
+
+## D005 (2026-11-12, VF-02): `say` still shows its error toast with the short line, before the list opens
+
+The plan rejects "keeping the toast", meaning the old toast that carried every check's message. `say` is shared and shows a toast for every message; the brief says it still gets the one short line, so the person now sees `Run alpha is blocked by 3 checks` as a toast and the list of checks as the pick. `blockedLine` keeps its name and now returns that short line, which is also the pick's title.
+Rejected: a quiet `say` variant without a toast, which changes `say`'s contract for one caller. **Closed.**
