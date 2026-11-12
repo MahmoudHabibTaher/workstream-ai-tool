@@ -1,14 +1,18 @@
 # Session handoff
 
-**State:** 6/7 done on `main` at `2d07d33`, as of 2026-11-12.
+**State:** 7/7 done on `main` at `ebe5318`, as of 2026-11-12.
 
-**Just landed:** VX-06 (`2d07d331f9`)
+**Just landed:** VX-07 (`ebe5318839`)
 
 **Open decisions:**
-- D020: the launch menu still uses the D022 status rule (waiting: VX-07)
+- D020: the launch menu still uses the D022 status rule (no task waiting)
 
-**Next:** `ws claim --commit VX-07` (phase 4).
+**Next:** The queue is finished; `ws close` closes the workstream.
 
 **Gotchas:**
-- VX-06: - On the claim commit, `make test-vscode` fails at the clipboard step's terminal count (see D024). VX-05's recorded pass was probably on an earlier VS Code build, which kept exited terminals open.
-- VX-07's manual check needs Copilot Chat installed (plan T3). The Claude Code target has only been run with a stub here. The handler code was read in `anthropic.claude-code-2.1.318`: `new URLSearchParams(E.query)` → `claude-vscode.primaryEditor.open(session, prompt)`.
+- VX-07: The owner raised three things to improve, outside this task:
+- The panel is crowded, with eight views side by side; Review and Health could move to tabs of their own.
+- A failed check during a launch shows as a tooltip that is hard to understand.
+- The launch flow, the Terminal path in particular, takes several steps; it could be shorter without losing any choice.
+
+Also, the README still described the retired Registry tree after VX-02 to VX-06; it now describes the linked views, menus and launch flow.

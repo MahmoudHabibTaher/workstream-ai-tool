@@ -133,3 +133,13 @@ Rejected: `Uri.parse('vscode://...?' + params)`; the undocumented positional arg
 
 On this machine the baseline (the VX-06 claim commit, with this task's src and test changes stashed) fails `make test-vscode` at `assert.equal(vscode.window.terminals.length, open)` with `0 !== 1`: an earlier step's `/bin/echo` terminal closes while the clipboard launch runs. The assertion now counts `onDidOpenTerminal` events, which is what "starts nothing" means, and step 6 asserts the same for the chat targets. **Open.**
 Rejected: leaving `make test-vscode` failing; waiting for the earlier terminals to close. **Closed.**
+
+## D025 (2026-11-12, VX-07): the README's link to decision 0017 becomes a plain path
+
+`make vsix` failed with `vsce` refusing the relative link: "Couldn't detect the repository where this extension is published. The link '../../docs/decisions/0017-vscode-extension.md' will be broken in README.md." The README is this task's file, so the link is now the path in backticks, and the vsix packages.
+Rejected: adding a repository URL to package.json, which names a host the project doesn't publish to; passing `--baseContentUrl` in the Makefile, which is outside this task's files. **Closed.**
+
+## D026 (2026-11-12, VX-07): the stale-Pause check changes the queue, not just HEAD
+
+`ws act` compares only the registry's and the tasks file's hashes (`check_revisions` in `act.py`). So a commit that touches neither, like the README line `03f87eb`, does not make the view stale. The check used `ws update S-3 --notes` plus `ws sync` instead. This is recorded in 0019 as by design.
+Rejected: refusing on any HEAD move, which would refuse writes for unrelated commits. **Closed.**

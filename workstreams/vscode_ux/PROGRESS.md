@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `e935195`.
 
 ---
 
+## 2026-11-12: VX-07: Prove it in VS Code by hand
+
+Merged as `ebe5318839`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VX-07.md).
+
 ## 2026-11-12: VX-06: Copilot Chat and Claude Code extension targets
 
 Merged as `2d07d331f9`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VX-06.md).
