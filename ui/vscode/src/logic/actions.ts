@@ -2,7 +2,7 @@
 // offered: a row's `actions` and a finding's `actions`. Nothing here holds act's status rule, and
 // `ws act` still decides when the write runs.
 import type { Revisions } from '../cli.ts'
-import { CLOSED_STATUSES, type Finding, type Row } from './format.ts'
+import { CLOSED_STATUSES, DOC_NAMES, type DocName, type Finding, type Row } from './format.ts'
 
 // The writes the extension can ask `ws act` for, in the order a menu shows them.
 export const WRITES = ['pause', 'resume', 'sync', 'unclaim'] as const
@@ -35,6 +35,21 @@ export function launches(row: Row): boolean {
 // The menus in package.json match these words, so a command shows only where it is offered.
 export function contextValue(kind: string, writes: readonly string[] = [], launch = false): string {
   return [kind, ...writes.map(w => `act:${w}`), ...(launch ? ['launch'] : [])].join(' ')
+}
+
+// The Open group's documents, each a command on a workstream item and in the linked views' titles.
+// The path comes from the workstream's own snapshot (`paths`) when the command runs.
+export const OPENS = DOC_NAMES
+export const openCommandOf = (name: DocName) => `workstreams.open${name[0].toUpperCase()}${name.slice(1)}`
+
+// What the linked views' title menus act on when no item is passed: the selected workstream's item
+// and the selected task's item, as drawn. Their contextValues go into context keys, which the
+// title menus match the same way the item menus match `viewItem`, so a title offers what the
+// selected item would offer, and a write pins that item's revisions.
+export type Picked<W, T> = { workstream?: W; task?: T }
+
+export function pickedTarget<W, T>(action: string, picked: Picked<W, T>): W | T | undefined {
+  return action === 'unclaim' ? picked.task : picked.workstream
 }
 
 export function commitLine(ws: string, action: string, task?: string): string {

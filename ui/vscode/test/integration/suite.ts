@@ -204,6 +204,12 @@ async function linkedViews(api: Api, root: string): Promise<void> {
   assert.match(label(shown[1]), /^in-progress · Phase 1/)
   assert.ok(byName(shown, 'Claim'))
   console.log(`after the claim: ${claimed}; task ${JSON.stringify(outline(shown))}; reloads ${JSON.stringify(api.reloads.slice(before))}`)
+
+  // Plan D-MENUS: with a task claimed, the status bar names it and its age instead of the wave.
+  await api.settled()
+  assert.match(api.statusBar?.text ?? '', /^\$\(checklist\) alpha · A-1 · 0m · \d+ errors?$/)
+  assert.equal(api.statusBar?.tooltip, 'Show the Workstreams view')
+  console.log(`status bar after the claim: ${api.statusBar?.text}`)
 }
 
 // Plan D-VIEWS: with alpha selected (and A-1 claimed by linkedViews), Graph draws the tasks from
@@ -313,12 +319,24 @@ async function writes(api: Api, root: string): Promise<void> {
   assert.deepEqual(now.tasks.map(context), ['task act:unclaim', 'task'])
   console.log(`after the claim went stale: tasks ${JSON.stringify(now.tasks.map(line))} offer ${JSON.stringify(now.tasks.map(context))}`)
 
-  // 1. A confirmed pause commits through ws act, and the tree shows paused.
+  // The linked views' titles act on the selection: the picked items are the drawn ones, with
+  // the same offers and revisions, so the title shows Pause and Unclaim (plan D-MENUS).
+  await api.settled()
+  assert.equal(api.store?.selectedTask, 'A-1')
+  assert.equal(api.picked.workstream?.id, now.alpha.node.id)
+  assert.deepEqual(api.picked.workstream?.revisions, now.alpha.node.revisions)
+  assert.deepEqual(api.picked.workstream?.writes, now.alpha.node.writes)
+  assert.deepEqual(api.picked.task?.writes, ['unclaim'])
+  assert.deepEqual(api.picked.task?.revisions, (now.tasks[0].node as { revisions: unknown }).revisions)
+  console.log(`picked: ${api.picked.workstream?.row.id} ${JSON.stringify(api.picked.workstream?.writes)}, ${api.picked.task?.task.id} ${JSON.stringify(api.picked.task?.writes)}`)
+
+  // 1. A confirmed pause from a title menu (no item passed) commits through ws act against the
+  // drawn revisions, and the tree shows paused.
   const asked: string[] = []
   api.ui = { confirm: async text => { asked.push(`${text.message} | ${text.detail}`); return true }, reason: async () => undefined }
   const before = git(root, 'rev-parse', 'HEAD')
   const ranBefore = api.ran.length
-  await vscode.commands.executeCommand('workstreams.pause', now.alpha.node)
+  await vscode.commands.executeCommand('workstreams.pause')
   assert.deepEqual(asked, ['Pause alpha? | This commits "alpha: pause" on main.'])
   const act = api.ran.slice(ranBefore).find(argv => argv.includes('act'))
   assert.ok(act)
@@ -377,6 +395,19 @@ async function writes(api: Api, root: string): Promise<void> {
 async function launches(api: Api, root: string): Promise<void> {
   await api.settled()
   const alpha = (await drawn(api)).alpha.node
+
+  // The Open group: Plan from the item, Decisions from a title (the picked workstream), each the
+  // path the workstream's own snapshot gives.
+  const paths = (await api.store?.workstream(root, 'alpha'))?.value?.paths ?? {}
+  for (const [command, name, node] of [['workstreams.openPlan', 'plan', alpha], ['workstreams.openDecisions', 'decisions', undefined]] as const) {
+    const target = String(paths[name])
+    await vscode.commands.executeCommand(command, node)
+    const doc = await until(`${name} in an editor`, async () => {
+      const d = vscode.window.activeTextEditor?.document
+      return d && realpathSync(d.uri.fsPath) === realpathSync(target) ? d : undefined
+    })
+    console.log(`open: ${command} opened ${doc.uri.fsPath}`)
+  }
   const config = vscode.workspace.getConfiguration('workstreams')
   const reasons: string[] = []
   let answer: string | undefined
