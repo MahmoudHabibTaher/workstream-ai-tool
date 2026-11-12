@@ -384,7 +384,7 @@
         "test",
         "make test-vscode"
       ],
-      "branch": "",
+      "branch": "task/vx-07",
       "blockedBy": [
         "VX-06"
       ],
@@ -395,10 +395,10 @@
         "user"
       ],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-12T11:54:45Z",
+      "baseCommit": "ebde16f8c7eaed5d48af083fcd63c96090520df7",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,
