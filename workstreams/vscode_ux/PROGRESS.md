@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `e935195`.
 
 ---
 
+## 2026-11-12: VX-04: Menus, welcome views, status bar
+
+Merged as `10884fcf5d`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VX-04.md).
+
 ## 2026-11-12: VX-03: Graph and Overview views
 
 Merged as `d532b60acc`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VX-03.md).

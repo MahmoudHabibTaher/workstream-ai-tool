@@ -61,3 +61,23 @@ Rejected: a copy of the Task view's `getTreeItem` in overview.ts. **Closed.**
 
 Its two view-order pins now include `workstreams.graph` and `workstreams.overview` after `workstreams.task`. Without that change `make test` could not pass once the views are declared. This is the same situation as D008.
 Rejected: leaving the pins failing. **Closed.**
+
+## D012 (2026-11-12, VX-04): the four groups are separator groups, not submenus, and follow JetBrains' split
+
+Both the item and title menus use the groups `1_run` (Run, Coordinate, Close, Abandon), `2_workstream` (Pause, Resume, Sync), `3_task` (Unclaim) and `4_open` (Plan, Progress, Decisions, Handoff; Open Diff and Open Evidence on Review items). This is the split jetbrains_ux's D-MENUS uses. The existing `when` clauses of the writes and launches are kept word for word, as `tests/test_vscode_files.py` pins them. The Open group has no tasks file, because the workstream snapshot's `paths` gives no tasks-file path.
+Rejected: `contributes.submenus`. The pin reads `m["command"]` from each `view/item/context` entry, and a submenu entry has no `command`. **Closed.**
+
+## D013 (2026-11-12, VX-04): the linked views' title menus act on the selection through context keys
+
+`workstreams.selectedItem` and `workstreams.selectedTaskItem` hold the contextValues of the selected workstream's item and task's item. Those items are built as the Workstreams and Tasks views build them, and kept in `api.picked`. The Tasks, Task, Graph and Overview titles match those keys with the same regexes the item menus use on `viewItem`. A command run with no item (from a title) uses the picked item, so it pins that item's drawn revisions. List, Review, Health and Budget titles show only Refresh (and Show/Hide Done).
+Rejected: title entries with no gating, which would show writes the snapshot didn't offer. **Closed.**
+
+## D014 (2026-11-12, VX-04): `src/commands.ts` touched, outside the expected files
+
+It gains the `picked` fallback in `write` and `start`, and the four `workstreams.open<Doc>` commands. The commands are registered there, so there is nowhere else for them. The welcome views also need a new `workstreams.hasProject` context key, set in `extension.ts`.
+Rejected: registering the Open commands in extension.ts while the writes stay in commands.ts. **Closed.**
+
+## D015 (2026-11-12, VX-04): the status bar while a task is claimed
+
+The bar shows `$(checklist) <ws> · <task> · <age>`, then ` · N errors`, which mirrors jetbrains_ux D024. The claimed task is the first `in-progress` task of the active workstream's own snapshot, and the age is left out when the claim has no `startedAt`. The wave line still shows when nothing is claimed, and the age redraws every minute. The tooltip stays the literal 'Show the Workstreams view' because `tests/test_vscode_files.py` requires every `.tooltip =` to be a literal or `tooltip(`. `claimedTask` and `claimLine` live in `logic/format.ts`, so `registry.ts` is unchanged.
+Rejected: a tooltip naming the claim (it fails that pin). **Closed.**
