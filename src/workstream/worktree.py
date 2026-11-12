@@ -96,9 +96,35 @@ def _run_setup(project: Project, path: Path) -> None:
                           + (f": {last[-1]}" if last else f" (exit {done.returncode})"))
 
 
-def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool]:
-    """(path, created): a worktree for a claimed task. Run twice, it finds the first one, so a
-    worker that died can be picked up again. A failed setup leaves nothing behind."""
+def _stale_branch(project: Project, task: dict, branch: str) -> str | None:
+    """Move a task branch left from an earlier claim up to the integration tip, or refuse.
+
+    Unclaimed and claimed again, a task keeps its branch at the first claim, behind this claim's
+    baseCommit: a worktree there builds old code. With no commits of its own, nothing is lost by
+    moving it. With some, they may be real work, so a person decides. Returns what was done."""
+    base = task.get("baseCommit")
+    if not base or gitutil.is_ancestor(project.root, base, branch):
+        return None
+    integration = project.config.integration
+    own = gitutil.run(project.root, "rev-list", "--count", f"{integration}..{branch}")
+    count = int(own.stdout.strip() or 0) if own.returncode == 0 else -1
+    if count != 0:
+        held = f"{count} commit(s)" if count > 0 else "commits git couldn't count"
+        raise Refused(f"{branch} is from an earlier claim, behind this one's baseCommit "
+                      f"{base[:12]}, and holds {held} not on {integration}; merge {integration} "
+                      f"into it, or delete it if that work isn't wanted, then run this again")
+    old = gitutil.rev_parse(project.root, branch, short=True)
+    done = gitutil.run(project.root, "branch", "-f", branch, integration)
+    if done.returncode != 0:
+        detail = done.stderr.strip().splitlines()
+        raise WsError(f"could not reset {branch}: {detail[-1] if detail else done.returncode}")
+    return f"reset {branch} from {old}, an earlier claim with no work of its own, to {integration}"
+
+
+def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool, str | None]:
+    """(path, created, reset): a worktree for a claimed task. Run twice, it finds the first one,
+    so a worker that died can be picked up again. A failed setup leaves nothing behind. `reset`
+    says when a branch left from an earlier claim was moved up to this one."""
     config = project.config
     data = tasks.load(project.tasks_path(ws), config)
     task = tasks.find_task(data, task_id)
@@ -109,7 +135,7 @@ def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool]:
         raise Refused(f"branch {branch!r} looks like an option")
     existing = for_branch(project, branch)
     if existing:
-        return Path(existing), False
+        return Path(existing), False, None
     rows = registry.load(project)["workstreams"]
     act.check_checkout(project, snapshot.git_facts(project, rows), "worktree", ws["id"], rows)
     in_use = [w for w in live(project) if not w.get("main")
@@ -121,6 +147,8 @@ def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool]:
                    f"{config.integration}:{CONFIG_REL}").returncode != 0:
         raise Refused(f"{CONFIG_REL} isn't committed on {config.integration}, so a worktree "
                       "wouldn't have it; commit it first")
+    reset = (_stale_branch(project, task, branch)
+             if gitutil.branch_exists(project.root, branch) else None)
     path = path_for(project, task_id)
     _exclude(project)
     argv = (["worktree", "add", "-q", str(path), branch]
@@ -139,7 +167,7 @@ def create(project: Project, ws: dict, task_id: str) -> tuple[Path, bool]:
             gitutil.run(project.root, "branch", "-D", branch)
         raise
     _exclude_setup_output(project, path)
-    return path, True
+    return path, True, reset
 
 
 def _task_branches(project: Project, ws: dict) -> set[str]:

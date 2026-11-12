@@ -904,8 +904,9 @@ def cmd_worktree(args: argparse.Namespace) -> int:
     ws, _ = _queue(project, args)
     for task_id in args.ids:
         if args.action == "create":
-            path, created = worktree.create(project, ws, task_id)
-            print(f"{task_id}: {path}" + ("" if created else " (already there)"))
+            path, created, reset = worktree.create(project, ws, task_id)
+            print(f"{task_id}: {path}" + ("" if created else " (already there)")
+                  + (f" ({reset})" if reset else ""))
         else:
             print(f"{task_id}: " + worktree.remove(project, ws, task_id, force=args.force,
                                                    delete_branch=args.delete_branch))
