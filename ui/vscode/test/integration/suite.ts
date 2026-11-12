@@ -9,8 +9,8 @@ import * as vscode from 'vscode'
 
 import type { Api } from '../../src/extension.ts'
 import type { HealthNode } from '../../src/logic/health.ts'
-import type { Node } from '../../src/logic/registry.ts'
 import type { ReviewNode } from '../../src/logic/review.ts'
+import type { WorkstreamNode } from '../../src/views/workstreams.ts'
 
 const BRANCH_CLI = ['python3', '-B', '-m', 'workstream']
 
@@ -38,7 +38,7 @@ export async function run(): Promise<void> {
     const registry = snapshot.registry as { id: string }[]
     assert.deepEqual(registry.map(row => row.id), ['alpha', 'beta'])
     assert.match(snapshot.revisions.registry, /^[0-9a-f]{64}$/)
-    await registryTree(api, started.roots[0])
+    await linkedViews(api, started.roots[0])
     await writes(api, started.roots[0])
     await launches(api, started.roots[0])
     await healthAndBudget(api, started.roots[0])
@@ -51,7 +51,7 @@ export async function run(): Promise<void> {
     assert.match(api.shown[0], /is not a workstream project/)
     assert.equal(started.message?.level, 'info')
     assert.deepEqual(started.roots, [])
-    assert.deepEqual(await api.tree?.getChildren(), [])
+    assert.deepEqual(await api.list?.getChildren(), [])
   } else if (which === 'missing') {
     assert.equal(api.ran.length, 1)
     assert.deepEqual(api.ran[0].slice(1), ['root'])
@@ -64,15 +64,16 @@ export async function run(): Promise<void> {
   console.log(`ok ${which}: ran ${JSON.stringify(api.ran)}, shown ${JSON.stringify(api.shown)}`)
 }
 
-type Tree = NonNullable<Api['tree']>
-type Item = { node: Node; item: vscode.TreeItem; children: Item[] }
+// Any of the trees, as the test reads it: a node's children and the item VS Code would draw.
+type Provider<T> = { getChildren(node?: T): vscode.ProviderResult<T[]>; getTreeItem(node: T): vscode.TreeItem | Thenable<vscode.TreeItem> }
+type Item<T = unknown> = { node: T; item: vscode.TreeItem; children: Item<T>[] }
 
 // The whole tree as VS Code would draw it: every node, its item and its children.
-async function walk(tree: Tree, node?: Node): Promise<Item[]> {
-  const found: Item[] = []
-  for (const child of await tree.getChildren(node)) {
-    const item = tree.getTreeItem(child)
-    const children = item.collapsibleState === vscode.TreeItemCollapsibleState.None ? [] : await walk(tree, child)
+async function walk<T>(tree: Provider<T>, node?: T): Promise<Item<T>[]> {
+  const found: Item<T>[] = []
+  for (const child of (await tree.getChildren(node)) ?? []) {
+    const item = await tree.getTreeItem(child)
+    const children = item.collapsibleState === vscode.TreeItemCollapsibleState.None || item.collapsibleState === undefined ? [] : await walk(tree, child)
     found.push({ node: child, item, children })
   }
   return found
@@ -80,6 +81,18 @@ async function walk(tree: Tree, node?: Node): Promise<Item[]> {
 
 const label = (i: Item) => String(i.item.label)
 const line = (i: Item) => `${label(i)} | ${String(i.item.description ?? '')}`
+// An item and its children's labels, as the Task view draws them.
+const outline = (items: Item[]) => items.map(i => (i.children.length ? [label(i), i.children.map(label)] : label(i)))
+const click = async (i: Item | undefined) => {
+  const command = i?.item.command
+  assert.ok(command, `no command on ${i ? label(i) : 'nothing'}`)
+  await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []))
+}
+const byName = <T>(items: Item<T>[], name: string) => {
+  const got = items.find(i => label(i as Item) === name)
+  assert.ok(got, `no ${name} in ${JSON.stringify(items.map(i => label(i as Item)))}`)
+  return got
+}
 
 async function until<T>(what: string, get: () => Promise<T | undefined>, ms = 20_000): Promise<T> {
   const end = Date.now() + ms
@@ -91,22 +104,36 @@ async function until<T>(what: string, get: () => Promise<T | undefined>, ms = 20
   }
 }
 
-async function registryTree(api: Api, root: string): Promise<void> {
-  const tree = api.tree
-  assert.ok(tree)
+// Plan D-VIEWS: selecting a workstream in Workstreams draws its tasks in Tasks; selecting a task
+// draws its sections in Task, where a dependency jumps to that task and a file opens.
+async function linkedViews(api: Api, root: string): Promise<void> {
+  const { list, tasks, task } = api
+  assert.ok(list && tasks && task)
   await api.settled()
-  const top = await walk(tree)
-  // Open workstreams only; alpha opens to its wave line, phases in order, tasks by priority.
+  const top = await walk(list)
+  // Open workstreams only, each a flat row with done/total, status and errors.
   assert.deepEqual(top.map(label), ['alpha'])
-  assert.match(String(top[0].item.description), /^active · 0\/3 · \d+ errors?$/)
-  const alpha = top[0].children
-  assert.deepEqual(alpha.map(label), ['Phase 1: 1 ready', 'Phase 1', 'Phase 2', 'Documents'])
-  assert.deepEqual(alpha[1].children.map(line), ['A-1 First | todo · ★ ready', 'A-2 Second | todo · foreground · needs decision'])
-  assert.deepEqual(alpha[2].children.map(line), ['A-3 Third | todo · waits on A-1'])
-  console.log(`tree: ${JSON.stringify(top.map(line))} ${JSON.stringify(alpha.map(i => [line(i), i.children.map(line)]))}`)
+  assert.match(String(top[0].item.description), /^0\/3 · active · \d+ errors?$/)
+  assert.equal(top[0].item.collapsibleState, vscode.TreeItemCollapsibleState.None)
+  // Nothing selected, so Tasks and Task draw nothing.
+  assert.deepEqual(await walk(tasks), [])
+  assert.deepEqual(await walk(task), [])
+  console.log(`workstreams: ${JSON.stringify(top.map(line))}; before a selection Tasks and Task are empty`)
+
+  // 1. Selecting alpha: Tasks draws its wave line, then its phases in order, tasks by priority,
+  // each with its status, phase and what it is waiting on.
+  await click(top[0])
+  assert.deepEqual(api.store?.selected, { root, ws: 'alpha' })
+  const lanes = await walk(tasks)
+  assert.deepEqual(lanes.map(label), ['Phase 1: 1 ready', 'Phase 1', 'Phase 2'])
+  assert.deepEqual(lanes.slice(1).map(line), ['Phase 1 | 0/2', 'Phase 2 | 0/1'])
+  assert.deepEqual(lanes[1].children.map(line), ['A-1 First | todo · Phase 1', 'A-2 Second | todo · Phase 1'])
+  assert.deepEqual(lanes[2].children.map(line), ['A-3 Third | todo · Phase 2 · waiting on A-1'])
+  assert.deepEqual(await walk(task), [])
+  console.log(`tasks after selecting alpha: ${JSON.stringify(lanes.map(i => [line(i), i.children.map(line)]))}`)
 
   // A task's tooltip is text: the summary's link and HTML come out escaped, and nothing is trusted.
-  const tip = alpha[1].children[0].item.tooltip as vscode.MarkdownString
+  const tip = lanes[1].children[0].item.tooltip as vscode.MarkdownString
   assert.ok(tip instanceof vscode.MarkdownString)
   assert.ok(!tip.isTrusted)
   assert.equal(tip.supportHtml, false)
@@ -116,54 +143,82 @@ async function registryTree(api: Api, root: string): Promise<void> {
   assert.match(tip.value, /it(&nbsp;| )works/)
   console.log(`tooltip: ${JSON.stringify(tip.value)}`)
 
-  // The status bar: the active workstream's wave line and error count, focusing the view.
+  // 2. Selecting A-1: Task draws its title, state, summary, what it unblocks, its files and acceptance.
+  await click(lanes[1].children[0])
+  assert.equal(api.store?.selectedTask, 'A-1')
+  let shown = await walk(task)
+  assert.deepEqual(outline(shown), [
+    'A-1: First', 'todo · Phase 1 · ★ ready',
+    ['Summary', ['see [x](command:workbench.action.quit) <b>now</b>']],
+    ['Unblocks', ['A-3']], ['Files', ['notes.txt']], ['Acceptance', ['it works']],
+  ])
+  console.log(`task A-1: ${JSON.stringify(outline(shown))}`)
+
+  // 3. A dependency jumps: Unblocks A-3 draws A-3, whose Depends on A-1 jumps back.
+  await click(byName(shown, 'Unblocks').children[0])
+  assert.equal(api.store?.selectedTask, 'A-3')
+  shown = await walk(task)
+  assert.deepEqual(outline(shown), ['A-3: Third', 'todo · Phase 2 · waiting on A-1', ['Depends on', ['A-1']]])
+  console.log(`after the jump to A-3: ${JSON.stringify(outline(shown))}`)
+  await click(byName(shown, 'Depends on').children[0])
+  assert.equal(api.store?.selectedTask, 'A-1')
+  shown = await walk(task)
+  assert.equal(label(shown[0]), 'A-1: First')
+
+  // 4. A file opens in an editor, from the snapshot's repo root.
+  const file = byName(shown, 'Files').children[0]
+  assert.equal(file.item.command?.command, 'vscode.open')
+  await click(file)
+  const editor = await until('notes.txt in an editor', async () => {
+    const doc = vscode.window.activeTextEditor?.document
+    return doc && realpathSync(doc.uri.fsPath) === realpathSync(join(root, 'notes.txt')) ? doc : undefined
+  })
+  assert.equal(editor.getText(), 'notes\n')
+  console.log(`file: opened ${editor.uri.fsPath}`)
+
+  // The status bar: the active workstream's wave line and error count, focusing the list.
   assert.match(api.statusBar?.text ?? '', /^\$\(checklist\) alpha: Phase 1: 1 ready · \d+ errors?$/)
-  assert.equal(api.statusBar?.command, 'workstreams.registry.focus')
+  assert.equal(api.statusBar?.command, 'workstreams.list.focus')
   console.log(`status bar: ${api.statusBar?.text}`)
 
   // Show done adds the closed one after the open ones; Hide done takes it away again.
   await vscode.commands.executeCommand('workstreams.showDone')
-  assert.deepEqual((await walk(tree)).map(line).map(l => l.split(' | ')[0]), ['alpha', 'beta'])
-  assert.match(line((await walk(tree))[1]), /^beta \| abandoned/)
+  assert.deepEqual((await walk(list)).map(label), ['alpha', 'beta'])
+  assert.match(line((await walk(list))[1]), /^beta \| 0\/0 · abandoned/)
   await vscode.commands.executeCommand('workstreams.hideDone')
-  assert.deepEqual((await walk(tree)).map(label), ['alpha'])
+  assert.deepEqual((await walk(list)).map(label), ['alpha'])
 
-  // Each document opens in Markdown preview, from the snapshot's path.
-  const docs = alpha[3].children
-  assert.deepEqual(docs.map(label), ['Plan', 'Progress', 'Decisions', 'Handoff'])
-  for (const doc of docs) {
-    const command = doc.item.command
-    assert.ok(command)
-    await vscode.commands.executeCommand(command.command, ...(command.arguments ?? []))
-    const name = (doc.node as { path: string }).path.split(sep).pop() ?? ''
-    const tab = await until(`a preview of ${name}`, async () => vscode.window.tabGroups.all.flatMap(g => g.tabs).find(t =>
-      t.input instanceof vscode.TabInputWebview && t.input.viewType.includes('markdown.preview') && t.label.includes(name)))
-    console.log(`document ${label(doc)}: tab ${JSON.stringify(tab.label)} (${(tab.input as vscode.TabInputWebview).viewType})`)
-  }
-
-  // A claim from a shell reaches the tree with no Refresh pressed: the watchers reload it.
+  // A claim from a shell reaches Tasks and Task with no Refresh pressed: the watchers reload, and
+  // the selection survives it.
   const before = api.reloads.length
   execFileSync(BRANCH_CLI[0], [...BRANCH_CLI.slice(1), 'claim', 'A-1', '-w', 'alpha'], { cwd: root, encoding: 'utf8' })
-  const claimed = await until('the claim in the tree', async () => {
-    const task = (await walk(tree))[0]?.children[1]?.children[0]
-    return task && /^in-progress · claimed \dm$/.test(String(task.item.description)) ? line(task) : undefined
+  const claimed = await until('the claim in the Tasks view', async () => {
+    const a1 = byName(await walk(tasks), 'Phase 1').children[0]
+    return a1 && String(a1.item.description) === 'in-progress · Phase 1' ? line(a1) : undefined
   })
   assert.ok(api.reloads.length > before)
   assert.ok(api.reloads.slice(before).every(why => why === 'watch'), JSON.stringify(api.reloads))
-  console.log(`after the claim: ${claimed}; reloads ${JSON.stringify(api.reloads.slice(before))}; status bar ${api.statusBar?.text}`)
+  assert.equal(api.store?.selectedTask, 'A-1')
+  shown = await walk(task)
+  assert.match(label(shown[1]), /^in-progress · Phase 1/)
+  assert.ok(byName(shown, 'Claim'))
+  console.log(`after the claim: ${claimed}; task ${JSON.stringify(outline(shown))}; reloads ${JSON.stringify(api.reloads.slice(before))}`)
 }
 
 const git = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
 const context = (i: Item | undefined) => String(i?.item.contextValue ?? '')
 
-// The alpha row, its first phase's tasks, and every row with Show done on, as drawn now.
-async function drawn(tree: Tree) {
-  const top = await walk(tree)
-  return { alpha: top[0], tasks: top[0]?.children[1]?.children ?? [] }
+// The alpha row, and its first phase's tasks in the Tasks view, as drawn now.
+async function drawn(api: Api) {
+  const { list, tasks } = api
+  assert.ok(list && tasks)
+  const top = await walk(list)
+  const lanes = await walk(tasks)
+  return { alpha: top[0] as Item<WorkstreamNode>, tasks: lanes.find(i => label(i) === 'Phase 1')?.children ?? [] }
 }
 
 async function writes(api: Api, root: string): Promise<void> {
-  const tree = api.tree
+  const tree = api.list
   assert.ok(tree)
   // The claim left the queue dirty, which act refuses; commit it as an orchestrator would.
   git(root, 'commit', '-qam', 'claim A-1')
@@ -172,7 +227,7 @@ async function writes(api: Api, root: string): Promise<void> {
 
   // Commands follow the snapshot's offers: alpha (active) offers pause and the launches, a fresh
   // claim offers no unclaim, and a closed row offers nothing.
-  let now = await drawn(tree)
+  let now = await drawn(api)
   assert.match(context(now.alpha), /^workstream act:pause( act:sync)? launch$/)
   assert.deepEqual(now.tasks.map(context), ['task', 'task'])
   await vscode.commands.executeCommand('workstreams.showDone')
@@ -190,7 +245,7 @@ async function writes(api: Api, root: string): Promise<void> {
   writeFileSync(queue, JSON.stringify(data, null, 2) + '\n')
   git(root, 'commit', '-qam', 'an old claim')
   now = await until('unclaim offered on A-1', async () => {
-    const got = await drawn(tree)
+    const got = await drawn(api)
     return context(got.tasks[0]) === 'task act:unclaim' ? got : undefined
   })
   assert.deepEqual(now.tasks.map(context), ['task act:unclaim', 'task'])
@@ -206,20 +261,20 @@ async function writes(api: Api, root: string): Promise<void> {
   const act = api.ran.slice(ranBefore).find(argv => argv.includes('act'))
   assert.ok(act)
   assert.deepEqual(act.slice(BRANCH_CLI.length, BRANCH_CLI.length + 4), ['act', 'pause', '-w', 'alpha'])
-  const pinned = (now.alpha.node as Extract<Node, { kind: 'workstream' }>).revisions
+  const pinned = now.alpha.node.revisions
   assert.deepEqual(act.slice(BRANCH_CLI.length + 4), ['--expect-registry', pinned.registry, '--expect-tasks', pinned.tasks.alpha])
   assert.equal(git(root, 'rev-parse', 'HEAD~1'), before)
   assert.equal(git(root, 'log', '-1', '--format=%s'), 'alpha: pause (ws act)')
   assert.equal(git(root, 'status', '--porcelain'), '')
   const paused = await until('alpha paused in the tree', async () => {
-    const got = await drawn(tree)
-    return /^paused · /.test(String(got.alpha?.item.description)) ? got : undefined
+    const got = await drawn(api)
+    return /^0\/3 · paused · /.test(String(got.alpha?.item.description)) ? got : undefined
   })
   assert.match(context(paused.alpha), /^workstream act:resume( act:sync)? launch$/)
   console.log(`pause: ran ${JSON.stringify(act)}; HEAD ${git(root, 'log', '-1', '--format=%h %s')}; shown ${JSON.stringify(api.shown.at(-1))}; tree ${line(paused.alpha)} ${JSON.stringify(context(paused.alpha))}`)
 
   // 2. A commit from a shell while the box is open: confirming shows act's stale-view refusal,
-  // and neither HEAD, the working tree nor the Registry tree moves.
+  // and neither HEAD, the working tree nor the Workstreams view moves.
   const registryFile = join(root, 'workstreams', 'workstreams.json')
   let head = ''
   let status = ''
@@ -245,8 +300,8 @@ async function writes(api: Api, root: string): Promise<void> {
   assert.equal(git(root, 'log', '-1', '--format=%s'), 'from a shell')
   assert.equal(git(root, 'status', '--porcelain'), status)
   await api.settled()
-  const after = await drawn(tree)
-  assert.match(String(after.alpha.item.description), /^paused · /)
+  const after = await drawn(api)
+  assert.match(String(after.alpha.item.description), /^0\/3 · paused · /)
   console.log(`stale: shown ${JSON.stringify(api.shown.at(-1))}; HEAD ${git(root, 'log', '-1', '--format=%h %s')} unchanged; status ${JSON.stringify(status)}; tree ${line(after.alpha)}`)
 
   // A box opened on a row drawn before the latest reload says the write will be refused.
@@ -258,10 +313,8 @@ async function writes(api: Api, root: string): Promise<void> {
 }
 
 async function launches(api: Api, root: string): Promise<void> {
-  const tree = api.tree
-  assert.ok(tree)
   await api.settled()
-  const alpha = (await drawn(tree)).alpha.node
+  const alpha = (await drawn(api)).alpha.node
   const config = vscode.workspace.getConfiguration('workstreams')
   const reasons: string[] = []
   let answer: string | undefined

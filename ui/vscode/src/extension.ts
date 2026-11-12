@@ -1,5 +1,5 @@
 // Activation: read the `ws` argv setting, find the window's projects, load their snapshots, then
-// draw the Registry, Review, Health and Budget trees, the Problems panel and the status bar and keep them current. Every fact comes from the CLI
+// draw the Workstreams, Tasks, Task, Review, Health and Budget trees, the Problems panel and the status bar and keep them current. Every fact comes from the CLI
 // through cli.ts; nothing here works one out.
 import * as vscode from 'vscode'
 
@@ -8,21 +8,24 @@ import { nativeUi, registerCommands, type Ui } from './commands.ts'
 import type { Started as Launched } from './launch.ts'
 import type { ConfirmText } from './logic/actions.ts'
 import { debounce } from './logic/debounce.ts'
-import { activeWorkstream, type Node, statusText } from './logic/registry.ts'
+import { activeWorkstream, statusText } from './logic/registry.ts'
 import { start, type Started } from './logic/start.ts'
 import { Store } from './logic/store.ts'
 import { BUDGET_VIEW, BudgetTree, HEALTH_VIEW, HealthDiagnostics, HealthTree } from './views/health.ts'
-import { OPEN_DOCUMENT, openDocument, RegistryTree } from './views/registry.ts'
 import {
   OPEN_EVIDENCE, OPEN_FILE, openEvidence, openFile, type Opened, REVIEW_VIEW, ReviewDocuments, ReviewTree, SCHEME,
 } from './views/review.ts'
+import { TASK_VIEW, TaskTree } from './views/task.ts'
+import { SELECT_TASK, TASKS_VIEW, TasksTree } from './views/tasks.ts'
+import { LIST_VIEW, SELECT_WORKSTREAM, type WorkstreamNode, WorkstreamsTree } from './views/workstreams.ts'
 import { Watchers } from './watch.ts'
 
-export const REGISTRY_VIEW = 'workstreams.registry'
 const REFRESH = 'workstreams.refresh'
 const SHOW_DONE = 'workstreams.showDone'
 const HIDE_DONE = 'workstreams.hideDone'
 const SHOW_DONE_KEY = 'workstreams.showDone'
+// Set while a workstream is selected; the Tasks and Task views show only then (plan T2).
+const SELECTED_KEY = 'workstreams.selected'
 const DEBOUNCE_MS = 300
 
 // What activate returns: the state the views draw, every argv run and every message shown, so
@@ -30,7 +33,8 @@ const DEBOUNCE_MS = 300
 // `asked` holds each confirm box's text and `launched` each launch; `ui` answers the boxes, and
 // the test may replace it, since a modal can't be clicked from the extension API. `opened` holds
 // what each review file or evidence click opened, or why it opened nothing. `health`, `diagnostics`
-// and `budget` are the Health tree, its Problems panel entries and the Budget tree.
+// and `budget` are the Health tree, its Problems panel entries and the Budget tree. `list`, `tasks`
+// and `task` are the Workstreams, Tasks and Task trees, linked through the store's selection.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -41,7 +45,9 @@ export type Api = {
   opened: Opened[]
   ui: Ui
   store?: Store
-  tree?: RegistryTree
+  list?: WorkstreamsTree
+  tasks?: TasksTree
+  task?: TaskTree
   review?: ReviewTree
   health?: HealthTree
   diagnostics?: HealthDiagnostics
@@ -77,7 +83,26 @@ export function activate(context: vscode.ExtensionContext): Api {
 
   const draw = (started: Started): Started => {
     const store = new Store(cli, started)
-    const tree = new RegistryTree(store)
+    const list = new WorkstreamsTree(store)
+    const tasks = new TasksTree(store)
+    const task = new TaskTree(store)
+    const tasksView = vscode.window.createTreeView(TASKS_VIEW, { treeDataProvider: tasks, showCollapseAll: true })
+    const taskView = vscode.window.createTreeView(TASK_VIEW, { treeDataProvider: task })
+    // A selection names its workstream and task in the views' titles, and shows the two views.
+    store.onSelect(() => {
+      tasksView.description = store.selected?.ws
+      taskView.description = store.selectedTask
+      void vscode.commands.executeCommand('setContext', SELECTED_KEY, Boolean(store.selected))
+    })
+    // A jump selects the task, then shows it in the Tasks view once that has drawn it.
+    const selectTask = async (root: string, ws: string, id: string) => {
+      store.selectTask(root, ws, id)
+      if (!tasksView.visible) return
+      const phases = await tasks.getChildren()
+      for (const phase of phases) if (phase.kind === 'phase') await tasks.getChildren(phase)
+      const node = tasks.drawnTask(root, ws, id)
+      if (node) await Promise.resolve(tasksView.reveal(node, { select: true, focus: false })).catch(() => undefined)
+    }
     const review = new ReviewTree(store)
     const docs = new ReviewDocuments(cli, store)
     const health = new HealthTree(store)
@@ -92,7 +117,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     }
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50)
     statusBar.name = 'Workstreams'
-    statusBar.command = `${REGISTRY_VIEW}.focus`
+    statusBar.command = `${LIST_VIEW}.focus`
     const watchers = new Watchers(() => reload.poke())
     const reloadNow = async () => {
       api.reloads.push('watch')
@@ -117,7 +142,11 @@ export function activate(context: vscode.ExtensionContext): Api {
     pending = paint()
 
     context.subscriptions.push(
-      vscode.window.createTreeView(REGISTRY_VIEW, { treeDataProvider: tree, showCollapseAll: true }),
+      vscode.window.createTreeView(LIST_VIEW, { treeDataProvider: list }),
+      tasksView,
+      taskView,
+      vscode.commands.registerCommand(SELECT_WORKSTREAM, (node: WorkstreamNode) => store.select(node.root, node.row.id)),
+      vscode.commands.registerCommand(SELECT_TASK, (root: string, ws: string, id: string) => selectTask(root, ws, id)),
       vscode.window.createTreeView(REVIEW_VIEW, { treeDataProvider: review, showCollapseAll: true }),
       vscode.window.createTreeView(HEALTH_VIEW, { treeDataProvider: health }),
       budgetView,
@@ -142,7 +171,6 @@ export function activate(context: vscode.ExtensionContext): Api {
       }),
       vscode.commands.registerCommand(SHOW_DONE, () => setShowDone(true)),
       vscode.commands.registerCommand(HIDE_DONE, () => setShowDone(false)),
-      vscode.commands.registerCommand(OPEN_DOCUMENT, (node: Extract<Node, { kind: 'document' }>) => openDocument(node)),
       ...registerCommands(cli, store, async () => {
         api.reloads.push('act')
         await (pending = store.reload())
@@ -158,7 +186,8 @@ export function activate(context: vscode.ExtensionContext): Api {
       await vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, on)
     }
     void vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, false)
-    Object.assign(api, { store, tree, review, health, diagnostics, budget, statusBar })
+    void vscode.commands.executeCommand('setContext', SELECTED_KEY, false)
+    Object.assign(api, { store, list, tasks, task, review, health, diagnostics, budget, statusBar })
     return started
   }
 
