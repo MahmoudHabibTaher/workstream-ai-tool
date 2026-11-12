@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/vscode_followups/PLAN.md",
+  "updated": "2026-11-12",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "VF-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "Review, Health and Budget in panel containers of their own",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "T2",
+        "D-PANELS"
+      ],
+      "summary": "Declare four panel view containers (workstreams, workstreams-review, workstreams-health, workstreams-budget) instead of one activity bar container; Workstreams keeps its five linked views and its id.",
+      "files": [
+        "ui/vscode/package.json",
+        "ui/vscode/media",
+        "tests/test_vscode_files.py",
+        "ui/vscode/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "test_vscode_files.py pins viewsContainers.panel as the four containers in order, each with its views, and no activitybar entry",
+        "make test-vscode passes with the view ids unchanged",
+        "The README describes the four panel tabs"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VF-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "A blocked launch lists its checks",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "D-BLOCKED"
+      ],
+      "summary": "When a check blocks, the flow shows a read-only quick pick (step 'blocked'): one row per check with an icon, blocking first; picking a health-backed check focuses the Health view; nothing launches.",
+      "files": [
+        "ui/vscode/src/launchFlow.ts",
+        "ui/vscode/src/logic/launch.ts",
+        "ui/vscode/test",
+        "ui/vscode/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A unit test of blockedChoices shows blocking rows first, then warnings, then passes, with their icons",
+        "The integration test's blocked Run offers one 'blocked' pick listing validate, wave and claim, says 'Run alpha is blocked by 3 checks', and launches nothing",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VF-01"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VF-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "Launch menus and prompts from the snapshot (closes D020)",
+      "kind": "behaviour",
+      "findings": [
+        "T4",
+        "D-LAUNCHES"
+      ],
+      "summary": "Offer each launch from the row's snapshot `launches` (contextValue `launch:<kind>`, one menu clause per kind) and take its prompt from there, appending the reason when ask is 'reason'; drop the PROMPTS table.",
+      "files": [
+        "ui/vscode/src/logic/actions.ts",
+        "ui/vscode/src/logic/format.ts",
+        "ui/vscode/src/logic/detail.ts",
+        "ui/vscode/src/logic/launch.ts",
+        "ui/vscode/src/launchFlow.ts",
+        "ui/vscode/src/commands.ts",
+        "ui/vscode/src/views/workstreams.ts",
+        "ui/vscode/package.json",
+        "ui/vscode/test",
+        "tests/test_vscode_files.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "test_vscode_files.py pins each launch menu to `launch:<kind>` and finds no 'Use the ws-' text in the extension's sources",
+        "Unit tests show a row offering only the kinds its snapshot lists, and none for a closed row",
+        "The integration test's Abandon launches the snapshot's prompt with the reason appended",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VF-02"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VF-04",
+      "phase": 1,
+      "priority": 40,
+      "title": "Repeat-last row and one combined preset pick",
+      "kind": "behaviour",
+      "findings": [
+        "T5",
+        "T6",
+        "D-SHORTER"
+      ],
+      "summary": "The target pick leads with the last full choice while every part is still offered; a fresh terminal launch asks one 'preset' pick of agent x effort x permissions combinations. The agent's own check still runs before the prompt.",
+      "files": [
+        "ui/vscode/src/launchFlow.ts",
+        "ui/vscode/src/logic/launch.ts",
+        "ui/vscode/test",
+        "ui/vscode/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "Unit tests of combos and repeatChoice cover the none level, the agentCommand row, and a stale last choice giving no repeat row",
+        "The integration test's second terminal launch asks only ['target'] before the prompt and runs the same argv as the first",
+        "A fresh terminal launch asks ['target', 'preset'] (plus 'checks' only when one warns)",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VF-03"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "VF-05",
+      "phase": 2,
+      "priority": 50,
+      "title": "Prove it in VS Code by hand",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "Install the vsix, open a wheel-built sample, run the end-to-end checks with the owner, and record them in 0019 and the README.",
+      "files": [
+        "docs/decisions/0019-ui-redesign.md",
+        "ui/vscode/README.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        {
+          "text": "The owner saw four panel tabs, a blocked Run listing its checks, a repeated terminal launch in two picks, a fresh one through the combined pick, and Abandon carrying its reason",
+          "kind": "manual"
+        },
+        "make test passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "VF-04"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "ui/vscode",
+      "tests/test_vscode_files.py",
+      "docs/decisions/0019-ui-redesign.md"
+    ],
+    "outOfScope": [
+      "src/workstream (the snapshot already carries launches)",
+      "ui/jetbrains",
+      "ui/mod",
+      "webviews",
+      "Cursor",
+      "a run-task launch on tasks"
+    ],
+    "rule": "Native VS Code views only, every fact from the ws CLI and every write from ws act."
+  }
+}
