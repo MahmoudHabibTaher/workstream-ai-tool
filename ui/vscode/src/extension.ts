@@ -1,5 +1,5 @@
 // Activation: read the `ws` argv setting, find the window's projects, load their snapshots, then
-// draw the Workstreams, Tasks, Task, Review, Health and Budget trees, the Problems panel and the status bar and keep them current. Every fact comes from the CLI
+// draw the Workstreams, Tasks, Task, Graph, Overview, Review, Health and Budget trees, the Problems panel and the status bar and keep them current. Every fact comes from the CLI
 // through cli.ts; nothing here works one out.
 import * as vscode from 'vscode'
 
@@ -15,6 +15,8 @@ import { BUDGET_VIEW, BudgetTree, HEALTH_VIEW, HealthDiagnostics, HealthTree } f
 import {
   OPEN_EVIDENCE, OPEN_FILE, openEvidence, openFile, type Opened, REVIEW_VIEW, ReviewDocuments, ReviewTree, SCHEME,
 } from './views/review.ts'
+import { GRAPH_VIEW, GraphTree } from './views/graph.ts'
+import { OVERVIEW_VIEW, OverviewTree } from './views/overview.ts'
 import { TASK_VIEW, TaskTree } from './views/task.ts'
 import { SELECT_TASK, TASKS_VIEW, TasksTree } from './views/tasks.ts'
 import { LIST_VIEW, SELECT_WORKSTREAM, type WorkstreamNode, WorkstreamsTree } from './views/workstreams.ts'
@@ -24,7 +26,7 @@ const REFRESH = 'workstreams.refresh'
 const SHOW_DONE = 'workstreams.showDone'
 const HIDE_DONE = 'workstreams.hideDone'
 const SHOW_DONE_KEY = 'workstreams.showDone'
-// Set while a workstream is selected; the Tasks and Task views show only then (plan T2).
+// Set while a workstream is selected; the Tasks, Task, Graph and Overview views show only then (plan T2).
 const SELECTED_KEY = 'workstreams.selected'
 const DEBOUNCE_MS = 300
 
@@ -34,7 +36,8 @@ const DEBOUNCE_MS = 300
 // the test may replace it, since a modal can't be clicked from the extension API. `opened` holds
 // what each review file or evidence click opened, or why it opened nothing. `health`, `diagnostics`
 // and `budget` are the Health tree, its Problems panel entries and the Budget tree. `list`, `tasks`
-// and `task` are the Workstreams, Tasks and Task trees, linked through the store's selection.
+// and `task` are the Workstreams, Tasks and Task trees, and `graph` and `overview` the Graph and
+// Overview trees, all linked through the store's selection.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -48,6 +51,8 @@ export type Api = {
   list?: WorkstreamsTree
   tasks?: TasksTree
   task?: TaskTree
+  graph?: GraphTree
+  overview?: OverviewTree
   review?: ReviewTree
   health?: HealthTree
   diagnostics?: HealthDiagnostics
@@ -88,10 +93,16 @@ export function activate(context: vscode.ExtensionContext): Api {
     const task = new TaskTree(store)
     const tasksView = vscode.window.createTreeView(TASKS_VIEW, { treeDataProvider: tasks, showCollapseAll: true })
     const taskView = vscode.window.createTreeView(TASK_VIEW, { treeDataProvider: task })
-    // A selection names its workstream and task in the views' titles, and shows the two views.
+    const graph = new GraphTree(store)
+    const overview = new OverviewTree(store)
+    const graphView = vscode.window.createTreeView(GRAPH_VIEW, { treeDataProvider: graph, showCollapseAll: true })
+    const overviewView = vscode.window.createTreeView(OVERVIEW_VIEW, { treeDataProvider: overview, showCollapseAll: true })
+    // A selection names its workstream and task in the views' titles, and shows the linked views.
     store.onSelect(() => {
       tasksView.description = store.selected?.ws
       taskView.description = store.selectedTask
+      graphView.description = store.selected?.ws
+      overviewView.description = store.selected?.ws
       void vscode.commands.executeCommand('setContext', SELECTED_KEY, Boolean(store.selected))
     })
     // A jump selects the task, then shows it in the Tasks view once that has drawn it.
@@ -145,6 +156,8 @@ export function activate(context: vscode.ExtensionContext): Api {
       vscode.window.createTreeView(LIST_VIEW, { treeDataProvider: list }),
       tasksView,
       taskView,
+      graphView,
+      overviewView,
       vscode.commands.registerCommand(SELECT_WORKSTREAM, (node: WorkstreamNode) => store.select(node.root, node.row.id)),
       vscode.commands.registerCommand(SELECT_TASK, (root: string, ws: string, id: string) => selectTask(root, ws, id)),
       vscode.window.createTreeView(REVIEW_VIEW, { treeDataProvider: review, showCollapseAll: true }),
@@ -187,7 +200,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     }
     void vscode.commands.executeCommand('setContext', SHOW_DONE_KEY, false)
     void vscode.commands.executeCommand('setContext', SELECTED_KEY, false)
-    Object.assign(api, { store, list, tasks, task, review, health, diagnostics, budget, statusBar })
+    Object.assign(api, { store, list, tasks, task, graph, overview, review, health, diagnostics, budget, statusBar })
     return started
   }
 
