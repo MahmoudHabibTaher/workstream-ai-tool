@@ -81,3 +81,35 @@ Rejected: registering the Open commands in extension.ts while the writes stay in
 
 The bar shows `$(checklist) <ws> · <task> · <age>`, then ` · N errors`, which mirrors jetbrains_ux D024. The claimed task is the first `in-progress` task of the active workstream's own snapshot, and the age is left out when the claim has no `startedAt`. The wave line still shows when nothing is claimed, and the age redraws every minute. The tooltip stays the literal 'Show the Workstreams view' because `tests/test_vscode_files.py` requires every `.tooltip =` to be a literal or `tooltip(`. `claimedTask` and `claimLine` live in `logic/format.ts`, so `registry.ts` is unchanged.
 Rejected: a tooltip naming the claim (it fails that pin). **Closed.**
+
+## D016 (2026-11-12, VX-05): `src/commands.ts`, `src/extension.ts` and `src/logic/launch.ts` touched, outside the expected files
+
+`start` in commands.ts now calls `launchFlow` and then `launch({...}, [settled.target])`. extension.ts's `Api` gains `flowUi` (the quick picks' answers, which the test can swap, as with `ui`) and `terminalHost`, and passes `context.workspaceState`. The flow's pure helpers (`verdict`, `agents`, `lastFirst`, `lastOf`, `levels`, `argvOptions`) live in `logic/launch.ts`, so `node --test` covers them (`test/logic/launch.test.ts`). The flow is started from commands.ts, so it can't go anywhere else. This is the same situation as D014.
+Rejected: doing it all in launchFlow.ts, which would leave the helpers outside `node --test`. **Closed.**
+
+## D017 (2026-11-12, VX-05): the integration test replaces terminal creation for presets
+
+`launch.ts` exports `terminalHost.create`, which the test swaps for one that records the options and starts `/bin/echo` with them. Otherwise a preset's real agent CLI would start on the test machine with a live prompt. The agentCommand case still uses the real `createTerminal`, and `createTerminal` is still only called in launch.ts.
+Rejected: starting the preset's command for real. **Closed.**
+
+## D018 (2026-11-12, VX-05): what the flow asks, and when it skips a pick
+
+- The checks pick shows only when a check gives a warning. Picking any line goes on, and Escape stops.
+- `ws launch check` runs again with `--agent` once a preset is picked, so its skills check is shown the same way. A check id that was already shown isn't asked about twice.
+- A step with one choice is skipped: the target is the clipboard alone when there is no agent.
+- The agents are the `ws launch agents` presets, plus `workstreams.agentCommand` when it is set. The terminal target is offered when at least one agent exists.
+- An effort or permissions pick starts with "none (no flag)".
+- The last choice is moved to the top with "last used", since `showQuickPick` can't preselect an item.
+- The abandon reason is still asked before the flow, and it fills the editable prompt.
+
+Rejected: always showing the checks pick, which adds a click to every clean launch. **Closed.**
+
+## D019 (2026-11-12, VX-05): `--prompt=<text>`
+
+`loadArgv` passes the edited prompt as one `--prompt=` argument, so a prompt that starts with `-` isn't read as a flag by argparse. The test drives exactly that case.
+Rejected: `--prompt`, `<text>` as two arguments. **Closed.**
+
+## D020 (2026-11-12, VX-05): the launch menu still uses the D022 status rule
+
+`launches()` and the `launch` menu regex are unchanged. The snapshot's per-row `launches` list isn't used for menus yet, because switching to it per kind would change the menu regex pins. The flow's checks now carry the real gate.
+Rejected: changing the menu pins inside this task. **Open.**
