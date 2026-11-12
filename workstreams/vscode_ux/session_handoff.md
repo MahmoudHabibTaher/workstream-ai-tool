@@ -1,11 +1,11 @@
 # Session handoff
 
-**State:** 1/7 done on `main` at `3411d65`, as of 2026-11-12.
+**State:** 2/7 done on `main` at `5df7d93`, as of 2026-11-12.
 
-**Just landed:** VX-01 (`3411d6508a`)
+**Just landed:** VX-02 (`5df7d9332d`)
 
-**Next:** `ws claim --commit VX-02` (phase 1).
+**Next:** `ws claim --commit VX-03` (phase 1).
 
 **Gotchas:**
-- VX-01: - `ws verify` takes about 8 minutes for `make test` here.
-- `views/registry.ts` still uses `registry.ts`'s builders. VX-02 should move it to `listRows`/`taskLanes` and retire the old ones.
+- VX-02: - The Tasks and Task views have no welcome text yet: before a task is selected, the Task view is just empty. VX-04 (welcome views) covers this.
+- Refresh, Show done and Hide done stay on the Workstreams view's title only. VX-04 handles the menu layout.
