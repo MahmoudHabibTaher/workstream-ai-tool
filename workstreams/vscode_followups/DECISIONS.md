@@ -33,3 +33,13 @@ Rejected: a `health` flag on each check from the CLI, which needs a change to sr
 
 The plan rejects "keeping the toast", meaning the old toast that carried every check's message. `say` is shared and shows a toast for every message; the brief says it still gets the one short line, so the person now sees `Run alpha is blocked by 3 checks` as a toast and the list of checks as the pick. `blockedLine` keeps its name and now returns that short line, which is also the pick's title.
 Rejected: a quiet `say` variant without a toast, which changes `say`'s contract for one caller. **Closed.**
+
+## D006 (2026-11-12, VF-03): `src/extension.ts` changes by one line though the brief does not list it
+
+It calls `contextValue(w.kind, w.writes, w.launch)` to set the selected-item key that the title menus match, so it now passes `w.launches`. Without that line the build fails, and the title menus could not see `launch:<kind>`. `test/integration/suite.ts` also changes, for acceptance 3 and the new contextValue words. Neither file is in the brief's list.
+Rejected: leaving the title menus on the old word. That would split one rule between two places. **Closed.**
+
+## D007 (2026-11-12, VF-03): `ListRow.launch: boolean` becomes `launches: Launch[]`, and `launches(row)` keeps only the kinds the extension can start
+
+`launches(row)` returns the snapshot's kinds filtered through `LAUNCHES` and in that order. A kind the extension has no command for, such as `run-task`, is never offered. The prompt itself is read from `node.row.launches` when the command runs. `needsReason` now takes the offer (`ask === 'reason'`), and `offerPrompt(offer, why)` appends the reason. `WHY`, `promptText` and `PROMPTS` are gone, and `launchFlow`'s `Ask` carries `prompt` in place of `why`.
+Rejected: passing the whole offer list to `contextValue`. Its callers only need the kind words. **Closed.**

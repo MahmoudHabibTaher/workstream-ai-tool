@@ -1,10 +1,7 @@
 # Session handoff
 
-**State:** 2/5 done on `main` at `83ac3e5`, as of 2026-11-12.
+**State:** 3/5 done on `main` at `47bc89a`, as of 2026-11-12.
 
-**Just landed:** VF-02 (`83ac3e5a7c`)
+**Just landed:** VF-03 (`47bc89a0f5`)
 
-**Next:** `ws claim --commit VF-03` (phase 1).
-
-**Gotchas:**
-- VF-02: - The integration suite's blocked Run now picks `validate` by default (Enter on the first row), which focuses the Health panel tab. The later steps passed with that; it also hides Budget, as D002's tab switch does.
+**Next:** `ws claim --commit VF-04` (phase 1).

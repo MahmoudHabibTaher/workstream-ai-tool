@@ -6,6 +6,10 @@ Created 2026-11-12 from `main` at `d24496e`.
 
 ---
 
+## 2026-11-12: VF-03: Launch menus and prompts from the snapshot (closes D020)
+
+Merged as `47bc89a0f5`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VF-03.md).
+
 ## 2026-11-12: VF-02: A blocked launch lists its checks
 
 Merged as `83ac3e5a7c`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VF-02.md).
