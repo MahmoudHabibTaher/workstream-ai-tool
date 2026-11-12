@@ -314,7 +314,7 @@
       "docs": [],
       "acceptance": [
         {
-          "text": "The owner saw four panel tabs, a blocked Run listing its checks, a repeated terminal launch in two picks, a fresh one through the combined pick, and Abandon carrying its reason",
+          "text": "The owner saw four panel tabs, a blocked Run listing its checks and opening validate's errors in a tab, a repeated terminal launch in two picks, a fresh one through the combined pick, and Abandon carrying its reason (manual) (changed by D011)",
           "kind": "manual"
         },
         "make test passes"
