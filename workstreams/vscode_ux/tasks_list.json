@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "source": "workstreams/vscode_ux/PLAN.md",
-  "updated": "2026-11-10",
+  "updated": "2026-11-12",
   "protocolVersion": "1",
   "tier": "standard",
   "tasks": [
@@ -29,17 +29,17 @@
       "verify": [
         "test"
       ],
-      "branch": "",
+      "branch": "task/vx-01",
       "blockedBy": [],
       "needsUserDecision": false,
       "notes": "",
       "mode": "background",
       "requires": [],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-12T10:13:51Z",
+      "baseCommit": "319f6910004d8a3f5d2e76841fe64c40a50433fa",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,

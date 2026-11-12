@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-11",
+  "updated": "2026-11-12",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -384,12 +384,12 @@
       "id": "vscode_ux",
       "title": "VS Code UX redesign",
       "summary": "Bring the master-detail design and launch flow to the VS Code extension through native linked views, with Terminal, Copilot Chat and Claude Code extension targets.",
-      "status": "planned",
+      "status": "active",
       "taskPrefix": "VX",
       "path": "workstreams/vscode_ux",
       "tier": "standard",
       "created": "2026-11-10",
-      "startedAt": null,
+      "startedAt": "2026-11-12",
       "completedAt": null,
       "baseCommit": "e935195",
       "dependsOn": [
@@ -397,8 +397,8 @@
       ],
       "progress": {
         "total": 7,
-        "todo": 7,
-        "in-progress": 0,
+        "todo": 6,
+        "in-progress": 1,
         "blocked": 0,
         "done": 0,
         "deferred": 0
