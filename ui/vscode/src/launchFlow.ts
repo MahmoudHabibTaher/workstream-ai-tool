@@ -1,19 +1,23 @@
 // Plan D-LAUNCH: what Run, Coordinate, Close and Abandon ask before they launch, as a chain of quick
 // picks. 1. the checks from `ws launch check`, where a blocking one ends the flow on a read-only list;
-// 2. the target, from those that can take it; 3. for a terminal, the agent (`ws launch agents`, or
-// the agentCommand setting), then a preset's effort and permissions; 4. an input box holding the
-// prompt. A preset's command line comes from `ws launch argv`. The last choices are kept in the
-// workspace's state and offered first next time. Every fact comes from the CLI; this file writes
-// nothing but that state.
+// 2. the target, from those that can take it, led by a repeat of the last terminal launch while it
+// is still offered; 3. for a terminal picked fresh, one preset pick of every agent (`ws launch
+// agents`, or the agentCommand setting) x effort x permissions, then the agent's own check; 4. an
+// input box holding the prompt. A preset's command line comes from `ws launch argv`. The last
+// choices are kept in the workspace's state and offered first next time. Every fact comes from the
+// CLI; this file writes nothing but that state.
 import * as vscode from 'vscode'
 
 import { type Check, type Cli, loadAgents, loadArgv, loadChecks } from './cli.ts'
 import { agentCommand, offeredTargets, type Target } from './launch.ts'
 import {
-  type Agent, agents, blockedChoices, blockedLine, HEALTH_CHECKS, type Last, LAST_KEY, lastFirst, lastOf, type Launch, launchTitle, levels, verdict,
+  agents, blockedChoices, blockedLine, type Combo, combos, HEALTH_CHECKS, type Last, LAST_KEY, lastCombo, lastFirst, lastOf, type Launch, launchTitle,
+  repeatChoice, verdict,
 } from './logic/launch.ts'
 
-export type Step = 'checks' | 'blocked' | 'target' | 'agent' | 'effort' | 'permissions'
+export type Step = 'blocked' | 'checks' | 'target' | 'preset'
+// A target pick's row: a target alone, or the repeat row, which carries its combo too.
+type Picked = { id: string; target: Target; combo?: Combo }
 export type Choice<T> = { label: string; description?: string; detail?: string; value: T }
 
 // The flow's questions. The integration test swaps these for scripted answers, since a quick pick
@@ -40,8 +44,6 @@ export type Flow = { cli: Cli; state: vscode.Memento; ui: FlowUi; say(text: stri
 export type Ask = { kind: Launch; ws: string; root: string; prompt: string }
 // What the person settled on: the target, the prompt, and for a terminal its whole command line.
 export type Settled = { target: Target; title: string; prompt: string; argv?: string[] }
-
-const NONE = 'none (no flag)'
 
 function checkChoice(c: Check): Choice<true> {
   return { label: `${c.ok ? '$(pass)' : '$(warning)'} ${c.id}`, description: c.message, value: true }
@@ -88,37 +90,38 @@ export async function launchFlow(flow: Flow, ask: Ask): Promise<Settled | undefi
   if (presets.error !== undefined) flow.say(presets.error, true)
   const offered = agents(presets.value?.agents ?? [], agentCommand())
   const targets = (await offeredTargets()).filter(t => !t.needsAgent || offered.length)
-  const target = await pickOne(flow, 'target', `${title}: where`,
-    lastFirst(targets, t => t.id, last.target).map(t => ({ label: t.label, description: t.id === last.target ? 'last used' : undefined, value: t })))
-  if (!target) return undefined
+  const all = combos(offered)
+  // The last terminal launch whole leads the pick, while every part of it is still offered (plan T6).
+  const repeat = repeatChoice(last, targets, all)
+  const targetRows: Choice<Picked>[] = lastFirst(targets, t => t.id, last.target).map(t => ({
+    label: t.label, description: !repeat && t.id === last.target ? 'last used' : undefined, value: { id: t.id, target: t },
+  }))
+  const picked = await pickOne(flow, 'target', `${title}: where`,
+    repeat ? [{ label: repeat.label, description: repeat.description, value: { id: 'repeat', target: repeat.target, combo: repeat.combo } }, ...targetRows] : targetRows)
+  if (!picked) return undefined
+  const target = picked.target
   now.target = target.id
 
-  // 3. For a terminal, the agent, and a preset's effort and permissions.
-  let agent: Agent | undefined
-  let effort: string | undefined
-  let permissions: string | undefined
+  // 3. For a terminal, one preset pick of every agent x effort x permissions, the remembered first;
+  // the repeat row has already settled it.
+  let combo: Combo | undefined
   if (target.needsAgent) {
-    agent = await pickOne(flow, 'agent', `${title}: agent`,
-      lastFirst(offered, a => a.id, last.agent).map(a => ({ label: a.label, description: a.detail, detail: a.id === last.agent ? 'last used' : undefined, value: a })))
-    if (!agent) return undefined
-    now.agent = agent.id
-    const preset = agent.preset
+    const remembered = lastCombo(all, last)
+    combo = picked.combo ?? await pickOne(flow, 'preset', `${title}: agent, effort and permissions`,
+      lastFirst(all, c => c.id, remembered?.id).map(c => ({ label: c.label, description: c.agent.detail, detail: c === remembered ? 'last used' : undefined, value: c })))
+    if (!combo) return undefined
+    Object.assign(now, { agent: combo.agent.id, effort: combo.effort, permissions: combo.permissions })
+    // The agent's own check (its skills are installed), shown the same way, repeated or not.
+    const preset = combo.agent.preset
     if (preset) {
-      for (const [step, values, remembered] of [['effort', preset.effortLevels, last.effort], ['permissions', preset.permissionChoices, last.permissions]] as const) {
-        if (!values.length) continue
-        const chosen = await flow.ui.pick(step, `${title}: ${preset.label} ${step}`,
-          lastFirst(levels(values), v => v, remembered).map(v => ({ label: v || NONE, description: v === remembered ? 'last used' : undefined, value: v })))
-        if (chosen === undefined) return undefined
-        now[step] = chosen
-        if (step === 'effort') effort = chosen || undefined
-        else permissions = chosen || undefined
-      }
-      // The agent's own check (its skills are installed), shown the same way.
       const again = await loadChecks(flow.cli, ask.root, ask.ws, ask.kind, preset.agent)
       if (again.error !== undefined) return void flow.say(again.error, true)
       if (!(await passes(flow, title, again.value.checks, seen))) return undefined
     }
   }
+  const agent = combo?.agent
+  const effort = combo?.effort || undefined
+  const permissions = combo?.permissions || undefined
 
   // 4. The prompt, editable.
   const prompt = (await flow.ui.prompt(title, ask.prompt))?.trim()

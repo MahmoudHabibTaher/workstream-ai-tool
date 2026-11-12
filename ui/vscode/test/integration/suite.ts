@@ -476,21 +476,38 @@ async function launches(api: Api, root: string): Promise<void> {
   await api.settled()
 
   // 2. The agentCommand setting as the agent: the terminal runs it with the prompt as one argument.
-  answers = { target: 'terminal', agent: 'setting' }
+  // A fresh terminal asks one preset pick of every agent x effort x permissions, the setting a row.
+  answers = { target: 'terminal', preset: 'setting' }
   const terminals = vscode.window.terminals.length
   await vscode.commands.executeCommand('workstreams.coordinate', alpha)
   const run = api.launched.at(-1)
   assert.equal(run?.target, 'terminal')
   assert.ok(run?.terminal)
   assert.equal(vscode.window.terminals.length, terminals + 1)
-  assert.deepEqual(steps(), ['target', 'agent'])
+  assert.deepEqual(steps(), ['target', 'preset'])
   assert.deepEqual(offered[0].labels, ['Terminal', 'Copy the prompt'])
-  assert.deepEqual(offered[1].labels, [...presets.map(p => `${p.label} (${p.command})`), 'workstreams.agentCommand (/bin/echo agent:)'])
+  const width = (n: number) => (n ? n + 1 : 1)
+  assert.equal(offered[1].labels.length, presets.reduce((n, p) => n + width(p.effortLevels.length) * width(p.permissionChoices.length), 1))
+  assert.equal(offered[1].labels.at(-1), 'workstreams.agentCommand (/bin/echo agent:)')
+  for (const p of presets) assert.ok(offered[1].labels.some(l => l.startsWith(`${p.label} · `) || l === `${p.label} (${p.command})`), p.label)
+  if (presets[0].effortLevels.length) assert.ok(offered[1].labels[0].startsWith(`${presets[0].label} · no effort flag`), offered[1].labels[0])
   const options = run.terminal.creationOptions as vscode.TerminalOptions
   assert.equal(options.shellPath, '/bin/echo')
   assert.deepEqual(options.shellArgs, ['agent:', 'Use the ws-coordinate skill on workstream alpha.'])
   assert.equal(realpathSync(String(options.cwd)), realpathSync(root))
-  console.log(`coordinate, setting: terminal ${JSON.stringify(run.terminal.name)} shellPath ${options.shellPath} shellArgs ${JSON.stringify(options.shellArgs)} cwd ${String(options.cwd)}`)
+  console.log(`coordinate, setting: picks ${JSON.stringify(offered.map(o => [o.step, o.labels.length, o.labels[0], o.labels.at(-1)]))}; terminal ${JSON.stringify(run.terminal.name)} shellPath ${options.shellPath} shellArgs ${JSON.stringify(options.shellArgs)} cwd ${String(options.cwd)}`)
+
+  // The second terminal launch: the target pick leads with the last one whole, so Enter on it asks
+  // nothing more before the prompt and runs the same argv.
+  offered = []
+  answers = {}
+  await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+  assert.deepEqual(steps(), ['target'])
+  assert.deepEqual(offered[0].labels, ['$(history) Terminal · workstreams.agentCommand (last used)', 'Terminal', 'Copy the prompt'])
+  const again = api.launched.at(-1)?.terminal?.creationOptions as vscode.TerminalOptions
+  assert.notEqual(api.launched.at(-1), run)
+  assert.deepEqual([again.shellPath, ...[again.shellArgs ?? []].flat()], [options.shellPath, ...[options.shellArgs ?? []].flat()])
+  console.log(`coordinate, repeated: steps ${JSON.stringify(steps())}; target pick ${JSON.stringify(offered[0].labels)}; shellPath ${again.shellPath} shellArgs ${JSON.stringify(again.shellArgs)}`)
 
   // 3. A preset: its effort and permissions, its own skills check (a warning, so a pick), and an
   // edited prompt; the terminal runs the argv `ws launch argv` built. The terminal made runs echo,
@@ -505,13 +522,13 @@ async function launches(api: Api, root: string): Promise<void> {
     return vscode.window.createTerminal({ name: o.name, shellPath: '/bin/echo', shellArgs: [String(o.shellPath), ...[o.shellArgs ?? []].flat()], cwd: o.cwd })
   }
   offered = []
-  answers = { target: 'terminal', agent: preset.agent, effort, permissions }
+  answers = { target: 'terminal', preset: [preset.agent, effort, permissions].join('/') }
   const edited = '-x edited: "quoted" $(nothing) runs'
   edit = () => edited
   await vscode.commands.executeCommand('workstreams.coordinate', alpha)
   const expected = (JSON.parse(cliOut('launch', 'argv', '-w', 'alpha', '--agent', preset.agent, '--prompt-kind', 'coordinate', `--prompt=${edited}`,
     ...(effort ? ['--effort', effort] : []), ...(permissions ? ['--permissions', permissions] : []), '--json')) as { argv: string[] }).argv
-  assert.deepEqual(steps(), ['target', 'agent', ...(preset.effortLevels.length ? ['effort'] : []), ...(preset.permissionChoices.length ? ['permissions'] : []), 'checks'])
+  assert.deepEqual(steps(), ['target', 'preset', 'checks'])
   assert.match(offered.at(-1)?.labels[0] ?? '', /^\$\(warning\) skills \(skills not installed for /)
   assert.deepEqual(api.ran.at(-1)?.slice(BRANCH_CLI.length, BRANCH_CLI.length + 9), ['launch', 'argv', '-w', 'alpha', '--agent', preset.agent, '--prompt-kind', 'coordinate', `--prompt=${edited}`])
   assert.equal(api.launched.at(-1)?.target, 'terminal')
@@ -521,14 +538,16 @@ async function launches(api: Api, root: string): Promise<void> {
   assert.equal(expected.at(-1), edited)
   console.log(`coordinate, preset: picks ${JSON.stringify(offered)}; terminal argv ${JSON.stringify([made[0].shellPath, ...[made[0].shellArgs ?? []].flat()])}`)
 
-  // 4. The last choices come first next time, so Enter on every pick repeats them.
+  // 4. The repeat row comes first next time: Enter on it skips the preset pick, but the agent's own
+  // check still runs (it warns, so a pick) before the prompt.
   offered = []
   answers = {}
   edit = prompt => prompt
   await vscode.commands.executeCommand('workstreams.close', alpha)
-  assert.equal(offered[0].labels[0], 'Terminal (last used)')
-  assert.equal(offered[1].labels[0], `${preset.label} (${preset.command})`)
-  if (preset.effortLevels.length) assert.equal(offered[2].labels[0], `${effort || 'none (no flag)'} (last used)`)
+  assert.deepEqual(steps(), ['target', 'checks'])
+  const comboLabel = [preset.label, ...(preset.effortLevels.length ? [effort || 'no effort flag'] : []), ...(preset.permissionChoices.length ? [permissions || 'no permissions flag'] : [])].join(' · ')
+  assert.equal(offered[0].labels[0], `$(history) Terminal · ${comboLabel} (last used)`)
+  assert.match(offered[1].labels[0], /^\$\(warning\) skills /)
   const close = (JSON.parse(cliOut('launch', 'argv', '-w', 'alpha', '--agent', preset.agent, '--prompt-kind', 'close', ...(effort ? ['--effort', effort] : []),
     ...(permissions ? ['--permissions', permissions] : []), '--json')) as { argv: string[] }).argv
   assert.deepEqual([made[1].shellPath, ...[made[1].shellArgs ?? []].flat()], close)
@@ -539,7 +558,7 @@ async function launches(api: Api, root: string): Promise<void> {
   const abandonOffer = alpha.row.launches?.find(l => l.kind === 'abandon')
   assert.deepEqual(abandonOffer, { kind: 'abandon', prompt: 'Use the ws-coordinate skill to abandon workstream alpha: ', ask: 'reason' })
   offered = []
-  answers = { target: 'terminal', agent: 'setting' }
+  answers = { target: 'terminal', preset: 'setting' }
   answer = 'it\'s "done" elsewhere; $(nothing runs)'
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.deepEqual(reasons, ['alpha'])
@@ -549,7 +568,7 @@ async function launches(api: Api, root: string): Promise<void> {
 
   // Escape at any pick launches nothing.
   launched = api.launched.length
-  answers = { target: 'terminal', agent: null }
+  answers = { target: 'terminal', preset: null }
   await vscode.commands.executeCommand('workstreams.coordinate', alpha)
   assert.equal(api.launched.length, launched)
 
@@ -559,7 +578,10 @@ async function launches(api: Api, root: string): Promise<void> {
   const openedTerminals: vscode.Terminal[] = []
   const watchTerminals = vscode.window.onDidOpenTerminal(t => { openedTerminals.push(t) })
   answers = { target: 'clipboard' }
+  offered = []
   await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+  // The last launch ran the setting, now cleared: stale, so no repeat row and nothing said.
+  assert.ok(!offered[0].labels.some(l => l.startsWith('$(history)')), JSON.stringify(offered[0].labels))
   assert.equal(api.launched.at(-1)?.target, 'clipboard')
   assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill on workstream alpha.')
   assert.equal(openedTerminals.length, 0)
