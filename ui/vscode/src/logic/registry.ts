@@ -7,8 +7,44 @@ import {
   type Wave, waveLine,
 } from './format.ts'
 
-// A workstream's own snapshot (`ws snapshot -w <id>`) adds its tasks, wave and file paths.
-export type WsSnapshot = Snapshot & { tasks?: Task[]; wave?: Wave; paths?: Record<string, unknown> }
+// A snapshot task with the graph facts the CLI adds (`unblocks`, `waitingOn`) and the queue fields
+// the detail views show. The extension never works these out for itself.
+export type SnapTask = Task & {
+  unblocks?: string[]
+  waitingOn?: string[]
+  files?: string[]
+  notes?: string
+  claimedBy?: string | null
+}
+
+// The queue's scope, as `ws snapshot -w` gives it; each field only when the queue has it.
+export type Scope = { inScope?: string[]; outOfScope?: string[]; rule?: string }
+
+// One `baseline.keys` entry: a verify key's recorded run.
+export type BaselineKey = {
+  key: string
+  source?: string
+  parser?: string | null
+  command?: string | null
+  exit?: number | null
+  findings?: number
+  recordedAt?: string | null
+  commit?: string | null
+}
+
+// What `ws verify` judges the workstream against: its keys in key order, and the errors reading it gave.
+export type Baseline = { keys?: BaselineKey[]; errors?: string[] }
+
+// A workstream's own snapshot (`ws snapshot -w <id>`) adds its tasks, wave, scope, baseline and
+// file paths. `repoRoot` is what a task's `files` are relative to.
+export type WsSnapshot = Snapshot & {
+  repoRoot?: string
+  tasks?: SnapTask[]
+  wave?: Wave
+  scope?: Scope | null
+  baseline?: Baseline
+  paths?: Record<string, unknown>
+}
 
 // Workstream and task nodes keep the revisions of the snapshot they were drawn from, which a
 // write pins (plan T7), and the writes the snapshot offers on them.
