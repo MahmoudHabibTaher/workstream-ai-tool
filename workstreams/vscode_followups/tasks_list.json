@@ -290,13 +290,29 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-12T15:57:30Z",
       "baseCommit": "873d70fc98cf03fbb37e227b1f647b8d92d9ae38",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-12T16:16:16Z",
+      "commit": "e6b22aeb7e69b5e5e9d8990ed9683a846bda9c46",
+      "verification": {
+        "tree": "ba8ba7a1d34c3998171419bf44d017775f73efff",
+        "at": "2026-11-12T16:15:19Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-vscode",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {

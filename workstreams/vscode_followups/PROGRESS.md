@@ -6,6 +6,10 @@ Created 2026-11-12 from `main` at `d24496e`.
 
 ---
 
+## 2026-11-12: VF-06: A Run blocked by validate opens its errors in a tab
+
+Merged as `e6b22aeb7e`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VF-06.md).
+
 ## 2026-11-12: VF-04: Repeat-last row and one combined preset pick
 
 Merged as `ad6568233c`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VF-04.md).

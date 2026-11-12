@@ -64,3 +64,13 @@ Rejected: reusing "none (no flag)" in the combined label, which would not say wh
 Changes: VF-05.
 
 Hand check (VF-05): the validate row shows only the first error and "(and 8 more…)", and picking it opens Health, which holds the snapshot's findings, not validate's errors. The owner asked: "If run failed it should open a new tab showing the validation errors". Read as a read-only editor tab with the full ws validate output, opened with the list. Rejected: a second pick of errors; errors inline in the list; an output channel. **Closed.**
+
+## D012 (2026-11-12, VF-06): the tab opens before the list, and its text comes from `ws validate` run in the flow
+
+`passes` in `ui/vscode/src/launchFlow.ts` says the short line (D005), runs `ws validate -w <id>` at the root, then opens the tab with `preserveFocus` and `preview: false`, and only then shows the list. Opening it after the pick would let the editor take focus from the quick pick. The text is stdout, then stderr, as printed. Exit 1 is how validate reports errors, so it is not treated as a failure. The call goes through `flow.cli.run` directly, so `cli.ts` (not listed) is unchanged. Picking `validate` in the list still focuses Health, as before.
+Rejected: an untitled document (`openTextDocument({content})`), which can be edited and asks to be saved on close; adding a `loadValidate` to `cli.ts`, which is outside the listed files. **Closed.**
+
+## D013 (2026-11-12, VF-06): "read-only" is shown by the document kind, not by a refused edit
+
+The first attempt asserted that `TextEditor.edit` on the tab returns false. In the test host the edit API applied it (`true !== false`), even though VS Code shows content-provider documents read-only in the UI. So the suite asserts the scheme, `!isUntitled` and `!isDirty` instead. This means the acceptance's "read-only" is not checked by a failed edit.
+Rejected: keeping the edit probe, which fails; registering a `FileSystemProvider` with `isReadonly`, which is more machinery for the same tab. **Closed.**
