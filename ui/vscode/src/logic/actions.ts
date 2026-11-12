@@ -2,7 +2,8 @@
 // offered: a row's `actions` and a finding's `actions`. Nothing here holds act's status rule, and
 // `ws act` still decides when the write runs.
 import type { Revisions } from '../cli.ts'
-import { CLOSED_STATUSES, DOC_NAMES, type DocName, type Finding, type Row } from './format.ts'
+import { DOC_NAMES, type DocName, type Finding, type Row } from './format.ts'
+import { type Launch, LAUNCHES } from './launch.ts'
 
 // The writes the extension can ask `ws act` for, in the order a menu shows them.
 export const WRITES = ['pause', 'resume', 'sync', 'unclaim'] as const
@@ -26,15 +27,18 @@ export function taskWrites(health: Finding[], ws: string, task: string): Write[]
   return offered(health.flatMap(f => f.actions ?? []).filter(a => a.workstream === ws && a.task === task).map(a => a.action))
 }
 
-// Run, Coordinate, Close and Abandon are offered on an open workstream, as in the web UI.
-export function launches(row: Row): boolean {
-  return !CLOSED_STATUSES.has(row.status)
+// The launches a row offers: the kinds its snapshot `launches` lists that the extension can start,
+// in the order a menu shows them. A closed row's snapshot lists none.
+export function launches(row: Row): Launch[] {
+  const listed = (row.launches ?? []).map(l => l.kind)
+  return LAUNCHES.filter(k => listed.includes(k))
 }
 
-// A tree item's contextValue: its kind, then `act:<write>` for each write offered, then `launch`.
-// The menus in package.json match these words, so a command shows only where it is offered.
-export function contextValue(kind: string, writes: readonly string[] = [], launch = false): string {
-  return [kind, ...writes.map(w => `act:${w}`), ...(launch ? ['launch'] : [])].join(' ')
+// A tree item's contextValue: its kind, then `act:<write>` for each write offered, then
+// `launch:<kind>` for each launch offered. The menus in package.json match these words, so a
+// command shows only where it is offered.
+export function contextValue(kind: string, writes: readonly string[] = [], offered: readonly string[] = []): string {
+  return [kind, ...writes.map(w => `act:${w}`), ...offered.map(k => `launch:${k}`)].join(' ')
 }
 
 // The Open group's documents, each a command on a workstream item and in the linked views' titles.

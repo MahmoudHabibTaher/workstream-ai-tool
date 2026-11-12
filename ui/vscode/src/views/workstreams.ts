@@ -55,7 +55,7 @@ export class WorkstreamsTree implements vscode.TreeDataProvider<ListNode> {
         item.description = node.description
         item.tooltip = tooltip(node.tip)
         item.iconPath = new vscode.ThemeIcon(ICONS[node.row.status] ?? 'circle-outline')
-        item.contextValue = contextValue(node.kind, node.writes, node.launch)
+        item.contextValue = contextValue(node.kind, node.writes, node.launches)
         item.command = { command: SELECT_WORKSTREAM, title: 'Select', arguments: [node] }
         return item
       }

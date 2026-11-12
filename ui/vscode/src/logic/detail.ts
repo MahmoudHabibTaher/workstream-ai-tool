@@ -4,6 +4,7 @@
 // Every fact is one the snapshot gave: `unblocks` and `waitingOn` come from the CLI, never from here.
 import type { Revisions, Snapshot } from '../cli.ts'
 import { launches, rowWrites, taskWrites, type Write } from './actions.ts'
+import type { Launch } from './launch.ts'
 import {
   ageOf, badgesOf, blockedLine, DOC_NAMES, errorCount, type Finding, lanes, type Row, splitRows, type Wave,
 } from './format.ts'
@@ -43,7 +44,7 @@ export type ListRow = {
   tip: Tip
   revisions: Revisions
   writes: Write[]
-  launch: boolean
+  launches: Launch[]
 }
 
 // What a row shows after its id: done/total, status, claimed tasks and errors, each only when there is one.
@@ -71,7 +72,7 @@ export function listRows(root: string, snapshot: Snapshot, showDone: boolean): L
     if (row.dependsOn?.length) tip.push({ heading: 'Depends on', lines: [row.dependsOn.join(', ')] })
     return {
       id: key(root, 'ws', row.id), root, row, errors, label: row.id, description, tip, revisions: snapshot.revisions,
-      writes: rowWrites(row, found), launch: launches(row),
+      writes: rowWrites(row, found), launches: launches(row),
     }
   })
 }

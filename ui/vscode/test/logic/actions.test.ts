@@ -4,11 +4,12 @@ import { test } from 'node:test'
 import type { Snapshot } from '../../src/cli.ts'
 import { commitLine, confirmText, contextValue, launches, moved, rowWrites, taskWrites } from '../../src/logic/actions.ts'
 import type { Finding, Row, Task } from '../../src/logic/format.ts'
-import { needsReason, promptText, terminalOptions, WHY } from '../../src/logic/launch.ts'
+import { needsReason, offerPrompt, terminalOptions } from '../../src/logic/launch.ts'
 import { listRows, taskRows } from '../../src/logic/detail.ts'
 import type { WsSnapshot } from '../../src/logic/registry.ts'
 
-const row = (id: string, status: string, actions: string[] = []): Row => ({ id, status, actions })
+const row = (id: string, status: string, actions: string[] = [], kinds: string[] = []): Row =>
+  ({ id, status, actions, launches: kinds.map(kind => ({ kind, prompt: `${kind} ${id}.` })) })
 const stale: Finding = { level: 'warning', workstream: 'alpha', task: 'A-1', actions: [{ action: 'unclaim', workstream: 'alpha', task: 'A-1' }] }
 
 test('a row offers what its actions say, never what its status suggests', () => {
@@ -31,24 +32,31 @@ test('a task offers only what a finding offers for it', () => {
   assert.deepEqual(taskWrites([{ level: 'warning', workstream: 'alpha', task: 'A-1' }], 'alpha', 'A-1'), [])
 })
 
-test('launches are offered on open workstreams only', () => {
-  assert.equal(launches(row('a', 'active')), true)
-  assert.equal(launches(row('a', 'paused')), true)
-  assert.equal(launches(row('a', 'planned')), true)
-  assert.equal(launches(row('a', 'done')), false)
-  assert.equal(launches(row('a', 'abandoned')), false)
+test('a row offers only the launches its snapshot lists, never what its status suggests', () => {
+  assert.deepEqual(launches(row('a', 'active', [], ['run', 'coordinate', 'close', 'abandon'])), ['run', 'coordinate', 'close', 'abandon'])
+  // Only the listed kinds, in menu order; a kind the extension can't start is left out.
+  assert.deepEqual(launches(row('a', 'paused', [], ['abandon', 'coordinate', 'run-task'])), ['coordinate', 'abandon'])
+  // An open row whose snapshot lists none offers none: there is no status rule here.
+  assert.deepEqual(launches(row('a', 'active')), [])
+  assert.deepEqual(launches({ id: 'a', status: 'active' }), [])
+  // A closed row's snapshot lists none, so it offers none.
+  assert.deepEqual(launches(row('a', 'done')), [])
+  assert.deepEqual(launches(row('a', 'abandoned')), [])
 })
 
 test('the contextValue names each offer as a word the menus match', () => {
-  assert.equal(contextValue('workstream', ['pause', 'sync'], true), 'workstream act:pause act:sync launch')
+  assert.equal(contextValue('workstream', ['pause', 'sync'], ['run', 'abandon']), 'workstream act:pause act:sync launch:run launch:abandon')
   assert.equal(contextValue('task', ['unclaim']), 'task act:unclaim')
-  assert.equal(contextValue('workstream', [], false), 'workstream')
+  assert.equal(contextValue('workstream', [], []), 'workstream')
   // The same regexes package.json's menus use.
   const has = (value: string, word: string) => new RegExp(`(^| )${word}( |$)`).test(value)
-  assert.ok(has('workstream act:pause launch', 'act:pause'))
-  assert.ok(!has('workstream act:pause launch', 'act:resume'))
-  assert.ok(has('workstream act:pause launch', 'launch'))
-  assert.ok(!has('workstream act:pause', 'launch'))
+  const value = 'workstream act:pause launch:run launch:abandon'
+  assert.ok(has(value, 'act:pause'))
+  assert.ok(!has(value, 'act:resume'))
+  assert.ok(has(value, 'launch:run'))
+  assert.ok(has(value, 'launch:abandon'))
+  assert.ok(!has(value, 'launch:coordinate'))
+  assert.ok(!has('workstream act:pause', 'launch:run'))
 })
 
 test('the confirm box names the commit line and branch, and says when the view is behind', () => {
@@ -72,25 +80,25 @@ test('moved compares the pinned revisions with the latest for that workstream', 
 test('nodes keep the revisions they were drawn from and the offers of their snapshot', () => {
   const snap: Snapshot = {
     snapshotVersion: 1, revisions: { registry: 'R', tasks: { alpha: 'T' } },
-    registry: [row('alpha', 'active', ['pause']), row('beta', 'abandoned')], health: [stale],
+    registry: [row('alpha', 'active', ['pause'], ['run', 'close']), row('beta', 'abandoned')], health: [stale],
   }
   const [alpha] = listRows('/p', snap, false)
-  assert.deepEqual([alpha.writes, alpha.launch, alpha.revisions], [['pause'], true, snap.revisions])
+  assert.deepEqual([alpha.writes, alpha.launches, alpha.revisions], [['pause'], ['run', 'close'], snap.revisions])
   const beta = listRows('/p', snap, true)[1]
-  assert.deepEqual([beta.writes, beta.launch], [[], false])
+  assert.deepEqual([beta.writes, beta.launches], [[], []])
   const task = (id: string): Task => ({ id, phase: 1, priority: 10, status: 'in-progress', blockedBy: [] })
   const ws: WsSnapshot = { ...snap, revisions: { registry: 'R2', tasks: { alpha: 'T2' } }, tasks: [task('A-1'), task('A-2')] }
   const tasks = taskRows('/p', 'alpha', ws, Date.now())
   assert.deepEqual(tasks.map(t => [t.task.id, t.writes, t.revisions.registry]), [['A-1', ['unclaim'], 'R2'], ['A-2', [], 'R2']])
 })
 
-test('one prompt table, the web UI text, with the reason filled into abandon', () => {
-  assert.equal(promptText('run', 'alpha'), 'Use the ws-run skill to run workstream alpha.')
-  assert.equal(promptText('coordinate', 'alpha'), 'Use the ws-coordinate skill on workstream alpha.')
-  assert.equal(promptText('close', 'alpha'), 'Use the ws-coordinate skill to close workstream alpha.')
-  assert.equal(promptText('abandon', 'alpha'), `Use the ws-coordinate skill to abandon workstream alpha: ${WHY}`)
-  assert.equal(promptText('abandon', 'alpha', 'it\'s "done" elsewhere; $(rm -rf)'), 'Use the ws-coordinate skill to abandon workstream alpha: it\'s "done" elsewhere; $(rm -rf)')
-  assert.deepEqual(['run', 'coordinate', 'close', 'abandon'].map(k => needsReason(k as 'run')), [false, false, false, true])
+test('the prompt is the snapshot offer\'s text, with the reason appended when it asks one', () => {
+  const run = { kind: 'run', prompt: 'Run alpha.' }
+  const abandon = { kind: 'abandon', prompt: 'Abandon alpha: ', ask: 'reason' }
+  assert.equal(offerPrompt(run), 'Run alpha.')
+  assert.equal(offerPrompt(run, 'ignored'), 'Run alpha.')
+  assert.equal(offerPrompt(abandon, 'it\'s "done" elsewhere; $(rm -rf)'), 'Abandon alpha: it\'s "done" elsewhere; $(rm -rf)')
+  assert.deepEqual([run, abandon, { kind: 'close', prompt: 'x', ask: 'other' }].map(needsReason), [false, true, false])
 })
 
 test('the terminal runs the agent argv with the prompt as one last argument, at the root', () => {

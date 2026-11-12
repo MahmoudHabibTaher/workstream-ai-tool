@@ -38,7 +38,12 @@ export type Row = {
   dependsOn?: string[]
   // The status writes `ws act` would accept for this row now, as the snapshot drew them.
   actions?: string[]
+  // The launches this row offers, each with its prompt, as the snapshot drew them. `ask: 'reason'`
+  // means the person's reason is appended to the prompt. A closed row lists none.
+  launches?: LaunchOffer[]
 }
+
+export type LaunchOffer = { kind: string; prompt: string; ask?: string }
 
 export type Offer = { action: string; workstream: string; task?: string | null }
 export type Finding = { kind?: string; level: string; workstream: string | null; task?: string | null; message?: string; actions?: Offer[] }
