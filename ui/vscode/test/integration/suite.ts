@@ -716,7 +716,8 @@ async function healthAndBudget(api: Api, root: string): Promise<void> {
     assert.match(String(drawnRows[i].description), new RegExp(`^${r.tokens.toLocaleString('en-US')} / ${r.budget.toLocaleString('en-US')} · \\d+%`))
   }
   console.log(`budget: audit ran ${audits()} time(s) once shown; rows ${JSON.stringify(drawnRows.map(i => `${String(i.label)} | ${String(i.description)}`))}`)
-  await vscode.commands.executeCommand('workbench.view.explorer')
+  // Budget is a panel tab of its own (vscode_followups D-PANELS): the Workstreams tab hides it.
+  await vscode.commands.executeCommand('workstreams.list.focus')
   await until('the budget view hidden', async () => (audits() === 1 ? true : undefined))
   await vscode.commands.executeCommand('workstreams.refresh')
   assert.equal(audits(), 1)

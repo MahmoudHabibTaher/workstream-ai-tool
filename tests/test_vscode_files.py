@@ -165,23 +165,37 @@ class PackageTests(unittest.TestCase):
         """Plan D-REVIEW-UI: a Review view after the linked views (plan D-VIEWS); a file and the evidence open from
         its items only, so neither is in the command palette."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
-        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]][:6],
-                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.graph",
-                          "workstreams.overview", "workstreams.review"])
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams-review"]], ["workstreams.review"])
         hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
         self.assertLessEqual({"workstreams.openReviewFile", "workstreams.openEvidence"}, hidden)
         review = (SRC / "views" / "review.ts").read_text()
         self.assertIn("registerTextDocumentContentProvider(SCHEME, docs)", (SRC / "extension.ts").read_text())
         self.assertIn("await vscode.commands.executeCommand('vscode.diff', left, right, title", review)
 
+    def test_four_panel_containers(self) -> None:
+        """vscode_followups D-PANELS: four panel containers, matching the JetBrains tool window's tabs, and no
+        activity bar entry. The main container keeps the id `workstreams`, which VS Code remembers its place by."""
+        contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
+        self.assertEqual(list(contributes["viewsContainers"]), ["panel"])
+        panel = contributes["viewsContainers"]["panel"]
+        self.assertEqual([c["id"] for c in panel],
+                         ["workstreams", "workstreams-review", "workstreams-health", "workstreams-budget"])
+        for container in panel:
+            self.assertTrue((PACKAGE / container["icon"]).is_file(), container["icon"])
+        self.assertEqual({k: [v["id"] for v in views] for k, views in contributes["views"].items()},
+                         {"workstreams": ["workstreams.list", "workstreams.tasks", "workstreams.task",
+                                          "workstreams.graph", "workstreams.overview"],
+                          "workstreams-review": ["workstreams.review"],
+                          "workstreams-health": ["workstreams.health"],
+                          "workstreams-budget": ["workstreams.budget"]})
+
     def test_the_health_and_budget_views(self) -> None:
         """Plan D-REVIEW-UI: Health and Budget follow Review. A finding's quick fix calls the
         write command its menu does, so it goes through the same confirm; Budget is the one view
         that runs `ws audit context`."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
-        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]],
-                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.graph",
-                          "workstreams.overview", "workstreams.review", "workstreams.health", "workstreams.budget"])
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams-health"]], ["workstreams.health"])
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams-budget"]], ["workstreams.budget"])
         titles = {m["when"] for m in contributes["menus"]["view/title"] if m["command"] == "workstreams.refresh"}
         self.assertLessEqual({"view == workstreams.health", "view == workstreams.budget"}, titles)
         health = (SRC / "views" / "health.ts").read_text()

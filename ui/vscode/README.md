@@ -15,7 +15,12 @@ It was first checked by hand in VS Code 1.139 on macOS (decision 0017, `docs/dec
 
 ## What it shows
 
-The **Workstreams** view container holds five linked views, **Workstreams**, **Tasks**, **Task**, **Graph** and **Overview**, then **Review**, **Health** and **Budget**.
+The extension adds four tabs to the panel, matching the JetBrains tool window's tabs:
+
+- **Workstreams** holds five linked views, **Workstreams**, **Tasks**, **Task**, **Graph** and **Overview**.
+- **Review**, **Health** and **Budget** each hold the one view of that name.
+
+There is no activity bar icon. Like any panel tab, each can be dragged into a side bar, and VS Code remembers where you put it.
 
 - **Workstreams** lists each open workstream with its status, `done/total` and claims. Picking one fills the four views after it; they stay hidden until something is picked. **Show done** adds the closed workstreams and **Hide done** takes them away. **Refresh** reads the snapshot again.
 - **Tasks** shows the wave line, then each phase in order with its tasks by priority. "Waiting on" comes from the snapshot's `waitingOn`.

@@ -49,11 +49,26 @@
       }
     },
     "viewsContainers": {
-      "activitybar": [
+      "panel": [
         {
           "id": "workstreams",
           "title": "Workstreams",
           "icon": "media/workstreams.svg"
+        },
+        {
+          "id": "workstreams-review",
+          "title": "Review",
+          "icon": "media/review.svg"
+        },
+        {
+          "id": "workstreams-health",
+          "title": "Health",
+          "icon": "media/health.svg"
+        },
+        {
+          "id": "workstreams-budget",
+          "title": "Budget",
+          "icon": "media/budget.svg"
         }
       ]
     },
@@ -82,15 +97,21 @@
           "id": "workstreams.overview",
           "name": "Overview",
           "when": "workstreams.selected"
-        },
+        }
+      ],
+      "workstreams-review": [
         {
           "id": "workstreams.review",
           "name": "Review"
-        },
+        }
+      ],
+      "workstreams-health": [
         {
           "id": "workstreams.health",
           "name": "Health"
-        },
+        }
+      ],
+      "workstreams-budget": [
         {
           "id": "workstreams.budget",
           "name": "Budget"
