@@ -75,7 +75,7 @@ export function agents(presets: readonly Preset[], setting: readonly string[]): 
 }
 
 // What the flow remembers per workspace: the last target, agent, effort and permissions. An
-// empty effort or permissions means the person picked none.
+// empty or missing effort or permissions means the person picked none.
 export type Last = { target?: string; agent?: string; effort?: string; permissions?: string }
 export const LAST_KEY = 'workstreams.launch.last'
 
@@ -98,4 +98,55 @@ export function lastFirst<T>(items: readonly T[], idOf: (item: T) => string, las
 // An effort or permissions pick: none first (no flag), then the preset's own.
 export function levels(values: readonly string[]): string[] {
   return ['', ...values]
+}
+
+// One row of the terminal's preset pick: an agent with an effort and a permissions level, where ''
+// is no flag. The agentCommand setting is a single row with neither.
+export type Combo = { id: string; agent: Agent; effort: string; permissions: string; label: string }
+
+const NO_FLAG = (what: string) => `no ${what} flag`
+
+// Every agent x effort x permissions combination, in the presets' order and each level list's order
+// (none first). A preset with no levels of a kind offers no flag for it, and its label leaves it out.
+export function combos(list: readonly Agent[]): Combo[] {
+  const out: Combo[] = []
+  for (const agent of list) {
+    const preset = agent.preset
+    if (!preset) {
+      out.push({ id: agent.id, agent, effort: '', permissions: '', label: agent.label })
+      continue
+    }
+    const efforts = preset.effortLevels.length ? levels(preset.effortLevels) : ['']
+    const perms = preset.permissionChoices.length ? levels(preset.permissionChoices) : ['']
+    for (const effort of efforts) {
+      for (const permissions of perms) {
+        const parts = [agent.label]
+        if (preset.effortLevels.length) parts.push(effort || NO_FLAG('effort'))
+        if (preset.permissionChoices.length) parts.push(permissions || NO_FLAG('permissions'))
+        out.push({ id: [agent.id, effort, permissions].join('/'), agent, effort, permissions, label: parts.join(' · ') })
+      }
+    }
+  }
+  return out
+}
+
+// The combo the last choice names, if it is still offered. A missing effort or permissions reads as
+// none; the agentCommand row matches on the agent alone.
+export function lastCombo(list: readonly Combo[], last: Last): Combo | undefined {
+  if (last.agent === undefined) return undefined
+  return list.find(c => c.agent.id === last.agent && (!c.agent.preset || (c.effort === (last.effort ?? '') && c.permissions === (last.permissions ?? ''))))
+}
+
+export type TargetLike = { id: string; label: string; needsAgent: boolean }
+export type Repeat<T extends TargetLike> = { label: string; description: string; target: T; combo: Combo }
+
+// The target pick's leading `$(history)` row: the last terminal launch whole, offered only while its
+// target and its combo are both still offered. A stale or partial last choice gives none. A last
+// target that needs no agent gets none either: its own row, listed first, already repeats it.
+export function repeatChoice<T extends TargetLike>(last: Last, targets: readonly T[], list: readonly Combo[]): Repeat<T> | undefined {
+  const target = targets.find(t => t.id === last.target)
+  if (!target?.needsAgent) return undefined
+  const combo = lastCombo(list, last)
+  if (!combo) return undefined
+  return { label: `$(history) ${target.label} · ${combo.label}`, description: 'last used', target, combo }
 }

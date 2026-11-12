@@ -56,10 +56,9 @@ A workstream's, task's or finding's context menu holds only what the snapshot of
 - **Pause**, **Resume**, **Sync Progress** and **Unclaim** open a modal naming the commit line and the integration branch. Confirming runs `ws act` against the revisions of the snapshot the item was drawn from, so a change made after you saw it is refused. A refusal is shown as `ws act` gave it. When the extension already holds a newer snapshot, the modal says the write will be refused.
 - **Run**, **Coordinate**, **Close** and **Abandon…** on an open workstream open the launch flow, a run of quick picks:
   1. **Checks** (`ws launch check`). When a check blocks, a read-only list titled, for example, "Run alpha is blocked by 3 checks" shows every check with its message: blocking ones first (`$(error)`), then warnings (`$(warning)`), then passes (`$(pass)`). Picking `validate` or `claim`, whose facts come from the health findings, opens **Health**; any other pick, or Escape, closes the list. Nothing launches from it. When no check blocks, a pick of the checks appears only when one warns.
-  2. **Agent**: the CLI's presets (`ws launch agents`), plus `workstreams.agentCommand` when it is set. The checks run again for the agent picked.
-  3. **Effort** and **permissions**, from the preset.
-  4. **Target**: a terminal at the project root, Copilot Chat (a new agent-mode chat), the Claude Code panel, or the clipboard. A chat target is offered only while its extension is enabled.
-  5. **Prompt**, to edit before it goes.
+  2. **Target**: a terminal at the project root, Copilot Chat (a new agent-mode chat), the Claude Code panel, or the clipboard. A chat target is offered only while its extension is enabled. After a terminal launch, the pick leads with a `$(history)` row repeating it whole, for example `Terminal · Claude Code · medium · acceptEdits`, marked "last used". Picking it skips the preset pick. The row is left out while any part of it is no longer offered: a disabled chat extension, a cleared `workstreams.agentCommand`, or a level the preset dropped.
+  3. **Preset**, for a terminal picked fresh: one pick of every agent × effort × permissions combination. The agents are the CLI's presets (`ws launch agents`), each level list starting with "no … flag", plus `workstreams.agentCommand` as a single row when it is set. Type to filter. The checks then run again for the agent, whether picked here or repeated.
+  4. **Prompt**, to edit before it goes.
 
   A step with only one choice is skipped, and the last choice is listed first, marked "last used". The terminal runs `ws launch argv`'s command line with the prompt as its last argument; no shell parses it. Abandon asks for the reason first.
 
