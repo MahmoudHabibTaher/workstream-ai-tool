@@ -46,3 +46,18 @@ Rejected: keeping a Documents node under each row for one task, which would make
 
 I touched `src/logic/registry.ts`, which the brief's "Builds on" note asked to retire. I also touched `src/commands.ts`, where only the `Target` type changed to the new view node types, and `tests/test_vscode_files.py`. That last file pinned the old view ids, the `registry|health` menu regex and `views/registry.ts`, so `make test` could not pass without changing it. It now pins the new ids, regexes and files.
 Rejected: leaving those checks failing. **Closed.**
+
+## D009 (2026-11-12, VX-03): Graph and Overview sit between Task and Review, with `when: workstreams.selected`
+
+The views are `workstreams.graph` ("Graph") and `workstreams.overview` ("Overview"), right after the Task view, so the linked views stay together and Review still follows them (plan D-REVIEW-UI). Both use the existing `workstreams.selected` key (D005), and their titles show the selected workstream. Graph nodes run `workstreams.selectTask`. They carry a plain `graphTask`/`graphRepeat` contextValue, not the write offers, because the write menus' regex (D005) names only list, tasks and health.
+Rejected: putting them after Budget, which would split the linked views; offering Unclaim on graph nodes, which would widen the menu regex that `tests/test_vscode_files.py` pins. **Closed.**
+
+## D010 (2026-11-12, VX-03): The Overview and Task views share one way of drawing sections
+
+`views/task.ts` now exports `detailItem`, `sectionNodes` and `detailChildren`, and `views/overview.ts` uses them. A claim item jumps through `workstreams.selectTask`, and a document opens through `vscode.open`. The registry row comes from `listRows(root, snapshot, true)`, so a closed workstream's Overview still has its row.
+Rejected: a copy of the Task view's `getTreeItem` in overview.ts. **Closed.**
+
+## D011 (2026-11-12, VX-03): `tests/test_vscode_files.py` touched, outside the expected files
+
+Its two view-order pins now include `workstreams.graph` and `workstreams.overview` after `workstreams.task`. Without that change `make test` could not pass once the views are declared. This is the same situation as D008.
+Rejected: leaving the pins failing. **Closed.**
