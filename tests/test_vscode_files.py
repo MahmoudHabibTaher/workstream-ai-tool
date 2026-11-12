@@ -108,16 +108,18 @@ class PackageTests(unittest.TestCase):
     def test_writes_and_launches_show_only_where_offered(self) -> None:
         """Plan D-ACTIONS: a write's menu entry keys on the `act:<write>` word the tree item's
         contextValue carries from the snapshot's offers, in the Workstreams, Tasks and Health trees;
-        a launch keys on `launch`, in the Workstreams view only. None of them
-        is in the command palette, where no tree item says what is offered."""
+        a launch keys on `launch:<kind>` from the row's snapshot `launches` (plan D-LAUNCHES), in the
+        Workstreams view and the linked views' titles. None of them is in the command palette,
+        where no tree item says what is offered."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
         setting = contributes["configuration"]["properties"]["workstreams.agentCommand"]
         self.assertEqual((setting["type"], setting["default"]), ("array", []))
         commands = {c["command"] for c in contributes["commands"]}
         menu = {m["command"]: m["when"] for m in contributes["menus"]["view/item/context"]}
+        titles = {m["command"]: m["when"] for m in contributes["menus"]["view/title"]}
         hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
         for word, names in (("act:{}", ("pause", "resume", "sync", "unclaim")),
-                            ("launch", ("run", "coordinate", "close", "abandon"))):
+                            ("launch:{}", ("run", "coordinate", "close", "abandon"))):
             for name in names:
                 command = f"workstreams.{name}"
                 self.assertIn(command, commands)
@@ -125,19 +127,18 @@ class PackageTests(unittest.TestCase):
                 where = r"view =~ /^workstreams\.(list|tasks|health)$/" if word.startswith("act") else "view == workstreams.list"
                 self.assertEqual(menu[command], f"{where} && viewItem =~ "
                                  f"/(^| ){word.format(name)}( |$)/")
-        self.assertIn("contextValue(node.kind, node.writes, node.launch)", (SRC / "views" / "workstreams.ts").read_text())
+                if word.startswith("launch"):
+                    self.assertEqual(titles[command], r"view =~ /^workstreams\.(tasks|task|graph|overview)$/ && "
+                                     f"workstreams.selectedItem =~ /(^| )launch:{name}( |$)/")
+        self.assertIn("contextValue(node.kind, node.writes, node.launches)", (SRC / "views" / "workstreams.ts").read_text())
         self.assertIn("contextValue(node.kind, node.writes)", (SRC / "views" / "tasks.ts").read_text())
 
-    def test_one_prompt_table_with_the_web_uis_text(self) -> None:
-        logic = (REPO / "src" / "workstream" / "assets" / "web" / "logic.js").read_text()
-        body = logic[logic.index("export function promptText"):]
-        body = body[:body.index("\n}\n")]
-        web = re.findall(r"`([^`]*)`", body)
-        self.assertEqual(len(web), 4)
-        ours = (SRC / "logic" / "launch.ts").read_text()
-        for text in web:
-            self.assertIn(f"`{text}`", ours)
-        self.assertEqual([p.name for p in sources() if "Use the ws-" in p.read_text()], ["launch.ts"])
+    def test_the_prompts_come_from_the_snapshot(self) -> None:
+        """Plan D-LAUNCHES: each launch's prompt is the row's snapshot offer, so the extension's
+        sources hold no prompt text of their own."""
+        self.assertEqual([p.name for p in sources() if "Use the ws-" in p.read_text()], [])
+        self.assertNotIn("PROMPTS", (SRC / "logic" / "launch.ts").read_text())
+        self.assertIn("node.row.launches?.find(", (SRC / "commands.ts").read_text())
 
     def test_launch_targets_live_in_one_module(self) -> None:
         """Plan D-ACTIONS: launch.ts holds every target; a caller only calls `launch`."""

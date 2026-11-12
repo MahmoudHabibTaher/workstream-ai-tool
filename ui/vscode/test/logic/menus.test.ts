@@ -36,12 +36,14 @@ const item = (view: string, viewItem: string) => shown('view/item/context', { vi
 
 const revisions = { registry: 'r1', tasks: { alpha: 't1', beta: 't2', gamma: 't3' } }
 const stale = { level: 'warning', workstream: 'alpha', task: 'A-1', actions: [{ action: 'unclaim', workstream: 'alpha', task: 'A-1' }] }
+const offers = (id: string, kinds: string[]) => kinds.map(kind => ({ kind, prompt: `${kind} ${id}.`, ...(kind === 'abandon' ? { ask: 'reason' } : {}) }))
 const snapshot = {
   revisions,
   registry: [
-    { id: 'alpha', status: 'active', actions: ['pause'] },
-    { id: 'beta', status: 'paused', actions: ['resume', 'sync'] },
-    { id: 'gamma', status: 'done', actions: [] },
+    { id: 'alpha', status: 'active', actions: ['pause'], launches: offers('alpha', ['run', 'coordinate', 'close', 'abandon']) },
+    // An open row offers only the launches its snapshot lists.
+    { id: 'beta', status: 'paused', actions: ['resume', 'sync'], launches: offers('beta', ['coordinate', 'abandon']) },
+    { id: 'gamma', status: 'done', actions: [], launches: [] },
   ],
   health: [stale],
 } as unknown as Snapshot
@@ -55,7 +57,7 @@ const wsSnapshot = {
 } as unknown as WsSnapshot
 
 const rows = Object.fromEntries(listRows('/p', snapshot, true).map(r => [r.row.id, r]))
-const rowItem = (id: string) => contextValue('workstream', rows[id].writes, rows[id].launch)
+const rowItem = (id: string) => contextValue('workstream', rows[id].writes, rows[id].launches)
 const tasks = taskLanes('/p', 'alpha', wsSnapshot, Date.parse('2026-11-03T00:00:00Z')).flatMap(l => l.tasks)
 const taskItem = (id: string) => {
   const t = tasks.find(r => r.task.id === id)
@@ -64,9 +66,9 @@ const taskItem = (id: string) => {
 }
 const opens = OPENS.map(name => openCommandOf(name).replace('workstreams.', ''))
 
-test('a workstream item shows its own writes, the launches while open, and the documents', () => {
+test('a workstream item shows its own writes, the launches its snapshot lists, and the documents', () => {
   assert.deepEqual(item('list', rowItem('alpha')), ['run', 'coordinate', 'close', 'abandon', 'pause', ...opens])
-  assert.deepEqual(item('list', rowItem('beta')), ['run', 'coordinate', 'close', 'abandon', 'resume', 'sync', ...opens])
+  assert.deepEqual(item('list', rowItem('beta')), ['coordinate', 'abandon', 'resume', 'sync', ...opens])
   // A closed row offers no write and no launch; its documents still open.
   assert.deepEqual(item('list', rowItem('gamma')), opens)
 })
@@ -96,6 +98,7 @@ test('the linked views\' titles offer what the selected items offer', () => {
     assert.deepEqual(title(rowItem('alpha'), taskItem('A-1')),
       ['refresh', 'run', 'coordinate', 'close', 'abandon', 'pause', 'unclaim', ...opens], view)
     assert.deepEqual(title(rowItem('alpha'), taskItem('A-2')), ['refresh', 'run', 'coordinate', 'close', 'abandon', 'pause', ...opens], view)
+    assert.deepEqual(title(rowItem('beta'), ''), ['refresh', 'coordinate', 'abandon', 'resume', 'sync', ...opens], view)
     assert.deepEqual(title(rowItem('gamma'), ''), ['refresh', ...opens], view)
     // Nothing drawn for the selection: Refresh only.
     assert.deepEqual(title('', ''), ['refresh'], view)

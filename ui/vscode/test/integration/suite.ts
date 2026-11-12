@@ -294,10 +294,10 @@ async function writes(api: Api, root: string): Promise<void> {
   await vscode.commands.executeCommand('workstreams.refresh')
   await api.settled()
 
-  // Commands follow the snapshot's offers: alpha (active) offers pause and the launches, a fresh
-  // claim offers no unclaim, and a closed row offers nothing.
+  // Commands follow the snapshot's offers: alpha (active) offers pause and the launches its
+  // snapshot lists, a fresh claim offers no unclaim, and a closed row offers nothing.
   let now = await drawn(api)
-  assert.match(context(now.alpha), /^workstream act:pause( act:sync)? launch$/)
+  assert.match(context(now.alpha), /^workstream act:pause( act:sync)? launch:run launch:coordinate launch:close launch:abandon$/)
   assert.deepEqual(now.tasks.map(context), ['task', 'task'])
   await vscode.commands.executeCommand('workstreams.showDone')
   const beta = (await walk(tree))[1]
@@ -351,7 +351,7 @@ async function writes(api: Api, root: string): Promise<void> {
     const got = await drawn(api)
     return /^0\/3 · paused · /.test(String(got.alpha?.item.description)) ? got : undefined
   })
-  assert.match(context(paused.alpha), /^workstream act:resume( act:sync)? launch$/)
+  assert.match(context(paused.alpha), /^workstream act:resume( act:sync)? launch:run launch:coordinate launch:close launch:abandon$/)
   console.log(`pause: ran ${JSON.stringify(act)}; HEAD ${git(root, 'log', '-1', '--format=%h %s')}; shown ${JSON.stringify(api.shown.at(-1))}; tree ${line(paused.alpha)} ${JSON.stringify(context(paused.alpha))}`)
 
   // 2. A commit from a shell while the box is open: confirming shows act's stale-view refusal,
@@ -535,15 +535,17 @@ async function launches(api: Api, root: string): Promise<void> {
   console.log(`close, remembered: first choices ${JSON.stringify(offered.map(o => o.labels[0]))}; terminal argv ${JSON.stringify(close)}`)
   api.terminalHost.create = realHost
 
-  // Abandon asks for the reason first, and the reason rides in the prompt.
+  // Abandon asks for the reason first, and the reason is appended to the snapshot's prompt.
+  const abandonOffer = alpha.row.launches?.find(l => l.kind === 'abandon')
+  assert.deepEqual(abandonOffer, { kind: 'abandon', prompt: 'Use the ws-coordinate skill to abandon workstream alpha: ', ask: 'reason' })
   offered = []
   answers = { target: 'terminal', agent: 'setting' }
   answer = 'it\'s "done" elsewhere; $(nothing runs)'
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.deepEqual(reasons, ['alpha'])
   const abandon = api.launched.at(-1)?.terminal?.creationOptions as vscode.TerminalOptions
-  assert.deepEqual(abandon.shellArgs, ['agent:', `Use the ws-coordinate skill to abandon workstream alpha: ${answer}`])
-  console.log(`abandon: shellArgs ${JSON.stringify(abandon.shellArgs)}`)
+  assert.deepEqual(abandon.shellArgs, ['agent:', `${abandonOffer.prompt}${answer}`])
+  console.log(`abandon: snapshot offer ${JSON.stringify(abandonOffer)}; shellArgs ${JSON.stringify(abandon.shellArgs)}`)
 
   // Escape at any pick launches nothing.
   launched = api.launched.length
@@ -573,7 +575,7 @@ async function launches(api: Api, root: string): Promise<void> {
   answer = 'superseded'
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.equal(api.launched.at(-1)?.target, 'clipboard')
-  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill to abandon workstream alpha: superseded')
+  assert.equal(await vscode.env.clipboard.readText(), `${abandonOffer.prompt}superseded`)
   assert.equal(openedTerminals.length, 0)
   console.log(`abandon, clipboard: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
 

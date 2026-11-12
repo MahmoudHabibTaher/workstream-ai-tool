@@ -9,7 +9,7 @@ import { type Cli, runAct } from './cli.ts'
 import { launch, type Started } from './launch.ts'
 import { type ConfirmText, confirmText, moved, openCommandOf, OPENS, type Picked, pickedTarget, type Write, WRITES } from './logic/actions.ts'
 import type { DocName } from './logic/format.ts'
-import { type Launch, LAUNCHES, needsReason } from './logic/launch.ts'
+import { type Launch, LAUNCHES, needsReason, offerPrompt } from './logic/launch.ts'
 import { type FlowUi, launchFlow } from './launchFlow.ts'
 import { type FindingNode, offerOf } from './logic/health.ts'
 import type { Store } from './logic/store.ts'
@@ -74,14 +74,16 @@ export function registerCommands(cli: Cli, store: Store, reload: () => Promise<v
 
   const start = async (kind: Launch, item?: Target) => {
     const node = item ?? rec.picked().workstream
-    if (!node || node.kind !== 'workstream' || !node.launch) return rec.say(`${kind} isn't offered here.`, true)
+    // The offer and its prompt come from the snapshot the item was drawn with.
+    const offer = node?.kind === 'workstream' && node.launches.includes(kind) ? node.row.launches?.find(l => l.kind === kind) : undefined
+    if (!node || node.kind !== 'workstream' || !offer) return rec.say(`${kind} isn't offered here.`, true)
     const ws = node.row.id
     let why: string | undefined
-    if (needsReason(kind)) {
+    if (needsReason(offer)) {
       why = (await rec.ui.reason(ws))?.trim()
       if (!why) return
     }
-    const settled = await launchFlow({ cli, state: rec.state, ui: rec.flowUi, say: rec.say }, { kind, ws, root: node.root, why })
+    const settled = await launchFlow({ cli, state: rec.state, ui: rec.flowUi, say: rec.say }, { kind, ws, root: node.root, prompt: offerPrompt(offer, why) })
     if (!settled) return
     const started = await launch({ title: settled.title, prompt: settled.prompt, root: node.root, argv: settled.argv }, [settled.target])
     rec.launched.push(started)

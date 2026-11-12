@@ -330,22 +330,22 @@
         },
         {
           "command": "workstreams.run",
-          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch( |$)/",
+          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch:run( |$)/",
           "group": "1_run@1"
         },
         {
           "command": "workstreams.coordinate",
-          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch( |$)/",
+          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch:coordinate( |$)/",
           "group": "1_run@2"
         },
         {
           "command": "workstreams.close",
-          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch( |$)/",
+          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch:close( |$)/",
           "group": "1_run@3"
         },
         {
           "command": "workstreams.abandon",
-          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch( |$)/",
+          "when": "view =~ /^workstreams\\.(tasks|task|graph|overview)$/ && workstreams.selectedItem =~ /(^| )launch:abandon( |$)/",
           "group": "1_run@4"
         },
         {
@@ -466,22 +466,22 @@
       "view/item/context": [
         {
           "command": "workstreams.run",
-          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch:run( |$)/",
           "group": "1_run@1"
         },
         {
           "command": "workstreams.coordinate",
-          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch:coordinate( |$)/",
           "group": "1_run@2"
         },
         {
           "command": "workstreams.close",
-          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch:close( |$)/",
           "group": "1_run@3"
         },
         {
           "command": "workstreams.abandon",
-          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch:abandon( |$)/",
           "group": "1_run@4"
         },
         {

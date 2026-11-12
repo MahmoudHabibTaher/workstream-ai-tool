@@ -10,7 +10,7 @@ import * as vscode from 'vscode'
 import { type Check, type Cli, loadAgents, loadArgv, loadChecks } from './cli.ts'
 import { agentCommand, offeredTargets, type Target } from './launch.ts'
 import {
-  type Agent, agents, blockedChoices, blockedLine, HEALTH_CHECKS, type Last, LAST_KEY, lastFirst, lastOf, type Launch, launchTitle, levels, promptText, verdict,
+  type Agent, agents, blockedChoices, blockedLine, HEALTH_CHECKS, type Last, LAST_KEY, lastFirst, lastOf, type Launch, launchTitle, levels, verdict,
 } from './logic/launch.ts'
 
 export type Step = 'checks' | 'blocked' | 'target' | 'agent' | 'effort' | 'permissions'
@@ -37,7 +37,7 @@ export const nativeFlowUi: FlowUi = {
 }
 
 export type Flow = { cli: Cli; state: vscode.Memento; ui: FlowUi; say(text: string, error?: boolean): void }
-export type Ask = { kind: Launch; ws: string; root: string; why?: string }
+export type Ask = { kind: Launch; ws: string; root: string; prompt: string }
 // What the person settled on: the target, the prompt, and for a terminal its whole command line.
 export type Settled = { target: Target; title: string; prompt: string; argv?: string[] }
 
@@ -121,7 +121,7 @@ export async function launchFlow(flow: Flow, ask: Ask): Promise<Settled | undefi
   }
 
   // 4. The prompt, editable.
-  const prompt = (await flow.ui.prompt(title, promptText(ask.kind, ask.ws, ask.why)))?.trim()
+  const prompt = (await flow.ui.prompt(title, ask.prompt))?.trim()
   if (!prompt) return undefined
 
   let argv: string[] | undefined

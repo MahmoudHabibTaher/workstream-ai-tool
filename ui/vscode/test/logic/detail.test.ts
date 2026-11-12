@@ -14,7 +14,8 @@ const SNAP: Snapshot = {
   registry: [
     { id: 'old', status: 'done', progress: { total: 2, done: 2 } },
     { id: 'alpha', title: 'Alpha', summary: 'the <b>sum</b>', status: 'active', progress: { total: 4, done: 1, 'in-progress': 1 }, dependsOn: ['old'],
-      tier: 'standard', created: '2026-11-01', startedAt: '2026-11-02', baseCommit: 'abc123', notes: 'row notes', actions: ['pause'] },
+      tier: 'standard', created: '2026-11-01', startedAt: '2026-11-02', baseCommit: 'abc123', notes: 'row notes', actions: ['pause'],
+      launches: [{ kind: 'run', prompt: 'Run alpha.' }, { kind: 'abandon', prompt: 'Abandon alpha: ', ask: 'reason' }] },
   ],
   health: [{ level: 'error', workstream: 'alpha' }],
 }
@@ -52,8 +53,8 @@ test('list rows: open ones in registry order, closed ones with Show done, each w
   assert.deepEqual(rows.map(r => [r.label, r.description]), [['alpha', '1/4 · active · 1 claimed · 1 error'], ['old', '2/2 · done']])
   assert.deepEqual(rows[0].tip, [{ lines: ['alpha: Alpha'] }, { lines: ['the <b>sum</b>'] }, { lines: ['1/4 · active · 1 claimed · 1 error'] }, { heading: 'Depends on', lines: ['old'] }])
   assert.deepEqual(rows[0].writes, ['pause'])
-  assert.equal(rows[0].launch, true)
-  assert.equal(rows[1].launch, false)
+  assert.deepEqual(rows[0].launches, ['run', 'abandon'])
+  assert.deepEqual(rows[1].launches, [])
   assert.notEqual(rows[0].id, rows[1].id)
 })
 

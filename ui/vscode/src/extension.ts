@@ -141,7 +141,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       }
       api.picked = picked
       const w = picked.workstream
-      await vscode.commands.executeCommand('setContext', SELECTED_ITEM_KEY, w ? contextValue(w.kind, w.writes, w.launch) : '')
+      await vscode.commands.executeCommand('setContext', SELECTED_ITEM_KEY, w ? contextValue(w.kind, w.writes, w.launches) : '')
       await vscode.commands.executeCommand('setContext', SELECTED_TASK_ITEM_KEY, picked.task ? contextValue('task', picked.task.writes) : '')
     }
     // A jump selects the task, then shows it in the Tasks view once that has drawn it.
