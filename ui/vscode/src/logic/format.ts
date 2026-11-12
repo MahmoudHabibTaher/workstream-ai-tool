@@ -61,6 +61,18 @@ export function ageOf(startedAt: string, now: number): string {
   return hours < 48 ? `${hours}h` : `${Math.floor(hours / 24)}d`
 }
 
+// The task the status bar names: the first `in-progress` task of the workstream's own snapshot.
+export function claimedTask<T extends Pick<Task, 'status'>>(tasks: T[]): T | undefined {
+  return tasks.find(t => t.status === 'in-progress')
+}
+
+// The status bar's line while a task is claimed: `<ws> · <task> · <age>`, then the error count.
+// The age is left out when the claim has no `startedAt`.
+export function claimLine(ws: string, task: Pick<Task, 'id' | 'startedAt'>, errors: number, now: number): string {
+  const age = task.startedAt ? ageOf(task.startedAt, now) : ''
+  return [ws, task.id, age, errors ? `${errors} error${errors === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')
+}
+
 export function badgesOf(task: Task, tasks: Task[], wave: Pick<Wave, 'ids'> | undefined | null, now: number): Badge[] {
   const statusOf = new Map(tasks.map(t => [t.id, t.status]))
   const waitsOn = task.blockedBy.filter(id => statusOf.get(id) !== 'done')

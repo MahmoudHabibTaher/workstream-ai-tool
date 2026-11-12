@@ -7,7 +7,8 @@ import * as vscode from 'vscode'
 
 import { type Cli, runAct } from './cli.ts'
 import { launch, type Started } from './launch.ts'
-import { type ConfirmText, confirmText, moved, type Write, WRITES } from './logic/actions.ts'
+import { type ConfirmText, confirmText, moved, openCommandOf, OPENS, type Picked, pickedTarget, type Write, WRITES } from './logic/actions.ts'
+import type { DocName } from './logic/format.ts'
 import { type Launch, LAUNCHES, launchTitle, needsReason, promptText } from './logic/launch.ts'
 import { type FindingNode, offerOf } from './logic/health.ts'
 import type { Store } from './logic/store.ts'
@@ -34,7 +35,11 @@ export const nativeUi: Ui = {
   },
 }
 
-export type Recorder = { ui: Ui; asked: ConfirmText[]; launched: Started[]; say(text: string, error?: boolean): void }
+// `picked` is what a linked view's title menu acts on, since a title passes no item.
+export type Recorder = {
+  ui: Ui; asked: ConfirmText[]; launched: Started[]; say(text: string, error?: boolean): void
+  picked(): Picked<WorkstreamNode, TaskNode>
+}
 
 type Target = WorkstreamNode | TaskNode | FindingNode
 
@@ -47,7 +52,8 @@ function targetOf(action: Write, node: Target): { ws: string; task?: string } | 
 export const commandOf = (name: Write | Launch) => `workstreams.${name}`
 
 export function registerCommands(cli: Cli, store: Store, reload: () => Promise<void>, rec: Recorder): vscode.Disposable[] {
-  const write = async (action: Write, node?: Target) => {
+  const write = async (action: Write, item?: Target) => {
+    const node = item ?? pickedTarget(action, rec.picked())
     const target = node && node.writes.includes(action) ? targetOf(action, node) : undefined
     if (!node || !target) return rec.say(`${action} isn't offered here.`, true)
     const { ws, task } = target
@@ -63,7 +69,8 @@ export function registerCommands(cli: Cli, store: Store, reload: () => Promise<v
     await reload()
   }
 
-  const start = async (kind: Launch, node?: Target) => {
+  const start = async (kind: Launch, item?: Target) => {
+    const node = item ?? rec.picked().workstream
     if (!node || node.kind !== 'workstream' || !node.launch) return rec.say(`${kind} isn't offered here.`, true)
     const ws = node.row.id
     let why: string | undefined
@@ -76,7 +83,19 @@ export function registerCommands(cli: Cli, store: Store, reload: () => Promise<v
     rec.say(started.said)
   }
 
+  // A document of the workstream's own snapshot, opened in an editor.
+  const open = async (name: DocName, item?: Target) => {
+    const node = item ?? rec.picked().workstream
+    if (!node || node.kind !== 'workstream') return rec.say(`Open ${name} isn't offered here.`, true)
+    const got = await store.workstream(node.root, node.row.id)
+    if (got.error !== undefined) return rec.say(got.error, true)
+    const path = got.value.paths?.[name]
+    if (typeof path !== 'string') return rec.say(`${node.row.id} has no ${name} file.`, true)
+    await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(path))
+  }
+
   return [
+    ...OPENS.map(name => vscode.commands.registerCommand(openCommandOf(name), (node?: Target) => open(name, node))),
     ...WRITES.map(action => vscode.commands.registerCommand(commandOf(action), (node?: Target) => write(action, node))),
     ...LAUNCHES.map(kind => vscode.commands.registerCommand(commandOf(kind), (node?: Target) => start(kind, node))),
   ]

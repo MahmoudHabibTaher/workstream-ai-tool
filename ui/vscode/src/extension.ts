@@ -6,7 +6,9 @@ import * as vscode from 'vscode'
 import { type Cli, execRun, makeCli, type Run } from './cli.ts'
 import { nativeUi, registerCommands, type Ui } from './commands.ts'
 import type { Started as Launched } from './launch.ts'
-import type { ConfirmText } from './logic/actions.ts'
+import { type ConfirmText, contextValue, type Picked } from './logic/actions.ts'
+import { listRows, taskLanes } from './logic/detail.ts'
+import { claimedTask, claimLine } from './logic/format.ts'
 import { debounce } from './logic/debounce.ts'
 import { activeWorkstream, statusText } from './logic/registry.ts'
 import { start, type Started } from './logic/start.ts'
@@ -18,7 +20,7 @@ import {
 import { GRAPH_VIEW, GraphTree } from './views/graph.ts'
 import { OVERVIEW_VIEW, OverviewTree } from './views/overview.ts'
 import { TASK_VIEW, TaskTree } from './views/task.ts'
-import { SELECT_TASK, TASKS_VIEW, TasksTree } from './views/tasks.ts'
+import { SELECT_TASK, type TaskNode, TASKS_VIEW, TasksTree } from './views/tasks.ts'
 import { LIST_VIEW, SELECT_WORKSTREAM, type WorkstreamNode, WorkstreamsTree } from './views/workstreams.ts'
 import { Watchers } from './watch.ts'
 
@@ -28,7 +30,15 @@ const HIDE_DONE = 'workstreams.hideDone'
 const SHOW_DONE_KEY = 'workstreams.showDone'
 // Set while a workstream is selected; the Tasks, Task, Graph and Overview views show only then (plan T2).
 const SELECTED_KEY = 'workstreams.selected'
+// The selected workstream's and task's contextValues, which the linked views' title menus match
+// as the item menus match `viewItem`; empty when nothing is selected or the selection isn't drawn.
+const SELECTED_ITEM_KEY = 'workstreams.selectedItem'
+const SELECTED_TASK_ITEM_KEY = 'workstreams.selectedTaskItem'
+// Set while some root has a snapshot; the welcome views tell "no project" from "nothing here".
+const HAS_PROJECT_KEY = 'workstreams.hasProject'
 const DEBOUNCE_MS = 300
+// The status bar redraws a claim's age this often.
+const AGE_MS = 60_000
 
 // What activate returns: the state the views draw, every argv run and every message shown, so
 // the integration test can see what the extension did. `reloads` says why each reload ran.
@@ -37,7 +47,8 @@ const DEBOUNCE_MS = 300
 // what each review file or evidence click opened, or why it opened nothing. `health`, `diagnostics`
 // and `budget` are the Health tree, its Problems panel entries and the Budget tree. `list`, `tasks`
 // and `task` are the Workstreams, Tasks and Task trees, and `graph` and `overview` the Graph and
-// Overview trees, all linked through the store's selection.
+// Overview trees, all linked through the store's selection. `picked` is the selected workstream's
+// and task's items as last drawn, which a linked view's title menu acts on.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -58,6 +69,7 @@ export type Api = {
   diagnostics?: HealthDiagnostics
   budget?: BudgetTree
   statusBar?: vscode.StatusBarItem
+  picked: Picked<WorkstreamNode, TaskNode>
   settled: () => Promise<void>
 }
 
@@ -72,7 +84,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath)
   const shown: string[] = []
   let pending: Promise<void> = Promise.resolve()
-  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, settled: () => pending } as unknown as Api
+  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, picked: {}, settled: () => pending } as unknown as Api
 
   const show = (started: Started): Started => {
     const message = started.message
@@ -104,7 +116,27 @@ export function activate(context: vscode.ExtensionContext): Api {
       graphView.description = store.selected?.ws
       overviewView.description = store.selected?.ws
       void vscode.commands.executeCommand('setContext', SELECTED_KEY, Boolean(store.selected))
+      pending = pending.then(pick)
     })
+    // The selected workstream's item from the root snapshot and the selected task's from the
+    // workstream's own, built as the Workstreams and Tasks views build them, with the same offers.
+    const pick = async () => {
+      const picked: Api['picked'] = {}
+      const selected = store.selected
+      const snapshot = selected && store.snapshots[selected.root]
+      if (selected && snapshot) {
+        const row = listRows(selected.root, snapshot, true).find(r => r.row.id === selected.ws)
+        if (row) picked.workstream = { ...row, kind: 'workstream' }
+        const id = store.selectedTask
+        const got = row && id ? await store.workstream(selected.root, selected.ws) : undefined
+        const task = got?.value && taskLanes(selected.root, selected.ws, got.value, Date.now()).flatMap(l => l.tasks).find(t => t.task.id === id)
+        if (task) picked.task = { ...task, kind: 'task' }
+      }
+      api.picked = picked
+      const w = picked.workstream
+      await vscode.commands.executeCommand('setContext', SELECTED_ITEM_KEY, w ? contextValue(w.kind, w.writes, w.launch) : '')
+      await vscode.commands.executeCommand('setContext', SELECTED_TASK_ITEM_KEY, picked.task ? contextValue('task', picked.task.writes) : '')
+    }
     // A jump selects the task, then shows it in the Tasks view once that has drawn it.
     const selectTask = async (root: string, ws: string, id: string) => {
       store.selectTask(root, ws, id)
@@ -139,18 +171,28 @@ export function activate(context: vscode.ExtensionContext): Api {
     const paint = async () => {
       watchers.watch(store.refreshPaths())
       await diagnostics.refresh()
+      await vscode.commands.executeCommand('setContext', HAS_PROJECT_KEY, Object.keys(store.snapshots).length > 0)
+      await pick()
+      await paintStatus()
+    }
+    // The active workstream's claimed task and its age, or its wave line when nothing is claimed.
+    const paintStatus = async () => {
       const active = activeWorkstream(store.roots, store.snapshots)
       if (!active) {
         statusBar.hide()
         return
       }
       const got = await store.workstream(active.root, active.row.id)
-      statusBar.text = `$(checklist) ${statusText(active.row.id, got.value?.wave, active.errors)}`
+      const claimed = claimedTask(got.value?.tasks ?? [])
+      statusBar.text = `$(checklist) ${claimed
+        ? claimLine(active.row.id, claimed, active.errors, Date.now())
+        : statusText(active.row.id, got.value?.wave, active.errors)}`
       statusBar.tooltip = 'Show the Workstreams view'
       statusBar.show()
     }
     store.onChange(() => void (pending = pending.then(paint)))
     pending = paint()
+    const ageTimer = setInterval(() => void (pending = pending.then(paintStatus)), AGE_MS)
 
     context.subscriptions.push(
       vscode.window.createTreeView(LIST_VIEW, { treeDataProvider: list }),
@@ -174,6 +216,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         api.opened.push(await openEvidence(node))
       }),
       statusBar,
+      { dispose: () => clearInterval(ageTimer) },
       watchers,
       { dispose: reload.dispose },
       vscode.commands.registerCommand(REFRESH, async () => {
@@ -192,6 +235,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         asked: api.asked,
         launched: api.launched,
         say,
+        picked: () => api.picked,
       }),
     )
     const setShowDone = async (on: boolean) => {

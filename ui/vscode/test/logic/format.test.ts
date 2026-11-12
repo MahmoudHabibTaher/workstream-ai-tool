@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
-  ageOf, badgesOf, blockedLine, errorCount, gateSummary, lanes, rangeLine, splitRows, statLine, type Task, waveLine,
+  ageOf, badgesOf, blockedLine, claimedTask, claimLine, errorCount, gateSummary, lanes, rangeLine, splitRows, statLine, type Task, waveLine,
 } from '../../src/logic/format.ts'
 
 const task = (id: string, fields: Partial<Task> = {}): Task => ({ id, phase: 1, priority: 10, status: 'todo', blockedBy: [], mode: 'background', ...fields })
@@ -71,4 +71,14 @@ test('range and stat lines read plainly', () => {
   assert.equal(rangeLine({ kind: 'merge', from: `${sha}^1`, to: sha }), `merge: ${'a'.repeat(10)}^1..${'a'.repeat(10)}`)
   assert.equal(statLine({ added: 2, removed: 1 }), '+2 −1')
   assert.equal(statLine({ added: null, removed: null }), 'binary')
+})
+
+test('the status bar names the claimed task and its age, then the errors', () => {
+  const now = Date.parse('2026-11-03T12:00:00Z')
+  const tasks = [task('a', { status: 'done' }), task('b', { status: 'in-progress', startedAt: '2026-11-03T09:00:00Z' }), task('c', { status: 'in-progress' })]
+  assert.equal(claimedTask(tasks)?.id, 'b')
+  assert.equal(claimedTask([task('a')]), undefined)
+  assert.equal(claimLine('alpha', tasks[1], 0, now), 'alpha · b · 3h')
+  assert.equal(claimLine('alpha', tasks[1], 2, now), 'alpha · b · 3h · 2 errors')
+  assert.equal(claimLine('alpha', tasks[2], 1, now), 'alpha · c · 1 error')
 })
