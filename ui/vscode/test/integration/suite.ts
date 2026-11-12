@@ -436,16 +436,34 @@ async function launches(api: Api, root: string): Promise<void> {
   const presets = (JSON.parse(cliOut('launch', 'agents', '--json')) as { agents: { agent: string; label: string; command: string; effortLevels: string[]; permissionChoices: string[] }[] }).agents
   assert.ok(presets.length, 'the CLI offers at least one preset')
 
-  // 1. A blocking check ends the flow with its message: Run with A-1 claimed asks nothing and
-  // launches nothing.
+  // 1. A blocking check ends the flow on a read-only list of the checks, blocking first: Run with
+  // A-1 claimed and the docs unfilled lists them and launches nothing, whichever row is picked.
+  // Picking validate (the first row, as Enter would) shows Health.
   await config.update('agentCommand', ['/bin/echo', 'agent:'], vscode.ConfigurationTarget.Global)
   let launched = api.launched.length
   await vscode.commands.executeCommand('workstreams.run', alpha)
   assert.deepEqual(api.ran.at(-1), [...BRANCH_CLI, 'launch', 'check', '-w', 'alpha', '--kind', 'run', '--json'])
-  assert.match(api.shown.at(-1) ?? '', /^Run alpha is blocked: .*claim: a claim is already open \(another session may be running\): A-1/)
-  assert.equal(offered.length, 0)
+  assert.equal(api.shown.at(-1), 'Run alpha is blocked by 3 checks')
+  assert.deepEqual(steps(), ['blocked'])
+  assert.equal(offered[0].title, 'Run alpha is blocked by 3 checks')
+  const ids = offered[0].labels.map(l => l.replace(/^\$\(\w+\) (\S+).*$/, '$1'))
+  assert.deepEqual(ids.slice(0, 3).sort(), ['claim', 'validate', 'wave'])
+  assert.ok(offered[0].labels.slice(0, 3).every(l => l.startsWith('$(error) ')), JSON.stringify(offered[0].labels))
+  assert.match(offered[0].labels.find(l => l.startsWith('$(error) claim')) ?? '', /a claim is already open \(another session may be running\): A-1/)
   assert.equal(api.launched.length, launched)
   console.log(`run, blocked: shown ${JSON.stringify(api.shown.at(-1))}; picks ${JSON.stringify(offered)}`)
+  answers = { blocked: 'wave' }
+  offered = []
+  await vscode.commands.executeCommand('workstreams.run', alpha)
+  assert.deepEqual(steps(), ['blocked'])
+  assert.equal(api.launched.length, launched)
+  answers = { blocked: null }
+  offered = []
+  await vscode.commands.executeCommand('workstreams.run', alpha)
+  assert.deepEqual(steps(), ['blocked'])
+  assert.equal(api.launched.length, launched)
+  answers = {}
+  offered = []
 
   // The sample's docs still hold `ws new`'s placeholders, which the validate check blocks every
   // launch on; fill them in as a planner would, so the other launches pass their checks.

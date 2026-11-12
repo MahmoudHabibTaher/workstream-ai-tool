@@ -1,5 +1,5 @@
 // Plan D-LAUNCH: what Run, Coordinate, Close and Abandon ask before they launch, as a chain of quick
-// picks. 1. the checks from `ws launch check`, where a blocking one ends the flow with its message;
+// picks. 1. the checks from `ws launch check`, where a blocking one ends the flow on a read-only list;
 // 2. the target, from those that can take it; 3. for a terminal, the agent (`ws launch agents`, or
 // the agentCommand setting), then a preset's effort and permissions; 4. an input box holding the
 // prompt. A preset's command line comes from `ws launch argv`. The last choices are kept in the
@@ -10,10 +10,10 @@ import * as vscode from 'vscode'
 import { type Check, type Cli, loadAgents, loadArgv, loadChecks } from './cli.ts'
 import { agentCommand, offeredTargets, type Target } from './launch.ts'
 import {
-  type Agent, agents, blockedLine, type Last, LAST_KEY, lastFirst, lastOf, type Launch, launchTitle, levels, promptText, verdict,
+  type Agent, agents, blockedChoices, blockedLine, HEALTH_CHECKS, type Last, LAST_KEY, lastFirst, lastOf, type Launch, launchTitle, levels, promptText, verdict,
 } from './logic/launch.ts'
 
-export type Step = 'checks' | 'target' | 'agent' | 'effort' | 'permissions'
+export type Step = 'checks' | 'blocked' | 'target' | 'agent' | 'effort' | 'permissions'
 export type Choice<T> = { label: string; description?: string; detail?: string; value: T }
 
 // The flow's questions. The integration test swaps these for scripted answers, since a quick pick
@@ -54,7 +54,11 @@ async function passes(flow: Flow, title: string, checks: Check[], seen: Set<stri
   fresh.forEach(c => seen.add(c.id))
   const { blocking, warnings } = verdict(fresh)
   if (blocking.length) {
-    flow.say(blockedLine(title, blocking), true)
+    // A read-only list: picking a health-backed check shows Health; nothing launches either way.
+    const line = blockedLine(title, blocking)
+    flow.say(line, true)
+    const picked = await flow.ui.pick('blocked', line, blockedChoices(fresh))
+    if (picked !== undefined && HEALTH_CHECKS.includes(picked)) await vscode.commands.executeCommand('workstreams.health.focus')
     return false
   }
   if (!warnings.length) return true
