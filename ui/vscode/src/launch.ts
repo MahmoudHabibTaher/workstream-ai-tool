@@ -1,9 +1,10 @@
 // Where a launch goes. The launch flow (launchFlow.ts) lets the person pick a target from those
 // that can take the launch now, and `launch` starts it; with no pick, the first that can starts
-// it. Today the targets are the terminal, which runs an agent's argv, then the clipboard. A chat
-// target would join TARGETS here, and callers would not change: they only call `launch`.
+// it. The targets are the terminal, which runs an agent's argv, the chat targets (chat.ts), each
+// offered only while its extension is enabled, then the clipboard. Callers only call `launch`.
 import * as vscode from 'vscode'
 
+import { CHAT_TARGETS } from './chat.ts'
 import { argvOptions, terminalOptions } from './logic/launch.ts'
 
 export const AGENT_SETTING = 'agentCommand'
@@ -19,6 +20,8 @@ export type Target = {
   label: string
   // Whether the flow asks for an agent before this target starts.
   needsAgent: boolean
+  // Whether the flow offers this target now; without it, always.
+  offered?(): Promise<boolean>
   // Returns undefined when this target can't take the request, so the next one is tried.
   start(request: Request): Promise<Started | undefined>
 }
@@ -57,7 +60,13 @@ const clipboard: Target = {
   },
 }
 
-export const TARGETS: Target[] = [terminal, clipboard]
+export const TARGETS: Target[] = [terminal, ...CHAT_TARGETS, clipboard]
+
+// The targets the flow may offer now, in TARGETS' order.
+export async function offeredTargets(): Promise<Target[]> {
+  const offered = await Promise.all(TARGETS.map(t => (t.offered ? t.offered() : true)))
+  return TARGETS.filter((_, i) => offered[i])
+}
 
 export async function launch(request: Request, targets: Target[] = TARGETS): Promise<Started> {
   for (const target of targets) {

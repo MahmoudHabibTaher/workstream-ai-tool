@@ -8,7 +8,7 @@
 import * as vscode from 'vscode'
 
 import { type Check, type Cli, loadAgents, loadArgv, loadChecks } from './cli.ts'
-import { agentCommand, type Target, TARGETS } from './launch.ts'
+import { agentCommand, offeredTargets, type Target } from './launch.ts'
 import {
   type Agent, agents, blockedLine, type Last, LAST_KEY, lastFirst, lastOf, type Launch, launchTitle, levels, promptText, verdict,
 } from './logic/launch.ts'
@@ -78,11 +78,12 @@ export async function launchFlow(flow: Flow, ask: Ask): Promise<Settled | undefi
   const seen = new Set<string>()
   if (!(await passes(flow, title, checked.value.checks, seen))) return undefined
 
-  // 2. The target, from those that can take it: the terminal needs an agent to run.
+  // 2. The target, from those offered now (a chat target's extension is enabled) that can take
+  // it: the terminal needs an agent to run.
   const presets = await loadAgents(flow.cli, ask.root)
   if (presets.error !== undefined) flow.say(presets.error, true)
   const offered = agents(presets.value?.agents ?? [], agentCommand())
-  const targets = TARGETS.filter(t => !t.needsAgent || offered.length)
+  const targets = (await offeredTargets()).filter(t => !t.needsAgent || offered.length)
   const target = await pickOne(flow, 'target', `${title}: where`,
     lastFirst(targets, t => t.id, last.target).map(t => ({ label: t.label, description: t.id === last.target ? 'last used' : undefined, value: t })))
   if (!target) return undefined
