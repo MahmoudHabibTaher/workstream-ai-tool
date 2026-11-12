@@ -102,8 +102,8 @@ class PackageTests(unittest.TestCase):
 
     def test_writes_and_launches_show_only_where_offered(self) -> None:
         """Plan D-ACTIONS: a write's menu entry keys on the `act:<write>` word the tree item's
-        contextValue carries from the snapshot's offers, in the Registry and Health trees; a
-        launch keys on `launch`, in the Registry only. None of them
+        contextValue carries from the snapshot's offers, in the Workstreams, Tasks and Health trees;
+        a launch keys on `launch`, in the Workstreams view only. None of them
         is in the command palette, where no tree item says what is offered."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
         setting = contributes["configuration"]["properties"]["workstreams.agentCommand"]
@@ -117,10 +117,11 @@ class PackageTests(unittest.TestCase):
                 command = f"workstreams.{name}"
                 self.assertIn(command, commands)
                 self.assertIn(command, hidden)
-                where = r"view =~ /^workstreams\.(registry|health)$/" if word.startswith("act") else "view == workstreams.registry"
+                where = r"view =~ /^workstreams\.(list|tasks|health)$/" if word.startswith("act") else "view == workstreams.list"
                 self.assertEqual(menu[command], f"{where} && viewItem =~ "
                                  f"/(^| ){word.format(name)}( |$)/")
-        self.assertIn("contextValue(node.kind, node.writes", (SRC / "views" / "registry.ts").read_text())
+        self.assertIn("contextValue(node.kind, node.writes, node.launch)", (SRC / "views" / "workstreams.ts").read_text())
+        self.assertIn("contextValue(node.kind, node.writes)", (SRC / "views" / "tasks.ts").read_text())
 
     def test_one_prompt_table_with_the_web_uis_text(self) -> None:
         logic = (REPO / "src" / "workstream" / "assets" / "web" / "logic.js").read_text()
@@ -145,11 +146,11 @@ class PackageTests(unittest.TestCase):
         self.assertIn("await launch({", (SRC / "commands.ts").read_text())
 
     def test_the_review_view_and_its_hidden_commands(self) -> None:
-        """Plan D-REVIEW-UI: a Review view beside the Registry; a file and the evidence open from
+        """Plan D-REVIEW-UI: a Review view after the linked views (plan D-VIEWS); a file and the evidence open from
         its items only, so neither is in the command palette."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
-        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]][:2],
-                         ["workstreams.registry", "workstreams.review"])
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]][:4],
+                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.review"])
         hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
         self.assertLessEqual({"workstreams.openReviewFile", "workstreams.openEvidence"}, hidden)
         review = (SRC / "views" / "review.ts").read_text()
@@ -162,7 +163,8 @@ class PackageTests(unittest.TestCase):
         that runs `ws audit context`."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
         self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]],
-                         ["workstreams.registry", "workstreams.review", "workstreams.health", "workstreams.budget"])
+                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.review",
+                          "workstreams.health", "workstreams.budget"])
         titles = {m["when"] for m in contributes["menus"]["view/title"] if m["command"] == "workstreams.refresh"}
         self.assertLessEqual({"view == workstreams.health", "view == workstreams.budget"}, titles)
         health = (SRC / "views" / "health.ts").read_text()

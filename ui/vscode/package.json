@@ -1,7 +1,7 @@
 {
   "name": "workstreams",
   "displayName": "Workstreams",
-  "description": "Shows a workstream project's registry, reviews and health, all read from the ws CLI.",
+  "description": "Shows a workstream project's workstreams, tasks, reviews and health, all read from the ws CLI.",
   "version": "0.1.0",
   "publisher": "workstream",
   "private": true,
@@ -60,8 +60,18 @@
     "views": {
       "workstreams": [
         {
-          "id": "workstreams.registry",
-          "name": "Registry"
+          "id": "workstreams.list",
+          "name": "Workstreams"
+        },
+        {
+          "id": "workstreams.tasks",
+          "name": "Tasks",
+          "when": "workstreams.selected"
+        },
+        {
+          "id": "workstreams.task",
+          "name": "Task",
+          "when": "workstreams.selected"
         },
         {
           "id": "workstreams.review",
@@ -79,7 +89,7 @@
     },
     "viewsWelcome": [
       {
-        "view": "workstreams.registry",
+        "view": "workstreams.list",
         "contents": "No workstream project is open in this window. `ws init` sets one up.\n[Refresh](command:workstreams.refresh)"
       }
     ],
@@ -103,8 +113,13 @@
         "icon": "$(eye-closed)"
       },
       {
-        "command": "workstreams.openDocument",
-        "title": "Open in Markdown Preview",
+        "command": "workstreams.selectWorkstream",
+        "title": "Select Workstream",
+        "category": "Workstreams"
+      },
+      {
+        "command": "workstreams.selectTask",
+        "title": "Show Task",
         "category": "Workstreams"
       },
       {
@@ -162,7 +177,7 @@
       "view/title": [
         {
           "command": "workstreams.refresh",
-          "when": "view == workstreams.registry",
+          "when": "view == workstreams.list",
           "group": "navigation@1"
         },
         {
@@ -182,18 +197,22 @@
         },
         {
           "command": "workstreams.showDone",
-          "when": "view == workstreams.registry && !workstreams.showDone",
+          "when": "view == workstreams.list && !workstreams.showDone",
           "group": "navigation@2"
         },
         {
           "command": "workstreams.hideDone",
-          "when": "view == workstreams.registry && workstreams.showDone",
+          "when": "view == workstreams.list && workstreams.showDone",
           "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "workstreams.openDocument",
+          "command": "workstreams.selectWorkstream",
+          "when": "false"
+        },
+        {
+          "command": "workstreams.selectTask",
           "when": "false"
         },
         {
@@ -248,42 +267,42 @@
       "view/item/context": [
         {
           "command": "workstreams.pause",
-          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:pause( |$)/",
+          "when": "view =~ /^workstreams\\.(list|tasks|health)$/ && viewItem =~ /(^| )act:pause( |$)/",
           "group": "1_write@1"
         },
         {
           "command": "workstreams.resume",
-          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:resume( |$)/",
+          "when": "view =~ /^workstreams\\.(list|tasks|health)$/ && viewItem =~ /(^| )act:resume( |$)/",
           "group": "1_write@2"
         },
         {
           "command": "workstreams.sync",
-          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:sync( |$)/",
+          "when": "view =~ /^workstreams\\.(list|tasks|health)$/ && viewItem =~ /(^| )act:sync( |$)/",
           "group": "1_write@3"
         },
         {
           "command": "workstreams.unclaim",
-          "when": "view =~ /^workstreams\\.(registry|health)$/ && viewItem =~ /(^| )act:unclaim( |$)/",
+          "when": "view =~ /^workstreams\\.(list|tasks|health)$/ && viewItem =~ /(^| )act:unclaim( |$)/",
           "group": "1_write@4"
         },
         {
           "command": "workstreams.run",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
           "group": "2_launch@1"
         },
         {
           "command": "workstreams.coordinate",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
           "group": "2_launch@2"
         },
         {
           "command": "workstreams.close",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
           "group": "2_launch@3"
         },
         {
           "command": "workstreams.abandon",
-          "when": "view == workstreams.registry && viewItem =~ /(^| )launch( |$)/",
+          "when": "view == workstreams.list && viewItem =~ /(^| )launch( |$)/",
           "group": "2_launch@4"
         }
       ]

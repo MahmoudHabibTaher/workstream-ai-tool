@@ -12,6 +12,9 @@ export class Store {
   snapshots: Record<string, Snapshot>
   errors: Record<string, string>
   showDone = false
+  selected?: { root: string; ws: string }
+  selectedTask?: string
+  private selectListeners: (() => void)[] = []
   private perWs = new Map<string, Promise<Loaded<WsSnapshot>>>()
   private queues = new Map<string, Promise<Loaded<Queue>>>()
   private reviews = new Map<string, Promise<Loaded<Review>>>()
@@ -81,6 +84,28 @@ export class Store {
     this.queues.clear()
     this.reviews.clear()
     this.changed()
+  }
+
+  // The linked views' selection (plan T2): the workstream the Workstreams view picked, which the
+  // Tasks view draws, and the task the Tasks view or a jump picked, which the Task view draws. It
+  // survives a reload; a workstream no snapshot names any more just draws nothing.
+  onSelect(listener: () => void): void {
+    this.selectListeners.push(listener)
+  }
+
+  select(root: string, ws: string): void {
+    if (this.selected?.root === root && this.selected.ws === ws) return
+    this.selected = { root, ws }
+    this.selectedTask = undefined
+    for (const listener of this.selectListeners) listener()
+  }
+
+  // Picks a task, and its workstream first when that isn't the selected one.
+  selectTask(root: string, ws: string, task: string): void {
+    if (this.selected?.root === root && this.selected.ws === ws && this.selectedTask === task) return
+    this.selected = { root, ws }
+    this.selectedTask = task
+    for (const listener of this.selectListeners) listener()
   }
 
   setShowDone(on: boolean): void {

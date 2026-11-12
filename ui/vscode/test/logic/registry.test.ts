@@ -5,10 +5,7 @@ import type { Snapshot } from '../../src/cli.ts'
 import { makeCli, type Ran } from '../../src/cli.ts'
 import { debounce, type Timers } from '../../src/logic/debounce.ts'
 import type { Task } from '../../src/logic/format.ts'
-import {
-  activeWorkstream, documentChildren, type Node, phaseChildren, shown, statusText, workstreamChildren, workstreams,
-  type WsSnapshot,
-} from '../../src/logic/registry.ts'
+import { activeWorkstream, statusText, type WsSnapshot } from '../../src/logic/registry.ts'
 import { Store } from '../../src/logic/store.ts'
 
 const base = { snapshotVersion: 1, revisions: { registry: 'r', tasks: {} } }
@@ -30,44 +27,6 @@ const WS: WsSnapshot = {
   wave: { state: 'ready', phase: 1, ids: ['A-2'], leftovers: [] },
   paths: { plan: '/p/ws/alpha/PLAN.md', handoff: '/p/ws/alpha/session_handoff.md', evidence: {} },
 }
-
-const ids = (nodes: Node[]) => nodes.map(n => shown(n).label)
-
-test('open workstreams in registry order, and Show done adds the closed ones after them', () => {
-  assert.deepEqual(ids(workstreams('/p', SNAP, false)), ['alpha', 'beta'])
-  assert.deepEqual(ids(workstreams('/p', SNAP, true)), ['alpha', 'beta', 'old', 'gone'])
-  const alpha = workstreams('/p', SNAP, false)[0]
-  assert.equal(shown(alpha).description, 'active · 1/3 · 2 errors')
-})
-
-test('a workstream opens to its wave line, its phases in order, then its documents', () => {
-  const children = workstreamChildren('/p', 'alpha', WS)
-  assert.deepEqual(children.map(n => n.kind), ['wave', 'phase', 'phase', 'documents'])
-  assert.deepEqual(ids(children), ['Phase 1: 1 ready', 'Phase 1', 'Phase 2', 'Documents'])
-  const phase1 = children[1] as Extract<Node, { kind: 'phase' }>
-  const tasks = phaseChildren(phase1, 0)
-  assert.deepEqual(ids(tasks), ['A-1 First', 'A-2'])
-  assert.deepEqual(tasks.map(n => shown(n).description), ['done', 'todo · ★ ready · foreground'])
-  const phase2 = children[2] as Extract<Node, { kind: 'phase' }>
-  assert.deepEqual(phaseChildren(phase2, 0).map(n => shown(n).description), ['todo'])
-  const docs = documentChildren(children[3] as Extract<Node, { kind: 'documents' }>)
-  assert.deepEqual(docs.map(n => [shown(n).label, (n as { path: string }).path]), [['Plan', '/p/ws/alpha/PLAN.md'], ['Handoff', '/p/ws/alpha/session_handoff.md']])
-})
-
-test('a task tooltip carries its summary, acceptance and verify lines as plain lines under fixed headings', () => {
-  const task = t('A-1', { title: 'First', summary: '<img src=x>', acceptanceText: ['[a](command:x)'], verifyCommands: [{ label: 'test', command: 'make test' }, { label: 'make lint', command: 'make lint' }] })
-  const tip = shown({ kind: 'task', id: 'x', root: '/p', ws: 'alpha', task, badges: [], revisions: base.revisions, writes: [] }).tip
-  assert.deepEqual(tip, [
-    { lines: ['A-1: First'] }, { lines: ['todo'] }, { lines: ['<img src=x>'] },
-    { heading: 'Acceptance', lines: ['[a](command:x)'] }, { heading: 'Verify', lines: ['test: make test', 'make lint'] },
-  ])
-})
-
-test('node ids are stable and distinct', () => {
-  const all = [...workstreams('/p', SNAP, true), ...workstreamChildren('/p', 'alpha', WS)]
-  assert.equal(new Set(all.map(n => n.id)).size, all.length)
-  assert.deepEqual(workstreams('/p', SNAP, true).map(n => n.id), workstreams('/p', SNAP, true).map(n => n.id))
-})
 
 test('the status bar names the first active workstream, its wave line and its errors', () => {
   const active = activeWorkstream(['/q', '/p'], { '/p': SNAP })
@@ -142,4 +101,26 @@ test('the store reads a workstream once per reload, and reload reads every root 
   assert.deepEqual(store.refreshPaths(), SNAP.refresh)
   store.setShowDone(true)
   assert.equal(changes, 2)
+})
+
+test('the store keeps the linked views\' selection across a reload, and a new workstream clears the task', async () => {
+  const cli = makeCli(['ws'], async argv => ({ exitCode: 0, stdout: JSON.stringify(argv.includes('-w') ? WS : SNAP), stderr: '' }))
+  const store = new Store(cli, { roots: ['/p'], snapshots: { '/p': SNAP }, errors: {} })
+  let selects = 0
+  let changes = 0
+  store.onSelect(() => selects++)
+  store.onChange(() => changes++)
+  store.select('/p', 'alpha')
+  assert.deepEqual([store.selected, store.selectedTask, selects], [{ root: '/p', ws: 'alpha' }, undefined, 1])
+  store.select('/p', 'alpha')
+  assert.equal(selects, 1)
+  store.selectTask('/p', 'alpha', 'A-2')
+  assert.deepEqual([store.selectedTask, selects], ['A-2', 2])
+  await store.reload()
+  assert.deepEqual([store.selected, store.selectedTask, changes], [{ root: '/p', ws: 'alpha' }, 'A-2', 1])
+  store.select('/p', 'beta')
+  assert.deepEqual([store.selected, store.selectedTask, selects], [{ root: '/p', ws: 'beta' }, undefined, 3])
+  store.selectTask('/q', 'gamma', 'G-1')
+  assert.deepEqual([store.selected, store.selectedTask, selects], [{ root: '/q', ws: 'gamma' }, 'G-1', 4])
+  assert.equal(changes, 1)
 })

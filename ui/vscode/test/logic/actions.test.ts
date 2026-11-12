@@ -5,7 +5,8 @@ import type { Snapshot } from '../../src/cli.ts'
 import { commitLine, confirmText, contextValue, launches, moved, rowWrites, taskWrites } from '../../src/logic/actions.ts'
 import type { Finding, Row, Task } from '../../src/logic/format.ts'
 import { needsReason, promptText, terminalOptions, WHY } from '../../src/logic/launch.ts'
-import { type Node, phaseChildren, workstreamChildren, workstreams, type WsSnapshot } from '../../src/logic/registry.ts'
+import { listRows, taskRows } from '../../src/logic/detail.ts'
+import type { WsSnapshot } from '../../src/logic/registry.ts'
 
 const row = (id: string, status: string, actions: string[] = []): Row => ({ id, status, actions })
 const stale: Finding = { level: 'warning', workstream: 'alpha', task: 'A-1', actions: [{ action: 'unclaim', workstream: 'alpha', task: 'A-1' }] }
@@ -73,14 +74,13 @@ test('nodes keep the revisions they were drawn from and the offers of their snap
     snapshotVersion: 1, revisions: { registry: 'R', tasks: { alpha: 'T' } },
     registry: [row('alpha', 'active', ['pause']), row('beta', 'abandoned')], health: [stale],
   }
-  const [alpha] = workstreams('/p', snap, false) as Extract<Node, { kind: 'workstream' }>[]
+  const [alpha] = listRows('/p', snap, false)
   assert.deepEqual([alpha.writes, alpha.launch, alpha.revisions], [['pause'], true, snap.revisions])
-  const beta = workstreams('/p', snap, true)[1] as Extract<Node, { kind: 'workstream' }>
+  const beta = listRows('/p', snap, true)[1]
   assert.deepEqual([beta.writes, beta.launch], [[], false])
   const task = (id: string): Task => ({ id, phase: 1, priority: 10, status: 'in-progress', blockedBy: [] })
   const ws: WsSnapshot = { ...snap, revisions: { registry: 'R2', tasks: { alpha: 'T2' } }, tasks: [task('A-1'), task('A-2')] }
-  const phase = workstreamChildren('/p', 'alpha', ws).find(n => n.kind === 'phase') as Extract<Node, { kind: 'phase' }>
-  const tasks = phaseChildren(phase, Date.now()) as Extract<Node, { kind: 'task' }>[]
+  const tasks = taskRows('/p', 'alpha', ws, Date.now())
   assert.deepEqual(tasks.map(t => [t.task.id, t.writes, t.revisions.registry]), [['A-1', ['unclaim'], 'R2'], ['A-2', [], 'R2']])
 })
 

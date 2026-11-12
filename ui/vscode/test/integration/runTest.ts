@@ -25,11 +25,12 @@ function sh(argv: string[], cwd: string): string {
 const SEED = [
   { id: 'A-3', phase: 2, priority: 30, title: 'Third', blockedBy: ['A-1'] },
   { id: 'A-2', phase: 1, priority: 20, title: 'Second', mode: 'foreground', needsUserDecision: true },
-  { id: 'A-1', phase: 1, priority: 10, title: 'First', summary: 'see [x](command:workbench.action.quit) <b>now</b>', acceptance: ['it works'] },
+  { id: 'A-1', phase: 1, priority: 10, title: 'First', summary: 'see [x](command:workbench.action.quit) <b>now</b>', acceptance: ['it works'], files: ['notes.txt'] },
 ]
 
 // A project made by the branch's own CLI: `ws init`, then `alpha`, active with three tasks over two
-// phases, and `beta`, abandoned, which only Show done draws.
+// phases (A-1 names notes.txt, which the Task view opens), and `beta`, abandoned, which only Show
+// done draws.
 function sampleProject(under: string): string {
   const root = join(under, 'project')
   mkdirSync(root)
@@ -45,6 +46,7 @@ function sampleProject(under: string): string {
   sh([...BRANCH_CLI, 'seed', '-w', 'alpha', seed], root)
   sh([...BRANCH_CLI, 'set-status', '-w', 'alpha', 'active'], root)
   sh([...BRANCH_CLI, 'set-status', '-w', 'beta', 'abandoned', '--notes', 'dropped'], root)
+  writeFileSync(join(root, 'notes.txt'), 'notes\n')
   sh(['git', 'add', '-A'], root)
   sh(['git', 'commit', '-qm', 'alpha and beta'], root)
   return root

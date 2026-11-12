@@ -10,8 +10,9 @@ import { launch, type Started } from './launch.ts'
 import { type ConfirmText, confirmText, moved, type Write, WRITES } from './logic/actions.ts'
 import { type Launch, LAUNCHES, launchTitle, needsReason, promptText } from './logic/launch.ts'
 import { type FindingNode, offerOf } from './logic/health.ts'
-import type { Node } from './logic/registry.ts'
 import type { Store } from './logic/store.ts'
+import type { TaskNode } from './views/tasks.ts'
+import type { WorkstreamNode } from './views/workstreams.ts'
 
 // The two questions a command asks. The integration test swaps these for answers, because a
 // modal can't be clicked from the extension API.
@@ -35,7 +36,7 @@ export const nativeUi: Ui = {
 
 export type Recorder = { ui: Ui; asked: ConfirmText[]; launched: Started[]; say(text: string, error?: boolean): void }
 
-type Target = Extract<Node, { kind: 'workstream' } | { kind: 'task' }> | FindingNode
+type Target = WorkstreamNode | TaskNode | FindingNode
 
 // The workstream and task a write is for: the item's own, or a finding's offer for that write.
 function targetOf(action: Write, node: Target): { ws: string; task?: string } | undefined {
