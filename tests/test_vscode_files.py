@@ -39,9 +39,14 @@ class NamesNoProjectTests(unittest.TestCase):
         self.assertIn(SRC / "extension.ts", sources())
 
     def test_the_extensions_code_is_generic(self) -> None:
+        """Plan T1: agent names live in chat.ts alone, which holds the chat targets."""
         found = [f"{p.relative_to(PACKAGE)}:{n}: {line.strip()}" for p in sources()
                  for n, line in enumerate(p.read_text().splitlines(), 1) if FORBIDDEN.search(line)]
-        self.assertEqual(found, [])
+        self.assertEqual([f for f in found if not f.startswith("src/chat.ts:")], [])
+        self.assertTrue(found, "chat.ts names the agent extensions it targets")
+        # Nothing but agent names: no project, build tool or skill name in chat.ts either.
+        project = re.compile(FORBIDDEN.pattern.replace("|claude|copilot|anthropic|openai|codex", ""), re.IGNORECASE)
+        self.assertEqual([line for line in (SRC / "chat.ts").read_text().splitlines() if project.search(line)], [])
 
     def test_no_markup_sink(self) -> None:
         found = [f"{p.relative_to(PACKAGE)}:{n}: {line.strip()}" for p in sources()
@@ -142,7 +147,15 @@ class PackageTests(unittest.TestCase):
                 if sink in text:
                     self.assertEqual(path.relative_to(SRC).as_posix(), "launch.ts", sink)
         self.assertNotIn("sendText", (SRC / "launch.ts").read_text())
-        self.assertIn("export const TARGETS: Target[] = [terminal, clipboard]", (SRC / "launch.ts").read_text())
+        self.assertIn("export const TARGETS: Target[] = [terminal, ...CHAT_TARGETS, clipboard]", (SRC / "launch.ts").read_text())
+        self.assertIn("(await offeredTargets()).filter(", (SRC / "launchFlow.ts").read_text())
+        # Plan T3, T4: Copilot Chat's command takes an options object in agent mode, and the Claude
+        # Code URI's query comes from URLSearchParams, so the prompt can't break it.
+        chat = (SRC / "chat.ts").read_text()
+        self.assertIn("chatHost.execute(CHAT_OPEN, { query: request.prompt, mode: CHAT_MODE })", chat)
+        self.assertIn("query: new URLSearchParams({ prompt }).toString()", chat)
+        self.assertIn("chatHost.openExternal(claudeCodeUri(request.prompt))", chat)
+        self.assertEqual([p.name for p in sources() if "openExternal" in p.read_text() or "executeCommand(command" in p.read_text()], ["chat.ts"])
         # Plan D-LAUNCH: the flow asks, then the caller starts the target the person picked.
         self.assertIn("await launchFlow(", (SRC / "commands.ts").read_text())
         self.assertIn("[settled.target])", (SRC / "commands.ts").read_text())

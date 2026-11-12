@@ -3,6 +3,7 @@
 // through cli.ts; nothing here works one out.
 import * as vscode from 'vscode'
 
+import { chatHost } from './chat.ts'
 import { type Cli, execRun, makeCli, type Run } from './cli.ts'
 import { nativeUi, registerCommands, type Ui } from './commands.ts'
 import { type Started as Launched, terminalHost } from './launch.ts'
@@ -50,7 +51,8 @@ const AGE_MS = 60_000
 // and `task` are the Workstreams, Tasks and Task trees, and `graph` and `overview` the Graph and
 // Overview trees, all linked through the store's selection. `picked` is the selected workstream's
 // and task's items as last drawn, which a linked view's title menu acts on. `flowUi` answers the
-// launch flow's quick picks and `terminalHost` makes its terminals; the test may replace both.
+// launch flow's quick picks, `terminalHost` makes its terminals and `chatHost` is what the chat
+// targets ask of VS Code; the test may replace all three.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -62,6 +64,7 @@ export type Api = {
   ui: Ui
   flowUi: FlowUi
   terminalHost: typeof terminalHost
+  chatHost: typeof chatHost
   store?: Store
   list?: WorkstreamsTree
   tasks?: TasksTree
@@ -88,7 +91,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath)
   const shown: string[] = []
   let pending: Promise<void> = Promise.resolve()
-  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, flowUi: nativeFlowUi, terminalHost, picked: {}, settled: () => pending } as unknown as Api
+  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, flowUi: nativeFlowUi, terminalHost, chatHost, picked: {}, settled: () => pending } as unknown as Api
 
   const show = (started: Started): Started => {
     const message = started.message

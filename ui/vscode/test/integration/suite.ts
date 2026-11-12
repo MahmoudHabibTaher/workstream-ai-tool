@@ -535,12 +535,14 @@ async function launches(api: Api, root: string): Promise<void> {
 
   // 5. The clipboard target copies the prompt and starts nothing.
   await config.update('agentCommand', undefined, vscode.ConfigurationTarget.Global)
-  const open = vscode.window.terminals.length
+  // Counted by the terminals opened, since an earlier step's echo terminal may close meanwhile.
+  const openedTerminals: vscode.Terminal[] = []
+  const watchTerminals = vscode.window.onDidOpenTerminal(t => { openedTerminals.push(t) })
   answers = { target: 'clipboard' }
   await vscode.commands.executeCommand('workstreams.coordinate', alpha)
   assert.equal(api.launched.at(-1)?.target, 'clipboard')
   assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill on workstream alpha.')
-  assert.equal(vscode.window.terminals.length, open)
+  assert.equal(openedTerminals.length, 0)
   console.log(`coordinate, clipboard: shown ${JSON.stringify(api.shown.at(-1))}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
 
   // Abandon asks first: no reason, nothing copied; a reason, its prompt copied.
@@ -554,8 +556,79 @@ async function launches(api: Api, root: string): Promise<void> {
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.equal(api.launched.at(-1)?.target, 'clipboard')
   assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill to abandon workstream alpha: superseded')
-  assert.equal(vscode.window.terminals.length, open)
+  assert.equal(openedTerminals.length, 0)
   console.log(`abandon, clipboard: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
+
+  // 6. The chat targets, with VS Code's side stubbed: neither extension is installed here (the run
+  // passes --disable-extensions), so neither was offered above. Each is offered only while its
+  // extension is enabled, asks for no agent, and hands over the edited prompt.
+  const realChat = { ...api.chatHost }
+  let enabled = new Set(['github.copilot-chat', 'anthropic.claude-code'])
+  let commandList = ['workbench.action.chat.open']
+  const executed: unknown[][] = []
+  const openedUris: vscode.Uri[] = []
+  Object.assign(api.chatHost, {
+    enabled: (id: string) => enabled.has(id),
+    commands: async () => commandList,
+    execute: async (...args: unknown[]) => { executed.push(args) },
+    openExternal: async (uri: vscode.Uri) => { openedUris.push(uri); return true },
+  })
+  const chatPrompt = 'a&prompt=evil #frag 100% "q" + ü?x=1\nline two'
+  edit = () => chatPrompt
+  try {
+    offered = []
+    answers = { target: 'copilot-chat' }
+    await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+    assert.deepEqual(steps(), ['target'])
+    assert.deepEqual(offered[0].labels, ['Copy the prompt (last used)', 'Terminal', 'Copilot Chat (agent mode)', 'Claude Code panel'])
+    assert.equal(api.launched.at(-1)?.target, 'copilot-chat')
+    assert.deepEqual(executed, [['workbench.action.chat.open', { query: chatPrompt, mode: 'agent' }]])
+    assert.equal(openedUris.length, 0)
+    console.log(`coordinate, copilot chat: picks ${JSON.stringify(offered)}; executed ${JSON.stringify(executed)}; shown ${JSON.stringify(api.shown.at(-1))}`)
+
+    offered = []
+    answers = { target: 'claude-code' }
+    await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+    assert.deepEqual(steps(), ['target'])
+    assert.equal(api.launched.at(-1)?.target, 'claude-code')
+    assert.equal(executed.length, 1)
+    assert.equal(openedUris.length, 1)
+    const uri = openedUris[0]
+    assert.equal(uri.scheme, vscode.env.uriScheme)
+    assert.equal(uri.authority, 'anthropic.claude-code')
+    assert.equal(uri.path, '/open')
+    // The handler reads `new URLSearchParams(uri.query)`: one parameter, the prompt, unbroken,
+    // and the same after the URI goes through its string form.
+    const params = new URLSearchParams(uri.query)
+    assert.deepEqual([...params.keys()], ['prompt'])
+    assert.equal(params.get('prompt'), chatPrompt)
+    assert.equal(uri.query, new URLSearchParams({ prompt: chatPrompt }).toString())
+    const round = vscode.Uri.parse(uri.toString())
+    assert.equal(round.query, uri.query)
+    assert.equal(round.fragment, '')
+    assert.equal(new URLSearchParams(round.query).get('prompt'), chatPrompt)
+    console.log(`coordinate, claude code: uri ${uri.toString()}; query ${JSON.stringify(uri.query)}; shown ${JSON.stringify(api.shown.at(-1))}`)
+
+    // Without Copilot Chat's command, or with an extension disabled, its target isn't offered.
+    offered = []
+    commandList = []
+    answers = { target: 'clipboard' }
+    await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+    assert.deepEqual(offered[0].labels, ['Claude Code panel (last used)', 'Terminal', 'Copy the prompt'])
+    offered = []
+    commandList = ['workbench.action.chat.open']
+    enabled = new Set(['github.copilot-chat'])
+    await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+    assert.deepEqual(offered[0].labels, ['Copy the prompt (last used)', 'Terminal', 'Copilot Chat (agent mode)'])
+    assert.equal(executed.length, 1)
+    assert.equal(openedUris.length, 1)
+    assert.equal(openedTerminals.length, 0)
+    console.log(`chat targets offered: no chat command ${JSON.stringify(['Claude Code panel (last used)', 'Terminal', 'Copy the prompt'])}; only copilot chat ${JSON.stringify(offered[0].labels)}`)
+  } finally {
+    Object.assign(api.chatHost, realChat)
+    edit = prompt => prompt
+    watchTerminals.dispose()
+  }
 }
 
 type HItem = { node: HealthNode; item: vscode.TreeItem; children: HItem[] }
