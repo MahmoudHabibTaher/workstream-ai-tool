@@ -97,6 +97,28 @@ The owner raised three things to improve, left for later work:
 
 `make vsix` had failed since 0017's hand check because the README linked to `../../docs/…`, which `vsce` refuses without a repository URL; the link is now a plain path.
 
+## What was built in VS Code (vscode_followups)
+
+Six tasks (VF-01 to VF-06) took up the three points above. The workstream's `DECISIONS.md` holds the smaller calls.
+
+- **Four panel tabs:** Workstreams holds the five linked views; Review, Health and Budget each have a tab of their own, matching the JetBrains tool window's tabs.
+- **A blocked launch lists its checks** in a read-only quick pick, blocking ones first, instead of the old toast. The toast now carries only the one-line title. When `validate` blocks, a read-only editor tab holds the whole `ws validate -w <id>` output (VF-06, added at the owner's request during the hand check: the list's row has room for only the first error).
+- **A shorter Terminal path:** a repeat-last row at the top of the target pick, and one combined agent × effort × permissions pick. No choice was removed.
+- **Menus and prompts come from the snapshot's per-row `launches`** (vscode_ux D020), so the extension offers only the launches the CLI does.
+
+## What was seen (VF-05)
+
+The owner installed the extension from a `.vsix` (built from `task/vf-05` with VF-01 to VF-06 merged) into VS Code 1.146.0 on macOS. The sample came from a wheel, built the way VX-07's was: `ws` 0.1.0 installed into a clean venv built `alpha` (S-1 claimed and backdated three days, S-2 claimed with work on `task/s-2`, S-3 blocked by S-1, its plan files left as templates so it fails validate) and `beta` (valid, unclaimed), then main moved. `workstreams.wsCommand` pointed at that venv's `ws`.
+
+| Check | VS Code 1.146.0 |
+|---|---|
+| Four panel tabs | Yes: Review, Health, Budget and Workstreams beside Terminal; Workstreams holds Workstreams, Tasks, Task, Graph and Overview |
+| A blocked Run lists its checks | Yes: "Run alpha is blocked by 3 checks", with `validate`, `wave` and `claim` failing first, then `dirty` and `baseline` passing |
+| Validate's errors in a tab | Yes, on the second build. On the first build, the `validate` row showed only the first error and "(and 8 more…)"; the owner asked for a tab, which became VF-06 |
+| A repeated Terminal launch takes two picks | Yes |
+| A fresh Terminal launch uses the combined pick | Yes |
+| Abandon carries its reason | Yes |
+
 ## Rules for changing it
 
 - A new idea from the other workstream plugin comes in as a description of behaviour, written here, never as its code or text.
