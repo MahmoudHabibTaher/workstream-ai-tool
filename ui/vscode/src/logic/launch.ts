@@ -52,8 +52,22 @@ export function verdict(checks: readonly Check[]): { blocking: Check[]; warnings
   return { blocking: failing.filter(c => c.blocking), warnings: failing.filter(c => !c.blocking) }
 }
 
+// The blocked list's title, and the one line `say` records for it.
 export function blockedLine(title: string, blocking: readonly Check[]): string {
-  return `${title} is blocked: ${blocking.map(c => `${c.id}: ${c.message}`).join('; ')}`
+  return `${title} is blocked by ${blocking.length} check${blocking.length === 1 ? '' : 's'}`
+}
+
+// The checks that come from the health findings: picking one in the blocked list shows Health.
+export const HEALTH_CHECKS: readonly string[] = ['validate', 'claim']
+
+export type BlockedChoice = { label: string; description: string; value: string }
+
+// The blocked list's rows, one per check: blocking first, then warnings, then passes, each with its
+// icon. A row's value is its check's id. The list is read-only: nothing launches from it.
+export function blockedChoices(checks: readonly Check[]): BlockedChoice[] {
+  const { blocking, warnings } = verdict(checks)
+  const row = (icon: string) => (c: Check): BlockedChoice => ({ label: `$(${icon}) ${c.id}`, description: c.message, value: c.id })
+  return [...blocking.map(row('error')), ...warnings.map(row('warning')), ...checks.filter(c => c.ok).map(row('pass'))]
 }
 
 // An agent the terminal can run: a preset from `ws launch agents`, or the agentCommand setting.
