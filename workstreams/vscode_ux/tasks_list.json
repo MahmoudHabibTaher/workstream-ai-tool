@@ -83,7 +83,7 @@
         "test",
         "make test-vscode"
       ],
-      "branch": "",
+      "branch": "task/vx-02",
       "blockedBy": [
         "VX-01"
       ],
@@ -92,10 +92,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-12T10:27:17Z",
+      "baseCommit": "749d8517cf88545c06d89b4eaa0bf4ffc80ebc1c",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,
