@@ -143,6 +143,9 @@ class PackageTests(unittest.TestCase):
                     self.assertEqual(path.relative_to(SRC).as_posix(), "launch.ts", sink)
         self.assertNotIn("sendText", (SRC / "launch.ts").read_text())
         self.assertIn("export const TARGETS: Target[] = [terminal, clipboard]", (SRC / "launch.ts").read_text())
+        # Plan D-LAUNCH: the flow asks, then the caller starts the target the person picked.
+        self.assertIn("await launchFlow(", (SRC / "commands.ts").read_text())
+        self.assertIn("[settled.target])", (SRC / "commands.ts").read_text())
         self.assertIn("await launch({", (SRC / "commands.ts").read_text())
 
     def test_the_review_view_and_its_hidden_commands(self) -> None:
@@ -220,7 +223,11 @@ class TheCliAnswersTheExtensionTests(WsTestCase):
                      "['review', task, '-w', wsId, '--show', path, '--side', side]",
                      "['review', '--queue']", "['audit', 'context', '--json']",
                      "['act', confirm.action, '-w', wsId]", "args.push('--task', confirm.task)",
-                     "args.push('--expect-registry', revisions.registry)", "args.push('--expect-tasks', tasks)"):
+                     "args.push('--expect-registry', revisions.registry)", "args.push('--expect-tasks', tasks)",
+                     "['launch', 'check', '-w', wsId, '--kind', kind, ...(agent ? ['--agent', agent] : []), '--json']",
+                     "['launch', 'agents', '--json']",
+                     "['launch', 'argv', '-w', wsId, '--agent', ask.agent, '--prompt-kind', ask.kind, `--prompt=${ask.prompt}`]",
+                     "args.push('--effort', ask.effort)", "args.push('--permissions', ask.permissions)", "args.push('--json')"):
             self.assertIn(line, source)
         self.assertEqual(self.ok("root").strip(), str(self.root))
         self.assertEqual(json.loads(self.ok("snapshot"))["snapshotVersion"], 1)
@@ -236,6 +243,22 @@ class TheCliAnswersTheExtensionTests(WsTestCase):
         registry, tasks = snap["revisions"]["registry"], snap["revisions"]["tasks"]["alpha"]
         self.accepted("act", "unclaim", "-w", "alpha", "--task", "T1", "--expect-registry", registry,
                       "--expect-tasks", tasks)
+        # The launch flow's reads: every kind it launches, with and without an agent, and an
+        # agent's argv with its effort and permissions and a prompt that starts with a dash.
+        agents = json.loads(self.ok("launch", "agents", "--json"))["agents"]
+        self.assertTrue(agents)
+        for kind in ("run", "coordinate", "close", "abandon"):
+            checks = json.loads(self.ok("launch", "check", "-w", "alpha", "--kind", kind, "--json"))["checks"]
+            self.assertTrue(all({"id", "ok", "blocking", "message"} <= set(c) for c in checks), checks)
+        with_agent = json.loads(self.ok("launch", "check", "-w", "alpha", "--kind", "coordinate",
+                                        "--agent", agents[0]["agent"], "--json"))["checks"]
+        self.assertIn("skills", [c["id"] for c in with_agent])
+        for a in agents:
+            built = json.loads(self.ok("launch", "argv", "-w", "alpha", "--agent", a["agent"], "--prompt-kind", "coordinate",
+                                       "--prompt=-x edited", *(["--effort", a["effortLevels"][-1]] if a["effortLevels"] else []),
+                                       *(["--permissions", a["permissionChoices"][0]] if a["permissionChoices"] else []), "--json"))
+            self.assertEqual(built["argv"][0], a["command"])
+            self.assertEqual(built["argv"][-1], "-x edited")
         self.assertIn("alpha: pause", self.ok("act", "pause", "-w", "alpha", "--expect-registry", registry,
                                               "--expect-tasks", tasks))
 

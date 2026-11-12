@@ -8,6 +8,7 @@ import { join, sep } from 'node:path'
 import * as vscode from 'vscode'
 
 import type { Api } from '../../src/extension.ts'
+import type { Step } from '../../src/launchFlow.ts'
 import type { HealthNode } from '../../src/logic/health.ts'
 import type { ReviewNode } from '../../src/logic/review.ts'
 import type { WorkstreamNode } from '../../src/views/workstreams.ts'
@@ -412,22 +413,113 @@ async function launches(api: Api, root: string): Promise<void> {
   const reasons: string[] = []
   let answer: string | undefined
   api.ui = { confirm: async () => false, reason: async id => { reasons.push(id); return answer } }
+  // The flow's quick picks, answered by script: a step's answer is the id of the choice to take,
+  // null is Escape, and a step with no answer takes the first choice, as Enter would. `offered`
+  // holds each pick's step and its choices' labels in the order shown.
+  let answers: Partial<Record<Step, string | null>> = {}
+  let edit = (prompt: string) => prompt
+  let offered: { step: Step; title: string; labels: string[] }[] = []
+  const idOf = (v: unknown) => (typeof v === 'string' ? v : v === true ? 'go' : String((v as { id: string }).id))
+  api.flowUi = {
+    async pick(step, title, choices) {
+      offered.push({ step, title, labels: choices.map(c => `${c.label}${c.description ? ` (${c.description})` : ''}`) })
+      const want = answers[step]
+      if (want === null) return undefined
+      const found = want === undefined ? choices[0] : choices.find(c => idOf(c.value) === want)
+      assert.ok(found, `${step}: no choice ${String(want)} in ${JSON.stringify(choices.map(c => idOf(c.value)))}`)
+      return found.value
+    },
+    async prompt(_title, value) { return edit(value) },
+  }
+  const steps = () => offered.map(o => o.step)
+  const cliOut = (...args: string[]) => execFileSync(BRANCH_CLI[0], [...BRANCH_CLI.slice(1), ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, PYTHONPATH: process.env.WS_TEST_SRC } })
+  const presets = (JSON.parse(cliOut('launch', 'agents', '--json')) as { agents: { agent: string; label: string; command: string; effortLevels: string[]; permissionChoices: string[] }[] }).agents
+  assert.ok(presets.length, 'the CLI offers at least one preset')
 
-  // 4. With an agent command, Run starts it as the terminal's process: the prompt is one argument.
+  // 1. A blocking check ends the flow with its message: Run with A-1 claimed asks nothing and
+  // launches nothing.
   await config.update('agentCommand', ['/bin/echo', 'agent:'], vscode.ConfigurationTarget.Global)
-  const terminals = vscode.window.terminals.length
+  let launched = api.launched.length
   await vscode.commands.executeCommand('workstreams.run', alpha)
+  assert.deepEqual(api.ran.at(-1), [...BRANCH_CLI, 'launch', 'check', '-w', 'alpha', '--kind', 'run', '--json'])
+  assert.match(api.shown.at(-1) ?? '', /^Run alpha is blocked: .*claim: a claim is already open \(another session may be running\): A-1/)
+  assert.equal(offered.length, 0)
+  assert.equal(api.launched.length, launched)
+  console.log(`run, blocked: shown ${JSON.stringify(api.shown.at(-1))}; picks ${JSON.stringify(offered)}`)
+
+  // The sample's docs still hold `ws new`'s placeholders, which the validate check blocks every
+  // launch on; fill them in as a planner would, so the other launches pass their checks.
+  for (const doc of ['PLAN.md', 'DECISIONS.md', 'session_handoff.md']) {
+    const path = join(root, 'workstreams', 'alpha', doc)
+    writeFileSync(path, readFileSync(path, 'utf8').replace(/\{\{[A-Z_]+[^}]*\}\}/g, 'filled in'))
+  }
+  git(root, 'commit', '-qam', 'alpha planned')
+  await vscode.commands.executeCommand('workstreams.refresh')
+  await api.settled()
+
+  // 2. The agentCommand setting as the agent: the terminal runs it with the prompt as one argument.
+  answers = { target: 'terminal', agent: 'setting' }
+  const terminals = vscode.window.terminals.length
+  await vscode.commands.executeCommand('workstreams.coordinate', alpha)
   const run = api.launched.at(-1)
   assert.equal(run?.target, 'terminal')
   assert.ok(run?.terminal)
   assert.equal(vscode.window.terminals.length, terminals + 1)
+  assert.deepEqual(steps(), ['target', 'agent'])
+  assert.deepEqual(offered[0].labels, ['Terminal', 'Copy the prompt'])
+  assert.deepEqual(offered[1].labels, [...presets.map(p => `${p.label} (${p.command})`), 'workstreams.agentCommand (/bin/echo agent:)'])
   const options = run.terminal.creationOptions as vscode.TerminalOptions
   assert.equal(options.shellPath, '/bin/echo')
-  assert.deepEqual(options.shellArgs, ['agent:', 'Use the ws-run skill to run workstream alpha.'])
+  assert.deepEqual(options.shellArgs, ['agent:', 'Use the ws-coordinate skill on workstream alpha.'])
   assert.equal(realpathSync(String(options.cwd)), realpathSync(root))
-  console.log(`run: terminal ${JSON.stringify(run.terminal.name)} shellPath ${options.shellPath} shellArgs ${JSON.stringify(options.shellArgs)} cwd ${String(options.cwd)}`)
+  console.log(`coordinate, setting: terminal ${JSON.stringify(run.terminal.name)} shellPath ${options.shellPath} shellArgs ${JSON.stringify(options.shellArgs)} cwd ${String(options.cwd)}`)
 
-  // Abandon asks for the reason first, and the reason rides in the same one argument.
+  // 3. A preset: its effort and permissions, its own skills check (a warning, so a pick), and an
+  // edited prompt; the terminal runs the argv `ws launch argv` built. The terminal made runs echo,
+  // so the agent itself never starts here.
+  const preset = presets[0]
+  const effort = preset.effortLevels.at(-1) ?? ''
+  const permissions = preset.permissionChoices[0] ?? ''
+  const made: vscode.TerminalOptions[] = []
+  const realHost = api.terminalHost.create
+  api.terminalHost.create = o => {
+    made.push(o)
+    return vscode.window.createTerminal({ name: o.name, shellPath: '/bin/echo', shellArgs: [String(o.shellPath), ...[o.shellArgs ?? []].flat()], cwd: o.cwd })
+  }
+  offered = []
+  answers = { target: 'terminal', agent: preset.agent, effort, permissions }
+  const edited = '-x edited: "quoted" $(nothing) runs'
+  edit = () => edited
+  await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+  const expected = (JSON.parse(cliOut('launch', 'argv', '-w', 'alpha', '--agent', preset.agent, '--prompt-kind', 'coordinate', `--prompt=${edited}`,
+    ...(effort ? ['--effort', effort] : []), ...(permissions ? ['--permissions', permissions] : []), '--json')) as { argv: string[] }).argv
+  assert.deepEqual(steps(), ['target', 'agent', ...(preset.effortLevels.length ? ['effort'] : []), ...(preset.permissionChoices.length ? ['permissions'] : []), 'checks'])
+  assert.match(offered.at(-1)?.labels[0] ?? '', /^\$\(warning\) skills \(skills not installed for /)
+  assert.deepEqual(api.ran.at(-1)?.slice(BRANCH_CLI.length, BRANCH_CLI.length + 9), ['launch', 'argv', '-w', 'alpha', '--agent', preset.agent, '--prompt-kind', 'coordinate', `--prompt=${edited}`])
+  assert.equal(api.launched.at(-1)?.target, 'terminal')
+  assert.equal(made.length, 1)
+  assert.equal(made[0].shellPath, preset.command)
+  assert.deepEqual([made[0].shellPath, ...[made[0].shellArgs ?? []].flat()], expected)
+  assert.equal(expected.at(-1), edited)
+  console.log(`coordinate, preset: picks ${JSON.stringify(offered)}; terminal argv ${JSON.stringify([made[0].shellPath, ...[made[0].shellArgs ?? []].flat()])}`)
+
+  // 4. The last choices come first next time, so Enter on every pick repeats them.
+  offered = []
+  answers = {}
+  edit = prompt => prompt
+  await vscode.commands.executeCommand('workstreams.close', alpha)
+  assert.equal(offered[0].labels[0], 'Terminal (last used)')
+  assert.equal(offered[1].labels[0], `${preset.label} (${preset.command})`)
+  if (preset.effortLevels.length) assert.equal(offered[2].labels[0], `${effort || 'none (no flag)'} (last used)`)
+  const close = (JSON.parse(cliOut('launch', 'argv', '-w', 'alpha', '--agent', preset.agent, '--prompt-kind', 'close', ...(effort ? ['--effort', effort] : []),
+    ...(permissions ? ['--permissions', permissions] : []), '--json')) as { argv: string[] }).argv
+  assert.deepEqual([made[1].shellPath, ...[made[1].shellArgs ?? []].flat()], close)
+  console.log(`close, remembered: first choices ${JSON.stringify(offered.map(o => o.labels[0]))}; terminal argv ${JSON.stringify(close)}`)
+  api.terminalHost.create = realHost
+
+  // Abandon asks for the reason first, and the reason rides in the prompt.
+  offered = []
+  answers = { target: 'terminal', agent: 'setting' }
   answer = 'it\'s "done" elsewhere; $(nothing runs)'
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.deepEqual(reasons, ['alpha'])
@@ -435,28 +527,35 @@ async function launches(api: Api, root: string): Promise<void> {
   assert.deepEqual(abandon.shellArgs, ['agent:', `Use the ws-coordinate skill to abandon workstream alpha: ${answer}`])
   console.log(`abandon: shellArgs ${JSON.stringify(abandon.shellArgs)}`)
 
-  // 5. With no agent command, Run copies the prompt and starts nothing.
+  // Escape at any pick launches nothing.
+  launched = api.launched.length
+  answers = { target: 'terminal', agent: null }
+  await vscode.commands.executeCommand('workstreams.coordinate', alpha)
+  assert.equal(api.launched.length, launched)
+
+  // 5. The clipboard target copies the prompt and starts nothing.
   await config.update('agentCommand', undefined, vscode.ConfigurationTarget.Global)
-  const launched = api.launched.length
   const open = vscode.window.terminals.length
-  await vscode.commands.executeCommand('workstreams.run', alpha)
+  answers = { target: 'clipboard' }
+  await vscode.commands.executeCommand('workstreams.coordinate', alpha)
   assert.equal(api.launched.at(-1)?.target, 'clipboard')
-  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-run skill to run workstream alpha.')
+  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill on workstream alpha.')
   assert.equal(vscode.window.terminals.length, open)
-  console.log(`run, no agent: shown ${JSON.stringify(api.shown.at(-1))}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
+  console.log(`coordinate, clipboard: shown ${JSON.stringify(api.shown.at(-1))}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
 
   // Abandon asks first: no reason, nothing copied; a reason, its prompt copied.
   answer = undefined
+  launched = api.launched.length
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.deepEqual(reasons, ['alpha', 'alpha'])
-  assert.equal(api.launched.length, launched + 1)
-  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-run skill to run workstream alpha.')
+  assert.equal(api.launched.length, launched)
+  assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill on workstream alpha.')
   answer = 'superseded'
   await vscode.commands.executeCommand('workstreams.abandon', alpha)
   assert.equal(api.launched.at(-1)?.target, 'clipboard')
   assert.equal(await vscode.env.clipboard.readText(), 'Use the ws-coordinate skill to abandon workstream alpha: superseded')
   assert.equal(vscode.window.terminals.length, open)
-  console.log(`abandon, no agent: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
+  console.log(`abandon, clipboard: reasons asked ${reasons.length}; clipboard ${JSON.stringify(await vscode.env.clipboard.readText())}`)
 }
 
 type HItem = { node: HealthNode; item: vscode.TreeItem; children: HItem[] }

@@ -122,6 +122,33 @@ export async function loadBudget(cli: Cli, root: string): Promise<Loaded<unknown
   return parsed('audit', await ws(cli, ['audit', 'context', '--json'], root), cli.command)
 }
 
+// The launch flow's three reads. `ws launch check` exits 0 whenever the checks ran; what they
+// found is in each check's `ok` and `blocking`. `--agent` adds the check that its skills are in.
+export type Check = { id: string; ok: boolean; blocking: boolean; message: string }
+export type Preset = { agent: string; label: string; command: string; effortLevels: string[]; permissionChoices: string[] }
+export type Argv = { argv: string[]; effortLevels: string[]; permissionChoices: string[] }
+export type ArgvAsk = { agent: string; kind: string; prompt: string; effort?: string; permissions?: string }
+
+export async function loadChecks(cli: Cli, root: string, wsId: string, kind: string, agent?: string): Promise<Loaded<{ checks: Check[] }>> {
+  const args = ['launch', 'check', '-w', wsId, '--kind', kind, ...(agent ? ['--agent', agent] : []), '--json']
+  return parsed('launch check', await ws(cli, args, root), cli.command)
+}
+
+export async function loadAgents(cli: Cli, root: string): Promise<Loaded<{ agents: Preset[] }>> {
+  return parsed('launch agents', await ws(cli, ['launch', 'agents', '--json'], root), cli.command)
+}
+
+// The command line that starts a preset's agent on the person's own prompt. The CLI owns each
+// agent's flags, so nothing here names an agent. `--prompt=` keeps a prompt that starts with a
+// dash from reading as a flag.
+export async function loadArgv(cli: Cli, root: string, wsId: string, ask: ArgvAsk): Promise<Loaded<Argv>> {
+  const args = ['launch', 'argv', '-w', wsId, '--agent', ask.agent, '--prompt-kind', ask.kind, `--prompt=${ask.prompt}`]
+  if (ask.effort) args.push('--effort', ask.effort)
+  if (ask.permissions) args.push('--permissions', ask.permissions)
+  args.push('--json')
+  return parsed('launch argv', await ws(cli, args, root), cli.command)
+}
+
 // The extension's only write: `ws act` refuses, writes and commits in one call, against the
 // revisions of the snapshot the person saw. A refusal is its stderr, shown as given.
 export async function runAct(cli: Cli, root: string, wsId: string, confirm: Confirm, revisions: Revisions): Promise<{ line: string; refused: boolean }> {

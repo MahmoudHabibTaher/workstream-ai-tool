@@ -1,6 +1,6 @@
 // The trees' context-menu commands, which the Health quick fixes call too. Pause, Resume, Sync and Unclaim ask first, then write through
-// `ws act` against the revisions the item was drawn with. Run, Coordinate, Close and Abandon hand
-// a prompt to launch.ts. package.json shows each command only where the item's contextValue
+// `ws act` against the revisions the item was drawn with. Run, Coordinate, Close and Abandon run
+// the launch flow (launchFlow.ts), then hand its prompt to launch.ts. package.json shows each command only where the item's contextValue
 // offers it, and the handler checks the item again, so a write the snapshot didn't offer never
 // reaches act.
 import * as vscode from 'vscode'
@@ -9,7 +9,8 @@ import { type Cli, runAct } from './cli.ts'
 import { launch, type Started } from './launch.ts'
 import { type ConfirmText, confirmText, moved, openCommandOf, OPENS, type Picked, pickedTarget, type Write, WRITES } from './logic/actions.ts'
 import type { DocName } from './logic/format.ts'
-import { type Launch, LAUNCHES, launchTitle, needsReason, promptText } from './logic/launch.ts'
+import { type Launch, LAUNCHES, needsReason } from './logic/launch.ts'
+import { type FlowUi, launchFlow } from './launchFlow.ts'
 import { type FindingNode, offerOf } from './logic/health.ts'
 import type { Store } from './logic/store.ts'
 import type { TaskNode } from './views/tasks.ts'
@@ -39,6 +40,8 @@ export const nativeUi: Ui = {
 export type Recorder = {
   ui: Ui; asked: ConfirmText[]; launched: Started[]; say(text: string, error?: boolean): void
   picked(): Picked<WorkstreamNode, TaskNode>
+  // The launch flow's questions, and where it keeps the last choices.
+  flowUi: FlowUi; state: vscode.Memento
 }
 
 type Target = WorkstreamNode | TaskNode | FindingNode
@@ -78,7 +81,9 @@ export function registerCommands(cli: Cli, store: Store, reload: () => Promise<v
       why = (await rec.ui.reason(ws))?.trim()
       if (!why) return
     }
-    const started = await launch({ title: launchTitle(kind, ws), prompt: promptText(kind, ws, why), root: node.root })
+    const settled = await launchFlow({ cli, state: rec.state, ui: rec.flowUi, say: rec.say }, { kind, ws, root: node.root, why })
+    if (!settled) return
+    const started = await launch({ title: settled.title, prompt: settled.prompt, root: node.root, argv: settled.argv }, [settled.target])
     rec.launched.push(started)
     rec.say(started.said)
   }

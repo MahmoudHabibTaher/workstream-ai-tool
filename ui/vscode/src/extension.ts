@@ -5,7 +5,8 @@ import * as vscode from 'vscode'
 
 import { type Cli, execRun, makeCli, type Run } from './cli.ts'
 import { nativeUi, registerCommands, type Ui } from './commands.ts'
-import type { Started as Launched } from './launch.ts'
+import { type Started as Launched, terminalHost } from './launch.ts'
+import { type FlowUi, nativeFlowUi } from './launchFlow.ts'
 import { type ConfirmText, contextValue, type Picked } from './logic/actions.ts'
 import { listRows, taskLanes } from './logic/detail.ts'
 import { claimedTask, claimLine } from './logic/format.ts'
@@ -48,7 +49,8 @@ const AGE_MS = 60_000
 // and `budget` are the Health tree, its Problems panel entries and the Budget tree. `list`, `tasks`
 // and `task` are the Workstreams, Tasks and Task trees, and `graph` and `overview` the Graph and
 // Overview trees, all linked through the store's selection. `picked` is the selected workstream's
-// and task's items as last drawn, which a linked view's title menu acts on.
+// and task's items as last drawn, which a linked view's title menu acts on. `flowUi` answers the
+// launch flow's quick picks and `terminalHost` makes its terminals; the test may replace both.
 export type Api = {
   ready: Promise<Started>
   ran: string[][]
@@ -58,6 +60,8 @@ export type Api = {
   launched: Launched[]
   opened: Opened[]
   ui: Ui
+  flowUi: FlowUi
+  terminalHost: typeof terminalHost
   store?: Store
   list?: WorkstreamsTree
   tasks?: TasksTree
@@ -84,7 +88,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath)
   const shown: string[] = []
   let pending: Promise<void> = Promise.resolve()
-  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, picked: {}, settled: () => pending } as unknown as Api
+  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, flowUi: nativeFlowUi, terminalHost, picked: {}, settled: () => pending } as unknown as Api
 
   const show = (started: Started): Started => {
     const message = started.message
@@ -232,6 +236,8 @@ export function activate(context: vscode.ExtensionContext): Api {
         await (pending = store.reload())
       }, {
         get ui() { return api.ui },
+        get flowUi() { return api.flowUi },
+        state: context.workspaceState,
         asked: api.asked,
         launched: api.launched,
         say,
