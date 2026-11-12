@@ -280,6 +280,41 @@ class EndToEnd(unittest.TestCase):
                                         capture_output=True, text=True).stdout.strip(), "the work")
         self.assertIn("nothing to commit", self.ws("commit", "S-01", code=1))
 
+    def reclaim_after_main_moved(self, *, work: bool) -> Path:
+        """Claim S-01, make its worktree (with a commit if `work`), remove it and unclaim, land
+        something else, and claim S-01 again. Returns where its worktree goes."""
+        self.plan(self.sample_tasks()[:1])
+        self.ws("claim", "--commit", "S-01")
+        self.ws("worktree", "create", "S-01")
+        place = self.root / ".workstream" / "worktrees" / "s-01"
+        if work:
+            (place / "made.txt").write_text("ok\n")
+            self.ws("commit", "S-01", "-m", "the old work")
+        self.ws("worktree", "remove", "S-01")
+        self.ws("unclaim", "S-01")
+        self.commit("unclaim S-01")
+        (self.root / "src" / "landed.txt").write_text("ok\n")
+        self.commit("something else landed")
+        self.ws("claim", "--commit", "S-01")
+        return place
+
+    def test_a_reclaimed_task_with_an_empty_branch_starts_from_its_new_claim(self) -> None:
+        """VF-05 was unclaimed and claimed again; its worktree came back on the old branch, so
+        the worker built code from before what landed in between."""
+        place = self.reclaim_after_main_moved(work=False)
+        self.assertIn("reset task/s-01", self.ws("worktree", "create", "S-01"))
+        self.assertEqual(self.git("rev-parse", "task/s-01"), self.git("rev-parse", "HEAD"))
+        self.assertTrue((place / "src" / "landed.txt").exists())
+
+    def test_a_reclaimed_task_with_work_on_its_branch_is_refused_not_reset(self) -> None:
+        self.reclaim_after_main_moved(work=True)
+        before = self.git("rev-parse", "task/s-01")
+        said = self.ws("worktree", "create", "S-01", code=1)
+        self.assertIn("task/s-01", said)
+        self.assertIn("1 commit", said)
+        self.assertEqual(self.git("rev-parse", "task/s-01"), before, "the work was thrown away")
+        self.assertFalse((self.root / ".workstream" / "worktrees" / "s-01").exists())
+
     def test_commit_refuses_a_workers_tracking_edit_and_keeps_it_unstaged(self) -> None:
         self.plan(self.sample_tasks()[:1])
         self.ws("claim", "--commit", "S-01")
