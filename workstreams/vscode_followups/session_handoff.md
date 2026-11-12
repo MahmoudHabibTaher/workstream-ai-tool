@@ -1,7 +1,7 @@
 # Session handoff
 
-**State:** 3/5 done on `main` at `47bc89a`, as of 2026-11-12.
+**State:** 4/5 done on `main` at `ad65682`, as of 2026-11-12.
 
-**Just landed:** VF-03 (`47bc89a0f5`)
+**Just landed:** VF-04 (`ad6568233c`)
 
-**Next:** `ws claim --commit VF-04` (phase 1).
+**Next:** `ws claim --commit VF-05` (phase 2).

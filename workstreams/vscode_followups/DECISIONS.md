@@ -43,3 +43,18 @@ Rejected: leaving the title menus on the old word. That would split one rule bet
 
 `launches(row)` returns the snapshot's kinds filtered through `LAUNCHES` and in that order. A kind the extension has no command for, such as `run-task`, is never offered. The prompt itself is read from `node.row.launches` when the command runs. `needsReason` now takes the offer (`ask === 'reason'`), and `offerPrompt(offer, why)` appends the reason. `WHY`, `promptText` and `PROMPTS` are gone, and `launchFlow`'s `Ask` carries `prompt` in place of `why`.
 Rejected: passing the whole offer list to `contextValue`. Its callers only need the kind words. **Closed.**
+
+## D008 (2026-11-12, VF-04): "the second terminal launch" is a repeat of the agentCommand launch, added right after it in the suite
+
+The suite's first terminal launch uses the agentCommand setting. That agent has no check of its own, so repeating it asks only `['target']`. The existing preset repeat (close) must still run the agent's own check (plan T5), and that check warns in the sample. So it asks `['target', 'checks']`, and that is asserted too.
+Rejected: making the close repeat skip its agent check, which T5 forbids. **Closed.**
+
+## D009 (2026-11-12, VF-04): the repeat row appears only when the last target was a terminal
+
+A non-terminal target is already a whole choice. Its own row is listed first, marked "last used", so a `$(history)` row would duplicate it. When a repeat row is shown, the plain target rows drop their "last used" mark.
+Rejected: a history row for chat and clipboard targets too. **Closed.**
+
+## D010 (2026-11-12, VF-04): combo ids and labels
+
+A combo's id is `agent/effort/permissions`, and the setting row's id is `setting`. The suite scripts answers by these ids. Labels write a none level as "no effort flag" or "no permissions flag". A preset with no levels of a kind leaves that part out of the label. A terminal launch now stores all four parts of the last choice. Missing effort or permissions in older state reads as none.
+Rejected: reusing "none (no flag)" in the combined label, which would not say which flag it is. **Closed.**
