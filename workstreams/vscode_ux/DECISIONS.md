@@ -113,3 +113,23 @@ Rejected: `--prompt`, `<text>` as two arguments. **Closed.**
 
 `launches()` and the `launch` menu regex are unchanged. The snapshot's per-row `launches` list isn't used for menus yet, because switching to it per kind would change the menu regex pins. The flow's checks now carry the real gate.
 Rejected: changing the menu pins inside this task. **Open.**
+
+## D021 (2026-11-12, VX-06): availability is an optional `offered()` on `Target`, read by `offeredTargets()` in launch.ts, so `src/launchFlow.ts` and `src/extension.ts` are touched outside the expected files
+
+"Offered only when its extension is enabled" needs the flow to ask each target. The VX-05 note said the flow would need "no other change", but that can't hold. The flow's one change is `TARGETS.filter(` becoming `(await offeredTargets()).filter(`. extension.ts's `Api` gains `chatHost` (the calls the chat targets make: `enabled`, `commands`, `execute`, `openExternal`). The test swaps it, as with `terminalHost` (D017). The order is `[terminal, ...CHAT_TARGETS, clipboard]`, so the clipboard stays the last fallback. A chat target's `start` also returns undefined when it isn't offered.
+Rejected: adding the chat targets to TARGETS once at activation, which would go stale when an extension is enabled or disabled; leaving them always offered and failing at start. **Closed.**
+
+## D022 (2026-11-12, VX-06): Copilot Chat counts as enabled when `github.copilot-chat` is enabled and `workbench.action.chat.open` exists; the mode is always `agent`
+
+Current VS Code registers the chat command in core, so the command check alone can't tell. The engine is pinned to `^1.100.0`, where the mode is named `agent`, so no fallback to `edit` is coded.
+Rejected: checking only the command; probing `edit`. **Closed.**
+
+## D023 (2026-11-12, VX-06): the Claude Code URI is `Uri.from({ scheme: vscode.env.uriScheme, authority, path: '/open', query: URLSearchParams })`
+
+`uri.query` then holds exactly what the extension's handler passes to `new URLSearchParams`. `Uri.parse` of that string would decode `%26` into `&` and split the prompt. `uriScheme` keeps the link working in builds other than stable.
+Rejected: `Uri.parse('vscode://...?' + params)`; the undocumented positional arguments of `claude-vscode.editor.open`. **Closed.**
+
+## D024 (2026-11-12, VX-06): the clipboard steps count the terminals opened, not `window.terminals.length`
+
+On this machine the baseline (the VX-06 claim commit, with this task's src and test changes stashed) fails `make test-vscode` at `assert.equal(vscode.window.terminals.length, open)` with `0 !== 1`: an earlier step's `/bin/echo` terminal closes while the clipboard launch runs. The assertion now counts `onDidOpenTerminal` events, which is what "starts nothing" means, and step 6 asserts the same for the chat targets. **Open.**
+Rejected: leaving `make test-vscode` failing; waiting for the earlier terminals to close. **Closed.**

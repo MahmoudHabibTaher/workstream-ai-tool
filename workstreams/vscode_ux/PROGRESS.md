@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `e935195`.
 
 ---
 
+## 2026-11-12: VX-06: Copilot Chat and Claude Code extension targets
+
+Merged as `2d07d331f9`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VX-06.md).
+
 ## 2026-11-12: VX-05: Quick-pick launch flow with pre-flight and presets
 
 Merged as `dd12052572`. Verified: test pass, make test-vscode pass. [Evidence](evidence/VX-05.md).

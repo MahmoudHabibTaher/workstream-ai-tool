@@ -1,15 +1,14 @@
 # Session handoff
 
-**State:** 5/7 done on `main` at `dd12052`, as of 2026-11-12.
+**State:** 6/7 done on `main` at `2d07d33`, as of 2026-11-12.
 
-**Just landed:** VX-05 (`dd12052572`)
+**Just landed:** VX-06 (`2d07d331f9`)
 
 **Open decisions:**
-- D020: the launch menu still uses the D022 status rule (waiting: VX-06, VX-07)
+- D020: the launch menu still uses the D022 status rule (waiting: VX-07)
 
-**Next:** `ws claim --commit VX-06` (phase 3).
+**Next:** `ws claim --commit VX-07` (phase 4).
 
 **Gotchas:**
-- VX-05: - The sample project's `ws new` docs keep their double-brace placeholders, so `validate` blocks every launch kind there. `launches()` fills them and commits before the non-blocked cases, which runs after the status bar assertions that count those errors.
-- The plan's outcome names a task pin (`run-task`). VX-05's acceptance doesn't, and the flow offers only the four row kinds. `ws launch check|argv` already accept `--task`.
-- VX-06 adds the chat targets to `TARGETS`. Each needs `label` and `needsAgent: false`, and the flow offers them with no other change.
+- VX-06: - On the claim commit, `make test-vscode` fails at the clipboard step's terminal count (see D024). VX-05's recorded pass was probably on an earlier VS Code build, which kept exited terminals open.
+- VX-07's manual check needs Copilot Chat installed (plan T3). The Claude Code target has only been run with a stub here. The handler code was read in `anthropic.claude-code-2.1.318`: `new URLSearchParams(E.query)` → `claude-vscode.primaryEditor.open(session, prompt)`.
