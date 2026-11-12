@@ -11,17 +11,20 @@ code --install-extension ui/vscode/workstreams.vsix
 
 The extension runs only in trusted workspaces, and not in virtual ones.
 
-It was checked by hand in VS Code 1.139 on macOS; what that covered, and what it didn't, is in [decision 0017](../../docs/decisions/0017-vscode-extension.md). Set `workstreams.agentCommand` (below) before using **Run**, or the prompt only goes to the clipboard.
+It was first checked by hand in VS Code 1.139 on macOS (decision 0017, `docs/decisions/0017-vscode-extension.md` in this repository). The redesigned views and launch flow were checked by hand in VS Code 1.145.2 with Copilot Chat and Claude Code installed (decision 0019, `docs/decisions/0019-ui-redesign.md`).
 
 ## What it shows
 
-The **Workstreams** view container holds the **Registry**, **Review**, **Health** and **Budget** trees.
+The **Workstreams** view container holds five linked views, **Workstreams**, **Tasks**, **Task**, **Graph** and **Overview**, then **Review**, **Health** and **Budget**.
 
-- Each open workstream shows its status, `done/total` and its count of health errors. It opens to its wave line, then its phases in order, then each phase's tasks by priority, with badges such as `★ ready`, `waits on …` and `claimed 1h`. Last comes **Documents**.
-- A task's tooltip holds its summary, acceptance items and verify commands. Repo text is shown as plain text, never as markup.
-- **Show done** in the view's title bar adds the closed workstreams, and **Hide done** takes them away again. **Refresh** reads the snapshot again.
-- Under **Documents**, Plan, Progress, Decisions and Handoff each open in Markdown preview.
-- The status bar shows the active workstream's wave line and error count. Clicking it focuses the view.
+- **Workstreams** lists each open workstream with its status, `done/total` and claims. Picking one fills the four views after it; they stay hidden until something is picked. **Show done** adds the closed workstreams and **Hide done** takes them away. **Refresh** reads the snapshot again.
+- **Tasks** shows the wave line, then each phase in order with its tasks by priority. "Waiting on" comes from the snapshot's `waitingOn`.
+- **Task** shows the picked task in sections: its summary, claim, acceptance, verify commands, what it waits on and what it unblocks. A dependency picks that task.
+- **Graph** draws the dependency tree; clicking a node picks the task.
+- **Overview** shows the workstream's documents (Plan, Progress, Decisions and Handoff open in Markdown preview), its registry row, open claims, scope and baseline.
+- The picked workstream and task survive a reload. Repo text is shown as plain text, never as markup.
+- The status bar shows the active workstream's wave line and error count, or `<workstream> · <task> · <age>` while a task is claimed. Clicking it focuses the Workstreams view.
+- With no workstream project open, the Workstreams view says so and points at `ws init`.
 - The view stays current without Refresh. The extension watches every path in the snapshot's `refresh` list, waits until changes stop for 300 ms, and then reads one snapshot per burst. A claim, a commit or a new evidence file made from a shell shows up on its own.
 
 ### Review
@@ -43,15 +46,22 @@ The **Budget** tree is `ws audit context --json`: each role's tokens against its
 
 ## What it does
 
-A workstream's, task's or finding's context menu holds only what the snapshot offers there: a row's `actions`, or a finding's.
+A workstream's, task's or finding's context menu holds only what the snapshot offers there: a row's `actions`, or a finding's. Menus sit in four groups: **Run** (Run, Coordinate, Close, Abandon), **Workstream** (Pause, Resume, Sync), **Task** (Unclaim) and **Open** (Plan, Progress, Decisions, Handoff, and on Review items Open Diff and Open Evidence). The title bars of Tasks, Task, Graph and Overview act on the picked workstream or task.
 
 - **Pause**, **Resume**, **Sync Progress** and **Unclaim** open a modal naming the commit line and the integration branch. Confirming runs `ws act` against the revisions of the snapshot the item was drawn from, so a change made after you saw it is refused. A refusal is shown as `ws act` gave it. When the extension already holds a newer snapshot, the modal says the write will be refused.
-- **Run**, **Coordinate**, **Close** and **Abandon…** on an open workstream start your agent in a terminal at the project root, with the prompt as its last argument; no shell parses it. Abandon asks for the reason first. With no agent command set, the prompt goes to the clipboard instead.
+- **Run**, **Coordinate**, **Close** and **Abandon…** on an open workstream open the launch flow, a run of quick picks:
+  1. **Checks** (`ws launch check`). A blocking check ends the flow with its message; the pick appears only when a check warns.
+  2. **Agent**: the CLI's presets (`ws launch agents`), plus `workstreams.agentCommand` when it is set. The checks run again for the agent picked.
+  3. **Effort** and **permissions**, from the preset.
+  4. **Target**: a terminal at the project root, Copilot Chat (a new agent-mode chat), the Claude Code panel, or the clipboard. A chat target is offered only while its extension is enabled.
+  5. **Prompt**, to edit before it goes.
+
+  A step with only one choice is skipped, and the last choice is listed first, marked "last used". The terminal runs `ws launch argv`'s command line with the prompt as its last argument; no shell parses it. Abandon asks for the reason first.
 
 ## Settings
 
 - `workstreams.wsCommand`: the argv that runs the CLI, `["ws"]` by default. No shell parses it. Point it at a checkout's own code with `["python3", "-B", "-m", "workstream"]` and that checkout's `src` on `PYTHONPATH`.
-- `workstreams.agentCommand`: the argv that starts your coding agent, empty by default. The prompt is added as the last argument.
+- `workstreams.agentCommand`: an extra agent argv for the launch flow, empty by default. The prompt is added as the last argument. This is the agent, not the `ws` command; the presets work without it.
 
 When the CLI can't be started, the extension says so, names this setting, and runs nothing else. A window whose folders aren't workstream projects gets one message and nothing more.
 

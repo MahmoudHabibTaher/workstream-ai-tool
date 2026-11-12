@@ -67,6 +67,36 @@ The owner installed the plugin in IntelliJ IDEA 2026.3 and Android Studio 2026.2
 
 Two setup slips were caught on the way and are worth knowing. The old M10 sample and the old `ws` drew S-1 as unclaimed and a flat Graph, because that `ws` emits no `unblocks`. The `ws` path had been pasted into the Agent command setting. The README now says the Agent command is not the `ws` command.
 
+## What was built in VS Code (vscode_ux)
+
+Seven tasks (VX-01 to VX-07); the workstream's `DECISIONS.md` holds the smaller calls. The extension stays on native views (0016); there are no webviews.
+
+- **Five linked views** replace the Registry tree: Workstreams, Tasks, Task, Graph and Overview, ahead of Review, Health and Budget. Picking a workstream fills the other four; a task row, a graph node or a dependency link picks the task. The selection survives a reload.
+- **Menus** sit in the same four groups as JetBrains (Run, Workstream, Task, Open), as separator groups rather than submenus. The linked views' title bars act on the selection.
+- **The launch flow** is a run of quick picks: checks (shown only when one warns; a blocking one ends the flow with its message), agent preset, effort, permissions, target, then the prompt to edit. A step with one choice is skipped, and the last choice is listed first.
+- **The chat targets** are Copilot Chat (a new agent-mode chat) and the Claude Code extension (its panel, through its URI handler). Each is offered only while its extension is enabled; the clipboard stays the last fallback.
+
+## What was seen (VX-07)
+
+The owner installed the extension from a `.vsix` (built from `task/vx-07`) into VS Code 1.145.2 on macOS, with Copilot Chat and Claude Code (`anthropic.claude-code`) installed. The sample came from a wheel: `ws` 0.1.0 installed into a clean venv built `alpha` (S-1 claimed and backdated three days, S-2 claimed with work on `task/s-2`, S-3 blocked by S-1, its plan files left as templates so it fails validate) and `beta` (valid, unclaimed), then main moved. `workstreams.wsCommand` pointed at that venv's `ws`.
+
+| Check | VS Code 1.145.2 |
+|---|---|
+| The five views are linked | Yes: alpha selected filled Tasks (`Stuck: 3 open, none act…`, Phase 1 0/3), Graph (S-3 under S-1), Overview (Documents, Registry `0/3 done · 2 claimed`, Open claims `S-1 · sample · 3d ago` and `S-2 · sample · 1h ago`, Baseline `None recorded`) |
+| A launch with a blocking check can't go on | Yes: Run on alpha stopped at its checks |
+| Run starts a terminal with the preset's flags | Yes |
+| Copilot Chat opens an agent-mode chat holding the prompt | Yes |
+| The Claude Code panel opens holding the prompt | Yes |
+| A stale Pause is refused | Yes: with the confirm open, `156811b` changed alpha's queue from a shell; OK gave the stale-view refusal and HEAD stayed `156811b`. A commit that touches neither the registry nor the queue (`03f87eb`, a README line) does not make the view stale, by design: `ws act` compares only those two files' hashes |
+
+The owner raised three things to improve, left for later work:
+
+- The panel is crowded with eight views side by side; Review and Health could move to tabs of their own.
+- A failed check during a launch is shown as a tooltip that is hard to read.
+- The launch flow, the Terminal path in particular, takes several steps; it could be shorter without losing any choice.
+
+`make vsix` had failed since 0017's hand check because the README linked to `../../docs/…`, which `vsce` refuses without a repository URL; the link is now a plain path.
+
 ## Rules for changing it
 
 - A new idea from the other workstream plugin comes in as a description of behaviour, written here, never as its code or text.
