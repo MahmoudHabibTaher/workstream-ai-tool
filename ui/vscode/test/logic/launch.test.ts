@@ -3,7 +3,8 @@ import { test } from 'node:test'
 
 import type { Check, Preset } from '../../src/cli.ts'
 import {
-  agents, argvOptions, blockedChoices, blockedLine, combos, HEALTH_CHECKS, lastCombo, lastFirst, lastOf, levels, repeatChoice, SETTING_AGENT, verdict,
+  agents, argvOptions, blockedByValidate, blockedChoices, blockedLine, combos, HEALTH_CHECKS, lastCombo, lastFirst, lastOf, levels, repeatChoice, SETTING_AGENT,
+  validateArgs, validateText, verdict,
 } from '../../src/logic/launch.ts'
 
 const check = (id: string, ok: boolean, blocking: boolean): Check => ({ id, ok, blocking, message: `${id} said so` })
@@ -27,6 +28,18 @@ test('the blocked list puts blocking rows first, then warnings, then passes, eac
   ])
   assert.equal(blockedLine('Run alpha', verdict(checks).blocking), 'Run alpha is blocked by 2 checks')
   assert.deepEqual(HEALTH_CHECKS, ['validate', 'claim'])
+})
+
+test('a launch blocked by validate opens its whole output; one blocked by other checks does not (D011)', () => {
+  assert.equal(blockedByValidate(verdict([check('validate', false, true), check('claim', false, true)]).blocking), true)
+  assert.equal(blockedByValidate(verdict([check('validate', true, true), check('claim', false, true), check('wave', false, true)]).blocking), false)
+  assert.equal(blockedByValidate(verdict([check('validate', false, false)]).blocking), false)
+  assert.deepEqual(validateArgs('alpha'), ['validate', '-w', 'alpha'])
+  const printed = 'FAIL:\n  - one\n  - two\nwarnings:\n  - three\n'
+  assert.equal(validateText({ exitCode: 1, stdout: printed, stderr: '' }, ['ws'], 'alpha'), printed)
+  assert.equal(validateText({ exitCode: 2, stdout: 'out\n', stderr: 'err\n' }, ['ws'], 'alpha'), 'out\nerr\n')
+  assert.equal(validateText({ exitCode: 3, stdout: '', stderr: '' }, ['ws'], 'alpha'), 'ws validate -w alpha exited 3 and printed nothing\n')
+  assert.match(validateText({ exitCode: 127, stdout: '', stderr: '', missing: true }, ['wsx'], 'alpha'), /The ws CLI did not start \(\["wsx"\]\)/)
 })
 
 test('the agents are the presets, then the setting when it is set', () => {

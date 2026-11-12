@@ -1,6 +1,6 @@
 // What a launch starts: the prompt from the row's snapshot offer, and the terminal a configured
 // agent runs in. Nothing here imports `vscode`, so `node --test` covers it.
-import type { Check, Preset } from '../cli.ts'
+import { type Check, noWs, type Preset, type Ran } from '../cli.ts'
 import type { LaunchOffer } from './format.ts'
 
 export const LAUNCHES = ['run', 'coordinate', 'close', 'abandon'] as const
@@ -51,6 +51,24 @@ export function blockedLine(title: string, blocking: readonly Check[]): string {
 
 // The checks that come from the health findings: picking one in the blocked list shows Health.
 export const HEALTH_CHECKS: readonly string[] = ['validate', 'claim']
+
+// D011: when validate is one of the blocking checks, the flow opens the whole `ws validate -w <id>`
+// output in a read-only editor tab beside the list, since the check's message holds the first error.
+export function blockedByValidate(blocking: readonly Check[]): boolean {
+  return blocking.some(c => c.id === 'validate')
+}
+
+export function validateArgs(ws: string): string[] {
+  return ['validate', '-w', ws]
+}
+
+// The tab's text: everything `ws validate -w <id>` printed, stdout then stderr, or why it printed
+// nothing. It exits 1 when it finds errors, so the exit code alone is not a failure.
+export function validateText(ran: Ran, command: readonly string[], ws: string): string {
+  if (ran.missing) return `${noWs([...command])}\n`
+  const out = [ran.stdout.trimEnd(), ran.stderr.trimEnd()].filter(Boolean).join('\n')
+  return `${out || `ws validate -w ${ws} exited ${ran.exitCode} and printed nothing`}\n`
+}
 
 export type BlockedChoice = { label: string; description: string; value: string }
 

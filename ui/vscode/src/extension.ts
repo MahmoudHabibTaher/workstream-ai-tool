@@ -7,7 +7,7 @@ import { chatHost } from './chat.ts'
 import { type Cli, execRun, makeCli, type Run } from './cli.ts'
 import { nativeUi, registerCommands, type Ui } from './commands.ts'
 import { type Started as Launched, terminalHost } from './launch.ts'
-import { type FlowUi, nativeFlowUi } from './launchFlow.ts'
+import { type FlowUi, nativeFlowUi, VALIDATE_SCHEME, validateDocuments } from './launchFlow.ts'
 import { type ConfirmText, contextValue, type Picked } from './logic/actions.ts'
 import { listRows, taskLanes } from './logic/detail.ts'
 import { claimedTask, claimLine } from './logic/format.ts'
@@ -46,7 +46,8 @@ const AGE_MS = 60_000
 // the integration test can see what the extension did. `reloads` says why each reload ran.
 // `asked` holds each confirm box's text and `launched` each launch; `ui` answers the boxes, and
 // the test may replace it, since a modal can't be clicked from the extension API. `opened` holds
-// what each review file or evidence click opened, or why it opened nothing. `health`, `diagnostics`
+// what each review file or evidence click opened, or why it opened nothing, and `validated` the URI
+// of each `ws validate` tab a blocked launch opened (D011). `health`, `diagnostics`
 // and `budget` are the Health tree, its Problems panel entries and the Budget tree. `list`, `tasks`
 // and `task` are the Workstreams, Tasks and Task trees, and `graph` and `overview` the Graph and
 // Overview trees, all linked through the store's selection. `picked` is the selected workstream's
@@ -61,6 +62,7 @@ export type Api = {
   asked: ConfirmText[]
   launched: Launched[]
   opened: Opened[]
+  validated: string[]
   ui: Ui
   flowUi: FlowUi
   terminalHost: typeof terminalHost
@@ -91,7 +93,7 @@ export function activate(context: vscode.ExtensionContext): Api {
   const folders = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath)
   const shown: string[] = []
   let pending: Promise<void> = Promise.resolve()
-  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], ui: nativeUi, flowUi: nativeFlowUi, terminalHost, chatHost, picked: {}, settled: () => pending } as unknown as Api
+  const api = { ran, shown, reloads: [], asked: [], launched: [], opened: [], validated: validateDocuments.opened, ui: nativeUi, flowUi: nativeFlowUi, terminalHost, chatHost, picked: {}, settled: () => pending } as unknown as Api
 
   const show = (started: Started): Started => {
     const message = started.message
@@ -216,6 +218,7 @@ export function activate(context: vscode.ExtensionContext): Api {
       diagnostics,
       vscode.languages.registerCodeActionsProvider({ scheme: 'file' }, diagnostics, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
       vscode.workspace.registerTextDocumentContentProvider(SCHEME, docs),
+      vscode.workspace.registerTextDocumentContentProvider(VALIDATE_SCHEME, validateDocuments),
       vscode.commands.registerCommand(OPEN_FILE, async (node: Parameters<typeof openFile>[2]) => {
         api.opened.push(await openFile(cli, docs, node, say))
       }),
