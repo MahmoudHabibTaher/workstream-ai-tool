@@ -149,8 +149,9 @@ class PackageTests(unittest.TestCase):
         """Plan D-REVIEW-UI: a Review view after the linked views (plan D-VIEWS); a file and the evidence open from
         its items only, so neither is in the command palette."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
-        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]][:4],
-                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.review"])
+        self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]][:6],
+                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.graph",
+                          "workstreams.overview", "workstreams.review"])
         hidden = {m["command"] for m in contributes["menus"]["commandPalette"] if m["when"] == "false"}
         self.assertLessEqual({"workstreams.openReviewFile", "workstreams.openEvidence"}, hidden)
         review = (SRC / "views" / "review.ts").read_text()
@@ -163,8 +164,8 @@ class PackageTests(unittest.TestCase):
         that runs `ws audit context`."""
         contributes = json.loads((PACKAGE / "package.json").read_text())["contributes"]
         self.assertEqual([v["id"] for v in contributes["views"]["workstreams"]],
-                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.review",
-                          "workstreams.health", "workstreams.budget"])
+                         ["workstreams.list", "workstreams.tasks", "workstreams.task", "workstreams.graph",
+                          "workstreams.overview", "workstreams.review", "workstreams.health", "workstreams.budget"])
         titles = {m["when"] for m in contributes["menus"]["view/title"] if m["command"] == "workstreams.refresh"}
         self.assertLessEqual({"view == workstreams.health", "view == workstreams.budget"}, titles)
         health = (SRC / "views" / "health.ts").read_text()

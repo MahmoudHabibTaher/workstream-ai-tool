@@ -15,6 +15,62 @@ export type DetailNode =
   | { kind: 'item'; id: string; root: string; ws: string; item: Item }
   | { kind: 'message'; id: string; text: string; error: boolean }
 
+// A section with a heading opens to its items; one without puts its items at the top level.
+export function sectionNodes(root: string, ws: string, sections: Section[]): DetailNode[] {
+  return sections.flatMap((section): DetailNode[] => (section.heading
+    ? [{ kind: 'section', id: section.id, root, ws, section }]
+    : section.items.map(item => ({ kind: 'item', id: item.id, root, ws, item }))))
+}
+
+export function detailChildren(node: DetailNode): DetailNode[] {
+  if (node.kind !== 'section') return []
+  return node.section.items.map(item => ({ kind: 'item', id: item.id, root: node.root, ws: node.ws, item }))
+}
+
+// How the Task view and the Overview draw a section, a line, a task link or a file.
+export function detailItem(node: DetailNode): vscode.TreeItem {
+  switch (node.kind) {
+    case 'section': {
+      const item = new vscode.TreeItem(node.section.heading ?? '', vscode.TreeItemCollapsibleState.Expanded)
+      item.id = node.id
+      item.contextValue = 'section'
+      return item
+    }
+    case 'message': {
+      const item = new vscode.TreeItem(node.text)
+      item.id = node.id
+      item.iconPath = new vscode.ThemeIcon(node.error ? 'error' : 'info')
+      item.contextValue = 'message'
+      return item
+    }
+    case 'item': {
+      const it = node.item
+      if (it.kind === 'line') {
+        const item = new vscode.TreeItem(it.text)
+        item.id = node.id
+        item.tooltip = tooltip([{ lines: [it.text] }])
+        item.contextValue = 'line'
+        return item
+      }
+      const item = new vscode.TreeItem(it.label)
+      item.id = node.id
+      if (it.kind === 'task') {
+        item.iconPath = new vscode.ThemeIcon('arrow-right')
+        item.contextValue = 'dependency'
+        item.command = { command: SELECT_TASK, title: 'Show Task', arguments: [node.root, node.ws, it.task] }
+      } else {
+        const uri = vscode.Uri.file(it.path)
+        item.resourceUri = uri
+        item.iconPath = vscode.ThemeIcon.File
+        item.description = it.path === it.label ? undefined : it.path
+        item.contextValue = 'file'
+        item.command = { command: 'vscode.open', title: 'Open', arguments: [uri] }
+      }
+      return item
+    }
+  }
+}
+
 export class TaskTree implements vscode.TreeDataProvider<DetailNode> {
   private emitter = new vscode.EventEmitter<DetailNode | undefined>()
   readonly onDidChangeTreeData = this.emitter.event
@@ -30,53 +86,11 @@ export class TaskTree implements vscode.TreeDataProvider<DetailNode> {
   }
 
   getTreeItem(node: DetailNode): vscode.TreeItem {
-    switch (node.kind) {
-      case 'section': {
-        const item = new vscode.TreeItem(node.section.heading ?? '', vscode.TreeItemCollapsibleState.Expanded)
-        item.id = node.id
-        item.contextValue = 'section'
-        return item
-      }
-      case 'message': {
-        const item = new vscode.TreeItem(node.text)
-        item.id = node.id
-        item.iconPath = new vscode.ThemeIcon(node.error ? 'error' : 'info')
-        item.contextValue = 'message'
-        return item
-      }
-      case 'item': {
-        const it = node.item
-        if (it.kind === 'line') {
-          const item = new vscode.TreeItem(it.text)
-          item.id = node.id
-          item.tooltip = tooltip([{ lines: [it.text] }])
-          item.contextValue = 'line'
-          return item
-        }
-        const item = new vscode.TreeItem(it.label)
-        item.id = node.id
-        if (it.kind === 'task') {
-          item.iconPath = new vscode.ThemeIcon('arrow-right')
-          item.contextValue = 'dependency'
-          item.command = { command: SELECT_TASK, title: 'Show Task', arguments: [node.root, node.ws, it.task] }
-        } else {
-          const uri = vscode.Uri.file(it.path)
-          item.resourceUri = uri
-          item.iconPath = vscode.ThemeIcon.File
-          item.description = it.path === it.label ? undefined : it.path
-          item.contextValue = 'file'
-          item.command = { command: 'vscode.open', title: 'Open', arguments: [uri] }
-        }
-        return item
-      }
-    }
+    return detailItem(node)
   }
 
   async getChildren(node?: DetailNode): Promise<DetailNode[]> {
-    if (node) {
-      if (node.kind !== 'section') return []
-      return node.section.items.map(item => ({ kind: 'item', id: item.id, root: node.root, ws: node.ws, item }))
-    }
+    if (node) return detailChildren(node)
     const store = this.store
     const selected = store.selected
     const task = store.selectedTask
@@ -88,8 +102,6 @@ export class TaskTree implements vscode.TreeDataProvider<DetailNode> {
     const row = rows.find(r => r.task.id === task)
     if (!row) return []
     const known = new Set(rows.map(r => r.task.id))
-    return taskSections(row, known, got.value.repoRoot, this.now()).flatMap((section): DetailNode[] => (section.heading
-      ? [{ kind: 'section', id: section.id, root, ws, section }]
-      : section.items.map(item => ({ kind: 'item', id: item.id, root, ws, item }))))
+    return sectionNodes(root, ws, taskSections(row, known, got.value.repoRoot, this.now()))
   }
 }

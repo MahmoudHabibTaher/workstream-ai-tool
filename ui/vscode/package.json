@@ -74,6 +74,16 @@
           "when": "workstreams.selected"
         },
         {
+          "id": "workstreams.graph",
+          "name": "Graph",
+          "when": "workstreams.selected"
+        },
+        {
+          "id": "workstreams.overview",
+          "name": "Overview",
+          "when": "workstreams.selected"
+        },
+        {
           "id": "workstreams.review",
           "name": "Review"
         },

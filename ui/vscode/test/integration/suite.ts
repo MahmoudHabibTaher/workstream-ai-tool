@@ -39,6 +39,7 @@ export async function run(): Promise<void> {
     assert.deepEqual(registry.map(row => row.id), ['alpha', 'beta'])
     assert.match(snapshot.revisions.registry, /^[0-9a-f]{64}$/)
     await linkedViews(api, started.roots[0])
+    await graphAndOverview(api, started.roots[0])
     await writes(api, started.roots[0])
     await launches(api, started.roots[0])
     await healthAndBudget(api, started.roots[0])
@@ -203,6 +204,67 @@ async function linkedViews(api: Api, root: string): Promise<void> {
   assert.match(label(shown[1]), /^in-progress · Phase 1/)
   assert.ok(byName(shown, 'Claim'))
   console.log(`after the claim: ${claimed}; task ${JSON.stringify(outline(shown))}; reloads ${JSON.stringify(api.reloads.slice(before))}`)
+}
+
+// Plan D-VIEWS: with alpha selected (and A-1 claimed by linkedViews), Graph draws the tasks from
+// `blockedBy` and `unblocks`, and a node selects its task; Overview draws the documents, the
+// registry row, the open claims, scope, verify commands and baseline, and a document opens.
+async function graphAndOverview(api: Api, root: string): Promise<void> {
+  const { graph, overview, task } = api
+  assert.ok(graph && overview && task)
+  assert.deepEqual(api.store?.selected, { root, ws: 'alpha' })
+
+  // 1. Graph: A-1 unblocks A-3, so A-3 sits under it; A-2 waits on nothing, so it is a root.
+  const nodes = await walk(graph)
+  const tree = (items: Item[]): unknown[] => items.map(i => (i.children.length ? [line(i), tree(i.children)] : line(i)))
+  console.log(`graph: ${JSON.stringify(tree(nodes))}`)
+  assert.deepEqual(nodes.map(label), ['A-1 First', 'A-2 Second'])
+  assert.match(line(nodes[0]), /^A-1 First \| in-progress/)
+  assert.deepEqual(nodes[0].children.map(label), ['A-3 Third'])
+  assert.match(line(nodes[0].children[0]), /^A-3 Third \| todo/)
+  assert.deepEqual(nodes[1].children, [])
+  const ids = (items: Item[]): string[] => items.flatMap(i => [String(i.item.id), ...ids(i.children)])
+  assert.equal(new Set(ids(nodes)).size, 3)
+
+  // Selecting a node selects its task, which the Task view draws.
+  await click(nodes[0].children[0])
+  assert.equal(api.store?.selectedTask, 'A-3')
+  assert.equal(label((await walk(task))[0]), 'A-3: Third')
+  await click(nodes[0])
+  assert.equal(api.store?.selectedTask, 'A-1')
+  assert.equal(label((await walk(task))[0]), 'A-1: First')
+  console.log('graph: clicking A-3 then A-1 selected each in the Task view')
+
+  // 2. Overview: its sections, every fact from the CLI's snapshot.
+  const sections = await walk(overview)
+  console.log(`overview: ${JSON.stringify(outline(sections))}`)
+  const headings = sections.map(label)
+  for (const h of ['Documents', 'Registry', 'Open claims', 'Baseline']) assert.ok(headings.includes(h), `${h} in ${JSON.stringify(headings)}`)
+  assert.ok(headings.indexOf('Documents') < headings.indexOf('Registry'))
+  const registry = byName(sections, 'Registry').children.map(label)
+  assert.equal(registry[0], 'alpha: Alpha')
+  assert.ok(registry.includes('sample'), JSON.stringify(registry))
+  assert.ok(registry.some(l => /^active/.test(l)), JSON.stringify(registry))
+  assert.ok(registry.some(l => /^0\/3 done · 1 claimed$/.test(l)), JSON.stringify(registry))
+  const claims = byName(sections, 'Open claims').children
+  assert.equal(claims.length, 1)
+  assert.match(label(claims[0]), /^A-1/)
+  assert.ok(byName(sections, 'Baseline').children.length >= 1)
+
+  // A claim jumps to its task; a document opens in an editor.
+  await click(claims[0])
+  assert.equal(api.store?.selectedTask, 'A-1')
+  const doc = byName(sections, 'Documents').children[0]
+  assert.equal(doc.item.command?.command, 'vscode.open')
+  const target = (doc.item.command?.arguments?.[0] as vscode.Uri).fsPath
+  assert.ok(realpathSync(target).startsWith(realpathSync(join(root, 'workstreams', 'alpha')) + sep), target)
+  await click(doc)
+  const editor = await until(`${target} in an editor`, async () => {
+    const d = vscode.window.activeTextEditor?.document
+    return d && realpathSync(d.uri.fsPath) === realpathSync(target) ? d : undefined
+  })
+  assert.equal(editor.getText(), readFileSync(target, 'utf8'))
+  console.log(`overview: ${label(doc)} opened ${editor.uri.fsPath}`)
 }
 
 const git = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
