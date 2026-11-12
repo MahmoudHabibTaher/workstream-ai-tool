@@ -223,7 +223,7 @@
         "test",
         "make test-vscode"
       ],
-      "branch": "",
+      "branch": "task/vf-04",
       "blockedBy": [
         "VF-03"
       ],
@@ -232,10 +232,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-12T14:47:20Z",
+      "baseCommit": "bd08b906589a2beea939f4490330b689fdc4452e",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
