@@ -44,7 +44,7 @@ def next_number(entries: list[dict]) -> int:
     return max((e["number"] for e in entries), default=0) + 1
 
 
-def _mentions(text: str, needle: str) -> bool:
+def mentions(text: str, needle: str) -> bool:
     return re.search(rf"(?<![\w/.-]){re.escape(needle)}(?![\w-])", text) is not None
 
 
@@ -55,7 +55,7 @@ def relevant(entries: list[dict], task: dict) -> list[dict]:
     needles = [task["id"], *task.get("findings", []), *task.get("files", [])]
     return [e for e in entries if "{{" not in e["text"]
             and (e["who"] == USER or e["who"] in builds_on
-                 or any(_mentions(e["text"], n) for n in needles))]
+                 or any(mentions(e["text"], n) for n in needles))]
 
 
 def is_open(text: str) -> bool:

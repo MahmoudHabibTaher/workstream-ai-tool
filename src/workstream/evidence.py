@@ -153,7 +153,7 @@ def paired_items(parsed: dict | None, task: dict) -> list[dict]:
             for n, item in enumerate(task.get("acceptance", []), 1)]
 
 
-def _text_problem(entry: dict) -> str | None:
+def text_problem(entry: dict) -> str | None:
     path = entry["path"]
     if not path:
         return "Text to apply has text with no file (start each with a line of ### `path`)"
@@ -194,7 +194,7 @@ def problems(text: str | None, task: dict) -> list[str]:
         elif not REJECTED_RE.search(body) and not decisions.is_open(body):
             # The one thing a later session can't work out from the code.
             found.append(f"{proposal['id']} doesn't say what was rejected (`Rejected: ...`)")
-    found += [problem for problem in map(_text_problem, parsed["texts"]) if problem]
+    found += [problem for problem in map(text_problem, parsed["texts"]) if problem]
     return found
 
 

@@ -73,7 +73,7 @@ def texts_to_apply(project: Project, ws: dict, rows: list[dict]) -> list[dict]:
     for row in rows:
         text = evidence.read_at(project, ws, row["id"], None) if row["status"] == "done" else None
         for entry in evidence.parse(text)["texts"] if text else []:
-            if evidence._text_problem(entry) or _is_applied(project, entry):
+            if evidence.text_problem(entry) or _is_applied(project, entry):
                 continue
             line = f"{row['id']}: {entry['path']} (evidence/{row['id']}.md)"
             found.append({"id": row["id"], "path": entry["path"], "line": line})

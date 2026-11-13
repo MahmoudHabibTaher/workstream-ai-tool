@@ -363,8 +363,8 @@ def _with_decisions(project: Project, ws: dict, task: dict, text: str, max_chars
     if not entries:
         return text
     newest_first = entries[::-1]
-    naming = [e for e in newest_first if decisions._mentions(e["text"], task["id"])]
-    others = [e for e in newest_first if not decisions._mentions(e["text"], task["id"])]
+    naming = [e for e in newest_first if decisions.mentions(e["text"], task["id"])]
+    others = [e for e in newest_first if not decisions.mentions(e["text"], task["id"])]
     kept: list[str] = []
     used = len(text)
     for entry in naming + others:
