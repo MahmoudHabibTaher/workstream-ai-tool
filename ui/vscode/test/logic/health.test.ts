@@ -44,13 +44,16 @@ test('a finding offers only what its actions list, and pins its snapshot', () =>
   assert.equal(healthShown(node).description, 'stale-claim · alpha A-1')
 })
 
-test('diagnostics go to each named workstream\'s tasks file, as its own snapshot watches it', () => {
+test('diagnostics go to each named workstream\'s tasks file, as its own snapshot names it', () => {
   const nodes = findingNodes('/p', snap([stale, broken, branch]))
   assert.deepEqual(workstreamsWithFindings(nodes), ['alpha', 'beta'])
-  const root = snap([], { watch: ['/p/reg.json'] })
-  const ws = { ...snap([]), watch: ['/p/reg.json', '/p/alpha/tasks.json', '/p/alpha/handoff.md'] } as WsSnapshot
-  assert.equal(tasksFileOf(root, ws), '/p/alpha/tasks.json')
-  assert.equal(tasksFileOf(root, { ...snap([]), watch: ['/p/reg.json'] } as WsSnapshot), undefined)
+  // The watch order no longer matters: only paths.tasks names the file.
+  const watch = ['/p/reg.json', '/p/alpha/handoff.md', '/p/alpha/tasks.json']
+  const ws: WsSnapshot = { ...snap([]), watch, paths: { tasks: '/p/alpha/tasks.json', handoff: '/p/alpha/handoff.md' } }
+  assert.equal(tasksFileOf(ws), '/p/alpha/tasks.json')
+  assert.equal(tasksFileOf({ ...snap([]), watch, paths: { handoff: '/p/alpha/handoff.md' } }), undefined)
+  assert.equal(tasksFileOf({ ...snap([]), watch }), undefined)
+  assert.equal(tasksFileOf({ ...snap([]), paths: { tasks: null } }), undefined)
 })
 
 test('a budget row shows used against its limit, and says when it is over', () => {

@@ -91,7 +91,7 @@ export class HealthDiagnostics implements vscode.CodeActionProvider, vscode.Disp
       const nodes = findingNodes(root, snapshot)
       for (const ws of workstreamsWithFindings(nodes)) {
         const got = await this.store.workstream(root, ws)
-        const path = got.value ? tasksFileOf(snapshot, got.value) : undefined
+        const path = got.value ? tasksFileOf(got.value) : undefined
         if (!path) continue
         const uri = vscode.Uri.file(path).toString()
         const list = fixes.get(uri) ?? []

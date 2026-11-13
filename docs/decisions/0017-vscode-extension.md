@@ -46,4 +46,4 @@ On macOS, VS Code 1.139.0 (arm64), Python 3.14, on 2026-11-06. The owner drove V
 ## Left open
 
 - D010: `@types/node` as a fifth dev dependency.
-- D029: a workstream's tasks file is found from the order of its snapshot's `watch`; a `paths.tasks` field in the snapshot would be cleaner.
+- D029: closed by tidy_up TU-06 and TU-07. The snapshot now names the tasks file in `paths.tasks`, and `tasksFileOf` reads it instead of the order of `watch`.
