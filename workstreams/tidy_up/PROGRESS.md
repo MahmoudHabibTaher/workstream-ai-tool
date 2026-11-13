@@ -6,6 +6,10 @@ Created 2026-11-13 from `main` at `226fac1`.
 
 ---
 
+## 2026-11-13: TU-06: The snapshot names the tasks file, and JetBrains reads it
+
+Merged as `5c0c98d69b`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/TU-06.md).
+
 ## 2026-11-13: TU-05: A test for a brief with both open decisions and changes
 
 Merged as `072bdb6307`. Verified: test pass. [Evidence](evidence/TU-05.md).

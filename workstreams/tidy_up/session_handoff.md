@@ -1,9 +1,12 @@
 # Session handoff
 
-**State:** 4/8 done on `main` at `072bdb6`, as of 2026-11-13.
+**State:** 5/8 done on `main` at `5c0c98d`, as of 2026-11-13.
 
-**Just landed:** TU-05 (`072bdb6307`)
+**Just landed:** TU-06 (`5c0c98d69b`)
 
-**Still in progress:** TU-04 (coordinator), TU-06 (coordinator)
+**Still in progress:** TU-04 (coordinator)
 
-**Next:** Nothing is ready: see the blocked tasks below, or anything still in progress.
+**Next:** `ws claim --commit TU-07` (phase 2).
+
+**Gotchas:**
+- TU-06: - `docs/decisions/0017-vscode-extension.md:49` still records D029 as open ("a workstream's tasks file is found from the order of its snapshot's `watch`"). The VS Code side of D001 is not in this task, so I left that line for whichever task closes the VS Code reader.
