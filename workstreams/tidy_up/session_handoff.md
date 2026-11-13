@@ -1,7 +1,9 @@
 # Session handoff
 
-**State:** 3/8 done on `main` at `5af08d6`, as of 2026-11-13.
+**State:** 4/8 done on `main` at `072bdb6`, as of 2026-11-13.
 
-**Just landed:** TU-02 (`5af08d6ead`)
+**Just landed:** TU-05 (`072bdb6307`)
 
-**Next:** `ws claim --commit TU-04 TU-05 TU-06` (phase 1).
+**Still in progress:** TU-04 (coordinator), TU-06 (coordinator)
+
+**Next:** Nothing is ready: see the blocked tasks below, or anything still in progress.
