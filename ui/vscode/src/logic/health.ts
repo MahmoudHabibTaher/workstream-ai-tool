@@ -96,12 +96,11 @@ export function workstreamsWithFindings(nodes: FindingNode[]): string[] {
   return [...new Set(nodes.map(n => n.finding.workstream).filter((w): w is string => !!w))]
 }
 
-// A workstream's tasks file: the first path its own snapshot watches that the root snapshot
-// doesn't, which is the queue (`watch_paths` lists the registry, then the queue, then the rest).
-// Undefined when there is none, and the finding then shows only in the tree.
-export function tasksFileOf(rootSnapshot: Snapshot, wsSnapshot: WsSnapshot): string | undefined {
-  const shared = new Set((rootSnapshot.watch as string[] | undefined) ?? [])
-  return ((wsSnapshot.watch as string[] | undefined) ?? []).find(path => !shared.has(path))
+// A workstream's tasks file: the `paths.tasks` its own snapshot names. Undefined when the
+// snapshot names none, and the finding then shows only in the tree.
+export function tasksFileOf(wsSnapshot: WsSnapshot): string | undefined {
+  const tasks = wsSnapshot.paths?.tasks
+  return typeof tasks === 'string' ? tasks : undefined
 }
 
 export function quickFixTitle(action: Write, finding: Finding): string {
