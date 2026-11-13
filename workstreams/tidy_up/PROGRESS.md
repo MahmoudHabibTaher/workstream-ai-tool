@@ -6,6 +6,10 @@ Created 2026-11-13 from `main` at `226fac1`.
 
 ---
 
+## 2026-11-13: TU-04: ws-coordinate shows --expect
+
+Merged as `fe06f0f430`. Verified: test pass, audit pass. [Evidence](evidence/TU-04.md).
+
 ## 2026-11-13: TU-06: The snapshot names the tasks file, and JetBrains reads it
 
 Merged as `5c0c98d69b`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/TU-06.md).

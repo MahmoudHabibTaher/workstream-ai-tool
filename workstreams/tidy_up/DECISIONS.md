@@ -26,3 +26,8 @@ Rejected: a fixed overhead constant for the heading and pointer, which is anothe
 
 The repo has no `DOC_NAMES` constant on the Kotlin side (grep finds none), so `view` keeps reading every string in `paths` as before and excludes only `tasks`. The documents stay the four narrative files the CLI gives.
 Rejected: adding a fixed list of plan/progress/decisions/handoff in Kotlin, which would duplicate the CLI's `NARRATIVE_FILES` and drop any new document the CLI adds. **Closed.**
+
+## D005 (2026-11-13, TU-04): show --expect inline, and say it is optional in prose
+
+D-EXPECT asks for `--expect "<literal>"` shown as optional. A bracketed `[--expect "<literal>"]` fails `test_every_command_they_mention_parses` and `test_the_coordinate_skill_names_it_in_a_form_that_parses` (argparse rejects the brackets; the first verify run failed with errors=2). So the command shows `--expect "<literal>"` without brackets, and the next sentence says it is optional and that leaving it out drops the old literal.
+Rejected: square-bracket notation, which would need changes to the command-parsing tests (test_tasks.py is not in this task's files). **Closed.**
