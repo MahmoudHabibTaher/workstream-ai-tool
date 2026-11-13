@@ -6,6 +6,10 @@ Created 2026-11-13 from `main` at `226fac1`.
 
 ---
 
+## 2026-11-13: TU-02: Public text_problem and mentions
+
+Merged as `5af08d6ead`. Verified: test pass. [Evidence](evidence/TU-02.md).
+
 ## 2026-11-13: TU-01: The trim test derives its limit from the brief
 
 Merged as `7e12e6b594`. Verified: test pass. [Evidence](evidence/TU-01.md).
