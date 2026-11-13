@@ -139,6 +139,8 @@ The owner ran `/reload-plugins` and `/workstreams` in the Claude Code desktop ap
 | A blocked Run shows its message and fills nothing | Yes |
 | Run This Task fills the box and sends nothing | Yes |
 
+PX-06 fixed that: each depth level is now a Box with a left margin, so the indent no longer depends on how a surface treats spaces. After `/reload-plugins`, the owner saw PX-02 to PX-06 each one level further in, in the desktop app. The graph test now checks the margin boxes, and that no line's text starts with whitespace.
+
 ## Rules for changing it
 
 - A new idea from the other workstream plugin comes in as a description of behaviour, written here, never as its code or text.

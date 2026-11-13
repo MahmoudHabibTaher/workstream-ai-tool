@@ -138,9 +138,24 @@ test('the graph indents each task under what it waits on, and a second parent sh
   const first = (await ui.find({ key: 'graph:T-01:0' }))?.text
   expect(first).toContain('T-01 done')
   expect(first).toContain('T-01 title')
-  expect((await ui.find({ key: 'graph:T-02:1' }))?.text).toContain('  └ T-02')
-  expect((await ui.find({ key: 'graph:T-04:2' }))?.text).toContain('    └ T-04')
-  expect((await ui.find({ key: 'graph:T-03:3' }))?.text).toContain('  └ T-03')
+  // Depth is layout, one margin box per level, never leading spaces in the text: the desktop
+  // app collapses those (D015).
+  for (const [key, depth] of [['graph:T-01:0', 0], ['graph:T-02:1', 1], ['graph:T-04:2', 2], ['graph:T-03:3', 1], ['graph:T-04:4', 2]] as const) {
+    const text = (await ui.find({ key }))?.text ?? ''
+    expect(text).not.toMatch(/^\s/)
+    expect(text.startsWith('└ ')).toBe(depth > 0)
+    const n = key.split(':')[2]
+    for (let level = 1; level <= depth; level += 1) {
+      const box = await ui.find({ key: `indent:${n}:${level}` })
+      expect(box?.type).toBe('Box')
+      expect(box?.props.marginLeft).toBe('sm')
+    }
+    expect(await ui.find({ key: `indent:${n}:${depth + 1}` })).toBeUndefined()
+  }
+  // The outer box holds the inner one: margins add up with depth.
+  const outer = JSON.stringify(await ui.find({ key: 'indent:2:2' }))
+  expect(outer).toContain('"indent:2:1"')
+  expect(outer).toContain('"graph:T-04:2"')
   const repeat = (await ui.find({ key: 'graph:T-04:4' }))?.text
   expect(repeat).toContain('(shown above)')
   expect(await ui.find({ key: 'graph:T-04:5' })).toBeUndefined()
