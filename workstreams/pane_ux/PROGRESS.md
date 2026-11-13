@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `e935195`.
 
 ---
 
+## 2026-11-13: PX-05: Prove it in the desktop app
+
+Merged as `a0f21f7a47`. Verified: test pass, make test-mod pass. [Evidence](evidence/PX-05.md).
+
 ## 2026-11-13: PX-04: Pre-flight before filling the prompt, and Run This Task
 
 Merged as `aeb849713e`. Verified: test pass, audit pass, make test-mod pass. [Evidence](evidence/PX-04.md).

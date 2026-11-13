@@ -304,13 +304,29 @@
         "user"
       ],
       "releaseImpact": "none",
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-13T08:49:14Z",
       "baseCommit": "1ff08767a8703364188f9331754c131c02ca6c86",
       "claimedBy": "main-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-13T09:01:28Z",
+      "commit": "a0f21f7a478fe5399e8c6b30d8545dd9d0c838b8",
+      "verification": {
+        "tree": "8d6292108154e74732ab62463c60f1fdc4c965d2",
+        "at": "2026-11-13T09:01:18Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-mod",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     }
   ],
