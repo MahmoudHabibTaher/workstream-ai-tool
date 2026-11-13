@@ -129,10 +129,11 @@ export type Feed = { tab: FeedTab; text: string | null; error: string | null }
 export type Sub = 'tasks' | 'graph' | 'overview'
 
 export type View = {
-  screen: 'registry' | 'detail' | 'feed' | 'health' | 'review'
+  screen: 'registry' | 'detail' | 'task' | 'feed' | 'health' | 'review'
   sub: Sub
   confirm: Confirm | null
   ws: string | null
+  // The task whose page is open, or whose review is.
   task: string | null
   tab: FeedTab
   page: number

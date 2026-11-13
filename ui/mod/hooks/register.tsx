@@ -8,6 +8,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { Confirm, Feed, FeedTab, ReviewScreen, Snapshot, View } from '../types'
 import { loadReview, loadSnapshot, readText, resolveRoot, runAct } from './data'
 import { Detail, launchFill } from './views/detail'
+import { TaskPage } from './views/task'
 import { FeedScreen, lastPage } from './views/feed'
 import { ConfirmBox, Health } from './views/health'
 import { Registry } from './views/registry'
@@ -21,7 +22,7 @@ const INITIAL_VIEW: View = { screen: 'registry', sub: 'tasks', ws: null, task: n
 
 // Bump a shape tag whenever its value's fields change: a stored value under
 // another tag is then read as the initial one.
-const view = atom({ plugin: 'workstreams-pane', key: 'view' } as const, INITIAL_VIEW, { shape: 'view-5' })
+const view = atom({ plugin: 'workstreams-pane', key: 'view' } as const, INITIAL_VIEW, { shape: 'view-6' })
 const snapshot = atom({ plugin: 'workstreams-pane', key: 'snapshot' } as const, null as Snapshot | null, { shape: 'snapshot-4' })
 const feed = atom({ plugin: 'workstreams-pane', key: 'feed' } as const, null as Feed | null, { shape: 'feed-1' })
 const review = atom({ plugin: 'workstreams-pane', key: 'review' } as const, null as ReviewScreen | null, { shape: 'review-1' })
@@ -199,6 +200,10 @@ export const register: Register = on => {
       leave()
       void update($, view, v => ({ ...v, screen: 'detail' as const }))
     }
+    const toTask = (id: string) => {
+      leave()
+      void update($, view, v => ({ ...v, screen: 'task' as const, task: id }))
+    }
     const ask = (confirm: Confirm) => {
       void update($, actError, () => null)
       void update($, view, v => ({ ...v, confirm }))
@@ -243,16 +248,28 @@ export const register: Register = on => {
             now,
             onBack: toRegistry,
             onFeed: () => void openTab($, state.tab),
-            onTask: id => void update($, view, v => ({ ...v, task: v.task === id ? null : id })),
+            onTask: toTask,
             onHealth: () => void update($, view, v => ({ ...v, screen: 'health' as const })),
-            onReview: id => {
-              if (state.ws) void openReview($, state.ws, id)
-            },
             onPrompt: launch => void $.prompt.fill({ text: launchFill(launch) }),
             onAct: ask,
             onSub: sub => void update($, view, v => ({ ...v, sub })),
-            onJump: id => void update($, view, v => ({ ...v, sub: 'tasks' as const, task: id })),
             onDocument: tab => void openTab($, tab),
+          })}
+        {snap &&
+          state.screen === 'task' &&
+          state.ws &&
+          state.task &&
+          TaskPage(ui, {
+            ws: state.ws,
+            id: state.task,
+            snapshot: snap,
+            now,
+            onBack: toDetail,
+            onTask: toTask,
+            onReview: id => {
+              if (state.ws) void openReview($, state.ws, id)
+            },
+            onAct: ask,
           })}
         {snap &&
           state.screen === 'health' &&
@@ -263,7 +280,10 @@ export const register: Register = on => {
           state.ws &&
           Review(ui, {
             screen: reviewing,
-            onBack: toDetail,
+            onBack: () => {
+              leave()
+              void update($, view, v => ({ ...v, screen: 'task' as const }))
+            },
             onEvidence: () =>
               void update($, review, s => {
                 if (!s) return s

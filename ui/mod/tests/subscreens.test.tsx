@@ -145,10 +145,12 @@ test('the graph indents each task under what it waits on, and a second parent sh
   expect(repeat).toContain('(shown above)')
   expect(await ui.find({ key: 'graph:T-04:5' })).toBeUndefined()
 
-  // A graph button jumps to Tasks with that task expanded.
+  // A graph button opens that task's page, and back returns to the Graph.
   await ui.press({ key: 'graph:T-03:3' })
-  expect(await ui.find({ key: 'task:T-03' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /T-03 accepted/ })).toBeDefined()
+  expect(await ui.find({ key: 'graph:T-01:0' })).toBeUndefined()
+  await ui.press({ key: 'back' })
+  expect(await ui.find({ key: 'graph:T-01:0' })).toBeDefined()
   await ui.unmount()
 })
 
@@ -177,4 +179,33 @@ test('overview shows documents, claims, scope, verify commands and baseline', as
   await ui.press({ key: 'back' })
   expect(await ui.find({ key: 'doc:plan' })).toBeDefined()
   await ui.unmount()
+})
+
+test('a task page jumps along its edges: an unblocks button reaches that task, and depends on leads back', async ($, on) => {
+  engine(on)
+  mock.clock(on, { now: NOW })
+
+  for (const surface of SURFACES) {
+    const ui = await openDetail($, surface)
+    await ui.press({ key: 'task:T-02' })
+    expect(await ui.find({ type: 'Text', text: /^T-02 summary$/ })).toBeDefined()
+    expect((await ui.find({ key: 'dep:T-01' }))?.text).toBe('T-01 done')
+    expect((await ui.find({ key: 'unblocks:T-04' }))?.text).toBe('T-04 todo')
+    expect(await ui.find({ type: 'Text', text: /claimed by main, 2h ago/ })).toBeDefined()
+
+    await ui.press({ key: 'unblocks:T-04' })
+    expect(await ui.find({ type: 'Text', text: /^T-04 summary$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^T-02 summary$/ })).toBeUndefined()
+    expect(await ui.find({ key: 'dep:T-02' })).toBeDefined()
+    expect(await ui.find({ key: 'dep:T-03' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /not claimed/ })).toBeDefined()
+
+    await ui.press({ key: 'dep:T-03' })
+    expect(await ui.find({ type: 'Text', text: /^T-03 summary$/ })).toBeDefined()
+    expect(await ui.find({ key: 'unblocks:T-04' })).toBeDefined()
+    await ui.press({ key: 'back' })
+    expect(await ui.find({ key: 'task:T-01' })).toBeDefined()
+    await ui.press({ key: 'back' })
+    await ui.unmount()
+  }
 })
