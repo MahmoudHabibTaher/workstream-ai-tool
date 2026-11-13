@@ -433,7 +433,7 @@
         "make test-vscode",
         "make test-jetbrains"
       ],
-      "branch": "",
+      "branch": "task/tu-08",
       "blockedBy": [
         "TU-01",
         "TU-02",
@@ -448,10 +448,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-13T16:01:11Z",
+      "baseCommit": "f57a6b81cb585c05af362e2d516f41b6a5ef6610",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
