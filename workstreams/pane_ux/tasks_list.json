@@ -96,7 +96,7 @@
         "audit",
         "make test-mod"
       ],
-      "branch": "",
+      "branch": "task/px-02",
       "blockedBy": [
         "PX-01"
       ],
@@ -105,10 +105,10 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": "none",
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-13T08:18:29Z",
+      "baseCommit": "5e0329eb2e16e90b97985e7e7a63130ad07cc63d",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,
