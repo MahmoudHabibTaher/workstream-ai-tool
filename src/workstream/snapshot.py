@@ -392,9 +392,11 @@ def baseline_facts(project: Project, folder: Path) -> dict:
     return {"keys": [keys[k] for k in sorted(keys)], "errors": errors}
 
 
-def _paths(folder: Path, task_list: list[dict]) -> dict:
+def _paths(folder: Path, tasks_file: Path, task_list: list[dict]) -> dict:
     paths = {key: str(folder / name) for key, name in NARRATIVE_FILES.items()
              if (folder / name).exists()}
+    if tasks_file.exists():
+        paths["tasks"] = str(tasks_file)
     paths["evidence"] = {t["id"]: str(folder / "evidence" / f"{t['id']}.md") for t in task_list
                          if (folder / "evidence" / f"{t['id']}.md").exists()}
     return paths
@@ -520,7 +522,7 @@ def build_snapshot(project: Project, ws_id: str | None = None,
                         wave=graph.compute_wave(task_list),
                         scope=queues[ws_id]["scope"],
                         baseline=baseline_facts(project, project.folder(ws)),
-                        paths=_paths(project.folder(ws), task_list), watch=watch_paths(project, ws))
+                        paths=_paths(project.folder(ws), project.tasks_path(ws), task_list), watch=watch_paths(project, ws))
     now = now or datetime.now(timezone.utc)
     snapshot["health"] = health_findings(project, reg, queues, facts, now, stale_hours)
     snapshot["git"] = facts
