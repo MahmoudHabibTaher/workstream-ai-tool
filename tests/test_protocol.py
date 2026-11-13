@@ -103,7 +103,8 @@ class ProtocolTests(unittest.TestCase):
 
     def test_coordinate_names_both_corrections_a_decision_can_make(self) -> None:
         text = protocol.skill_text("ws-coordinate")
-        for command in ('`ws update <task> --acceptance <n> "<text>" --because <Dnnn> --commit -w <id>`',
+        for command in ('`ws update <task> --acceptance <n> "<text>" --expect "<literal>" '
+                        '--because <Dnnn> --commit -w <id>`',
                         '`ws update <task> --summary "<text>" --because <Dnnn> --commit -w <id>`'):
             self.assertIn(command, text)
 
