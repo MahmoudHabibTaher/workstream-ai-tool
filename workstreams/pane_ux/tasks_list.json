@@ -328,6 +328,49 @@
         ]
       },
       "blockedReason": null
+    },
+    {
+      "id": "PX-06",
+      "phase": 4,
+      "priority": 60,
+      "title": "Graph nesting that holds on every surface",
+      "kind": "behaviour",
+      "findings": [],
+      "summary": "Graph indents each line with a layout margin per depth instead of leading spaces in its text, which the desktop app collapses.",
+      "files": [
+        "ui/mod/hooks/views/graph.tsx",
+        "ui/mod/tests/subscreens.test.tsx",
+        "docs/decisions/0019-ui-redesign.md"
+      ],
+      "docs": [],
+      "acceptance": [
+        "No graph line's text starts with spaces, and a test shows each depth drawn by a layout margin that grows with depth",
+        "The owner sees PX-02 to PX-05 each one level further in, in the desktop app (manual)",
+        "make test-mod passes"
+      ],
+      "verify": [
+        "test",
+        "make test-mod"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "PX-05"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [
+        "user"
+      ],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
     }
   ],
   "scope": {

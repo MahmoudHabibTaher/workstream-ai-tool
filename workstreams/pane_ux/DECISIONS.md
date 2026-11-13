@@ -61,3 +61,7 @@ That matches where the row's own launches are offered (open rows only). Rejected
 ## D014 (2026-11-13, PX-05): the Graph's lost nesting is a new task, not a fail of PX-05
 
 The owner saw every check pass, and the Graph draws, but its indentation isn't kept. `graph.tsx` indents with leading spaces inside a Text. The desktop surface collapses them, and `claude plugin test` keeps them, so the tests passed. The fix belongs in `ui/mod/hooks/views/graph.tsx`, which isn't in this task's files. The coordinator adds it as its own task, PX-06. Rejected: holding PX-05 open, which would hold a finished hand check on a code fix. **Closed.**
+
+## D015 (2026-11-13, coordinator): Add PX-06: the Graph's nesting is lost on the desktop surface
+
+PX-05's hand check (D014): leading spaces in a Text are collapsed by the desktop app and kept by claude plugin test, so the tests passed while the owner saw every task one level under PX-01. **Closed.**
