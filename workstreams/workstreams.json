@@ -413,13 +413,13 @@
       "id": "pane_ux",
       "title": "Claude Code pane UX",
       "summary": "Give the pane Tasks, Graph and Overview sub-screens, a task page with jump buttons, and pre-flight before a prompt is filled.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "PX",
       "path": "workstreams/pane_ux",
       "tier": "standard",
       "created": "2026-11-10",
       "startedAt": "2026-11-13",
-      "completedAt": null,
+      "completedAt": "2026-11-13",
       "baseCommit": "e935195",
       "dependsOn": [
         "jetbrains_ux"
@@ -432,7 +432,11 @@
         "done": 6,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "cabb369acacb44247d4f0e9ac2fd8f6544c732ed",
+        "pruned": false
+      }
     },
     {
       "id": "vscode_followups",
