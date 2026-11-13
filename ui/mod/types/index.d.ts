@@ -19,7 +19,12 @@ export type RegistryRow = {
   dependsOn: string[]
   progress: Progress
   progressStale: boolean
+  // What each prompt button leaves in the box, in order. Empty for a closed row.
+  launches: Launch[]
 }
+
+// A launch's prompt is the CLI's text; `ask` names what the person must add at its end.
+export type Launch = { kind: string; prompt: string; ask?: string }
 
 export type ActAction = 'pause' | 'resume' | 'unclaim' | 'sync'
 
