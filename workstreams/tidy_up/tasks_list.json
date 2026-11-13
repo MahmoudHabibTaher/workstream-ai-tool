@@ -361,7 +361,7 @@
         "test",
         "make test-vscode"
       ],
-      "branch": "",
+      "branch": "task/tu-07",
       "blockedBy": [
         "TU-06"
       ],
@@ -370,10 +370,10 @@
       "mode": "background",
       "requires": [],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-13T15:53:03Z",
+      "baseCommit": "93c06fb13883a779e5f5f3711a21bc549ba46a6d",
+      "claimedBy": "coordinator",
       "completedAt": null,
       "commit": null,
       "verification": null,
