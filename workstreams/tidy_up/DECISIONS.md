@@ -16,3 +16,8 @@ Copilot evals stay out, as they use paid work-account credits. **Closed.**
 ## D002 (2026-11-13, TU-03): several files in one item are joined as "A, written by X, and B, written by Y"
 
 The plan says to list each file with its writer but gives only the one-file form. Each file keeps the one-file shape ("NAME, written by WRITERS") and the last is joined with ", and ", then ", not the worker, so ..." follows once. Rejected: semicolons between files, which read worse before "not the worker". **Closed.**
+
+## D003 (2026-11-13, TU-01): the bare brief is rendered with DECISIONS.md removed, and the limit adds half an entry beyond five
+
+The fixture's scaffold already writes a DECISIONS.md, so the test unlinks it before measuring the bare brief, then writes the 39-entry log. Room is five entries' length plus half of one: `_with_decisions` budgets only the entry texts against `--max-chars`, not the `## Decisions that apply` heading or the `N more:` pointer, so exactly five entries' room would put the output over the limit. Half an entry keeps the sixth from fitting (so five are kept) and covers the heading and pointer.
+Rejected: a fixed overhead constant for the heading and pointer, which is another number to keep in step with the code. **Closed.**
