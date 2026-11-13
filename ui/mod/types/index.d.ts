@@ -58,7 +58,22 @@ export type Snapshot = {
   tasks?: Task[]
   wave?: Wave
   paths?: Paths
+  scope?: Scope
+  baseline?: Baseline
 }
+
+export type Scope = { inScope: string[]; outOfScope: string[]; rule: string }
+
+export type BaselineKey = {
+  key: string
+  command: string
+  exit: number | null
+  findings: number | null
+  recordedAt: string | null
+  commit: string | null
+}
+
+export type Baseline = { keys: BaselineKey[]; errors: string[] }
 
 export type Task = {
   id: string
@@ -74,8 +89,11 @@ export type Task = {
   mode: 'background' | 'foreground'
   requires: string[]
   blockedBy: string[]
+  // The tasks that list this one in their blockedBy.
+  unblocks: string[]
   needsUserDecision: boolean
   startedAt: string | null
+  claimedBy?: string | null
 }
 
 export type Wave = {
@@ -107,8 +125,12 @@ export type Paths = Partial<Record<FeedTab, string>>
 
 export type Feed = { tab: FeedTab; text: string | null; error: string | null }
 
+// Detail's sub-screens.
+export type Sub = 'tasks' | 'graph' | 'overview'
+
 export type View = {
   screen: 'registry' | 'detail' | 'feed' | 'health' | 'review'
+  sub: Sub
   confirm: Confirm | null
   ws: string | null
   task: string | null
