@@ -31,3 +31,8 @@ Rejected: adding a fixed list of plan/progress/decisions/handoff in Kotlin, whic
 
 D-EXPECT asks for `--expect "<literal>"` shown as optional. A bracketed `[--expect "<literal>"]` fails `test_every_command_they_mention_parses` and `test_the_coordinate_skill_names_it_in_a_form_that_parses` (argparse rejects the brackets; the first verify run failed with errors=2). So the command shows `--expect "<literal>"` without brackets, and the next sentence says it is optional and that leaving it out drops the old literal.
 Rejected: square-bracket notation, which would need changes to the command-parsing tests (test_tasks.py is not in this task's files). **Closed.**
+
+## D006 (2026-11-13, TU-07): Mark D029 as closed in `docs/decisions/0017-vscode-extension.md`
+
+The "Left open" line for D029 in `docs/decisions/0017-vscode-extension.md` still described the old watch-order rule. TU-06 left that line for the task that closes the VS Code reader, and this task is that task. I rewrote the line to say D029 was closed by TU-06 and TU-07 and to name `paths.tasks` as the source. This file was not in the task's expected file list.
+Rejected: leaving the line as it was, which would keep recording as open something that is now closed. **Closed.**

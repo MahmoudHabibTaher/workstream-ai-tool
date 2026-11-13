@@ -6,6 +6,10 @@ Created 2026-11-13 from `main` at `226fac1`.
 
 ---
 
+## 2026-11-13: TU-07: VS Code reads the tasks file from paths.tasks
+
+Merged as `99817c0899`. Verified: test pass, make test-vscode pass. [Evidence](evidence/TU-07.md).
+
 ## 2026-11-13: TU-04: ws-coordinate shows --expect
 
 Merged as `fe06f0f430`. Verified: test pass, audit pass. [Evidence](evidence/TU-04.md).
