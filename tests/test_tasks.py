@@ -1340,8 +1340,9 @@ class TrackingFileWarningTests(WsTestCase):
     PLAN = ("# Thing: plan\n\n```json ws-tasks\n"
             + json.dumps([task("X-01", 10, acceptance=[NAMING])])
             + "\n```\n\n```text ws-decisions\nThe user ruled out caching.\n```\n")
-    WARNING = ("X-01: acceptance 1 names session_handoff.md: `ws settle` writes it after evidence "
-               "must pass, so the item should ask for the evidence or a proposed decision")
+    WARNING = ("X-01: acceptance 1 names session_handoff.md, written by `ws settle` and "
+               "`ws handoff --note`, not the worker, so the item should ask for the evidence or a "
+               "proposed decision")
 
     def setUp(self) -> None:
         super().setUp()
@@ -1404,8 +1405,22 @@ class TrackingFileWarningTests(WsTestCase):
             {"text": "prints", "expect": "tasks_list.json"}])
         found = tasks.tracking_file_warnings(row)
         self.assertEqual(len(found), 2)
-        self.assertIn("acceptance 2 names DECISIONS.md, PROGRESS.md:", found[0])
-        self.assertIn("acceptance 3 names tasks_list.json:", found[1])
+        self.assertEqual(found[0], "X-01: acceptance 2 names DECISIONS.md, written by `ws decide` "
+                                   "and `ws settle`, and PROGRESS.md, written by `ws settle`, not "
+                                   "the worker, so the item should ask for the evidence or a "
+                                   "proposed decision")
+        self.assertIn("acceptance 3 names tasks_list.json, written by `ws add`, `ws update`, "
+                      "`ws claim` and `ws settle`, not the worker,", found[1])
+
+    def test_baseline_json_names_its_own_writer(self) -> None:
+        row = task("X-01", 10, status="todo", acceptance=["baseline.json lists it"])
+        self.assertEqual(tasks.tracking_file_warnings(row), [
+            "X-01: acceptance 1 names baseline.json, written by `ws baseline record`, not the "
+            "worker, so the item should ask for the evidence or a proposed decision"])
+        self.assertNotIn("`ws settle`", tasks.tracking_file_warnings(row)[0])
+
+    def test_written_by_has_the_same_keys_as_writers(self) -> None:
+        self.assertEqual(set(hook.WRITTEN_BY), set(hook.WRITERS))
 
     def test_ill_typed_acceptance_is_left_to_the_errors(self) -> None:
         self.assertEqual(tasks.tracking_file_warnings(
@@ -1419,7 +1434,9 @@ class TrackingFileWarningTests(WsTestCase):
         added = task("X-01", 10, status="todo", acceptance=["see NEW.md"])
         self.assertEqual(tasks.tracking_file_warnings(added), [])
         with mock.patch.dict(hook.WRITERS, {"NEW.md": "written by nobody"}):
-            self.assertEqual(len(tasks.tracking_file_warnings(added)), 1)
+            found = tasks.tracking_file_warnings(added)
+            self.assertEqual(len(found), 1)
+            self.assertIn("names NEW.md, written by `ws`, not the worker,", found[0])
         kept = task("X-01", 10, status="todo", acceptance=["see DECISIONS.md"])
         with mock.patch.dict(hook.WRITERS, clear=True):
             self.assertEqual(tasks.tracking_file_warnings(kept), [])

@@ -380,7 +380,8 @@ def _names_file(text: str, name: str) -> bool:
 def tracking_file_warnings(task: dict, n: int = 0) -> list[str]:
     """A warning for each acceptance item of an open task that names a tracking file. Never an
     error: a test about one of these files is a legitimate item."""
-    from workstream.hook import WRITERS  # the hook imports modules that import this one
+    # Imported here: the hook imports modules that import this one.
+    from workstream.hook import WRITERS, WRITTEN_BY
     acceptance = task.get("acceptance")
     if task.get("status") not in OPEN_STATUSES or not isinstance(acceptance, list):
         return []
@@ -388,9 +389,12 @@ def tracking_file_warnings(task: dict, n: int = 0) -> list[str]:
     for number, item in enumerate(acceptance, 1):
         named = [name for name in WRITERS if _names_file(acceptance_text(item), name)]
         if named:
-            warnings.append(f"{_label(task, n)}: acceptance {number} names {', '.join(named)}: "
-                            f"`ws settle` writes it after evidence must pass, so the item should "
-                            f"ask for the evidence or a proposed decision")
+            # A file with no WRITTEN_BY entry yet still warns, with a generic writer.
+            parts = [f"{name}, written by {WRITTEN_BY.get(name, '`ws`')}" for name in named]
+            each = ", and ".join([", ".join(parts[:-1]), parts[-1]] if len(parts) > 1 else parts)
+            warnings.append(f"{_label(task, n)}: acceptance {number} names {each}, not the "
+                            f"worker, so the item should ask for the evidence or a proposed "
+                            f"decision")
     return warnings
 
 
