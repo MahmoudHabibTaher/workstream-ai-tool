@@ -448,13 +448,44 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": null,
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-13T16:01:11Z",
       "baseCommit": "f57a6b81cb585c05af362e2d516f41b6a5ef6610",
       "claimedBy": "coordinator",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-13T16:15:00Z",
+      "commit": "54717363d137956bb1cca1ef8c4dd39a28e96232",
+      "verification": {
+        "tree": "c5497da28524060a7148fade2f7d411f3e6e104d",
+        "at": "2026-11-13T16:14:39Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "ws adapt claude-code --check",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-vscode",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-jetbrains",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     }
   ],

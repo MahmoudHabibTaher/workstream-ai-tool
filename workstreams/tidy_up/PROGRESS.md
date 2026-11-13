@@ -6,6 +6,10 @@ Created 2026-11-13 from `main` at `226fac1`.
 
 ---
 
+## 2026-11-13: TU-08: End to end: adapt, every suite, evals, the record
+
+Merged as `54717363d1`. Verified: test pass, audit pass, ws adapt claude-code --check pass, make test-vscode pass, make test-jetbrains pass. [Evidence](evidence/TU-08.md).
+
 ## 2026-11-13: TU-07: VS Code reads the tasks file from paths.tasks
 
 Merged as `99817c0899`. Verified: test pass, make test-vscode pass. [Evidence](evidence/TU-07.md).
