@@ -299,6 +299,19 @@ class BuildSnapshotTests(RepoTestCase):
         self.assertNotIn("progress", paths)
         self.assertEqual(paths["evidence"], {"AL-01": str(self.folder / "evidence" / "AL-01.md")})
 
+    def test_paths_name_the_tasks_file_and_pass_the_schema(self) -> None:
+        data = self.build("alpha")
+        self.assertEqual(data["paths"]["tasks"], str(self.folder / "tasks_list.json"))
+        schema = load_schema("snapshot")
+        self.assertEqual(problems(data, schema, schema), [])
+
+    def test_paths_leave_out_a_tasks_file_that_does_not_exist(self) -> None:
+        (self.folder / "tasks_list.json").unlink()
+        data = self.build("alpha", stale_hours=10_000)
+        self.assertNotIn("tasks", data["paths"])
+        schema = load_schema("snapshot")
+        self.assertEqual(problems(data, schema, schema), [])
+
     def test_health_sees_the_stale_claim_and_offers_unclaim(self) -> None:
         self.assertEqual([(f["kind"], f["task"], f["actions"]) for f in self.build()["health"]], [(
             "stale-claim", "AL-02",

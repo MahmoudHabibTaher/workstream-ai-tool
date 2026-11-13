@@ -342,6 +342,9 @@
         "handoff": {
           "type": "string"
         },
+        "tasks": {
+          "type": "string"
+        },
         "evidence": {
           "type": "object"
         }

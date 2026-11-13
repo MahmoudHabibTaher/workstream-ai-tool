@@ -118,12 +118,8 @@ object Snapshots {
         )
     }
 
-    /**
-     * The workstream's tasks file. `ws snapshot -w` names no such path, but its `watch` lists the
-     * registry first, then the tasks file, then narrative files `paths` also gives when they exist.
-     */
-    fun tasksFile(snap: JsonObject, docs: Map<String, String>): String? =
-        snap.strings("watch").drop(1).firstOrNull { it !in docs.values }
+    /** The workstream's tasks file: `ws snapshot -w` gives it as `paths.tasks` when it exists. */
+    fun tasksFile(snap: JsonObject): String? = snap.obj("paths")?.str("tasks")
 
     fun scope(snap: JsonObject): Scope? = snap.obj("scope")?.let { Scope(it.strings("inScope"), it.strings("outOfScope"), it.str("rule")) }
 
@@ -136,8 +132,10 @@ object Snapshots {
 
     fun view(snap: JsonObject): WsView {
         val paths = snap.obj("paths")
-        val docs = paths?.entrySet()?.filter { it.value.isJsonPrimitive }?.associate { it.key to it.value.asString } ?: mapOf()
-        return WsView(tasks(snap), wave(snap), docs, revisions(snap), health(snap), snap.str("repoRoot"), tasksFile(snap, docs),
+        // `tasks` is the tasks file, which has its own field: the documents are the narrative files.
+        val docs = paths?.entrySet()?.filter { it.key != "tasks" && it.value.isJsonPrimitive }
+            ?.associate { it.key to it.value.asString } ?: mapOf()
+        return WsView(tasks(snap), wave(snap), docs, revisions(snap), health(snap), snap.str("repoRoot"), tasksFile(snap),
                       scope(snap), baseline(snap))
     }
 }
