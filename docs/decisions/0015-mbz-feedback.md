@@ -141,10 +141,12 @@ The plan estimated about $3. Each scenario ran once, so a pass says it can go ri
 
 ## Left open
 
+The workstream `tidy_up` closed five of these; [0020](0020-tidy-up.md) records what proved each one. The `###` marker stays as D-TEXT chose it.
+
 - `ws settle MF-01 MF-02` printed MF-02's warning in the old wording, because that process had loaded the code before MF-01 merged. `ws settle MF-08 MF-09` printed the new wording. Only a run that lands the fix itself sees this.
-- `test_long_decision_logs_get_trimmed_with_a_pointer` pins a fixed `--max-chars`. MF-02 and MF-08 each had to raise it because a worker rule grew the brief. Deriving the limit from the brief's length would end that (MF-08).
+- `test_long_decision_logs_get_trimmed_with_a_pointer` pins a fixed `--max-chars`. MF-02 and MF-08 each had to raise it because a worker rule grew the brief. Deriving the limit from the brief's length would end that (MF-08). Closed by tidy_up TU-01.
 - A line of only `###` and a backticked path inside text to apply is read as a new file, so text holding one can't be carried whole. That is the marker D-TEXT and T4 chose (MF-02).
-- `handoff.texts_to_apply` calls the private `evidence._text_problem`, and `_with_decisions` the private `decisions._mentions`, because those modules weren't on the tasks' file lists (MF-03, MF-04).
-- The tracking-file warning says `ws settle` writes the file, but `ws baseline record` writes `baseline.json` (MF-07).
-- `ws-coordinate` still shows the `--acceptance` correction without `--expect`. It stays valid (MF-08).
-- No test covers a brief with both `## Open decisions` and `## Changed since the plan` (MF-06).
+- `handoff.texts_to_apply` calls the private `evidence._text_problem`, and `_with_decisions` the private `decisions._mentions`, because those modules weren't on the tasks' file lists (MF-03, MF-04). Closed by tidy_up TU-02: both are public now.
+- The tracking-file warning says `ws settle` writes the file, but `ws baseline record` writes `baseline.json` (MF-07). Closed by tidy_up TU-03.
+- `ws-coordinate` still shows the `--acceptance` correction without `--expect`. It stays valid (MF-08). Closed by tidy_up TU-04.
+- No test covers a brief with both `## Open decisions` and `## Changed since the plan` (MF-06). Closed by tidy_up TU-05.
