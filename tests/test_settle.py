@@ -952,10 +952,17 @@ class BriefTests(SettleTestCase):
     def test_long_decision_logs_get_trimmed_with_a_pointer(self) -> None:
         self.arrange(self.t("T1"))
         log = self.ws_dir / "alpha" / "DECISIONS.md"
-        log.write_text("".join(f"## D{n:03d} (2026-01-01, user): call {n}\n\n{'why ' * 100}\n\n"
-                               for n in range(1, 40)))
-        brief = self.ok("brief", "T1", "--max-chars", "3400")
-        self.assertLess(len(brief), 3500)
+        log.unlink(missing_ok=True)
+        bare = self.ok("brief", "T1")
+        self.assertNotIn("## Decisions that apply", bare)
+        entries = [f"## D{n:03d} (2026-01-01, user): call {n}\n\n{'why ' * 100}\n\n" for n in range(1, 40)]
+        log.write_text("".join(entries))
+        # Room for about five of the 39 entries, plus half of one for the heading and the pointer,
+        # so the limit follows the brief as worker rules make it longer.
+        entry = len(entries[-1])
+        limit = len(bare) + 5 * entry + entry // 2
+        brief = self.ok("brief", "T1", "--max-chars", str(limit))
+        self.assertLessEqual(len(brief), limit)
         self.assertIn("more: `ws decisions --for T1 -w alpha`", brief)
         self.assertIn("call 39", brief)
         self.assertNotIn("call 1\n", brief)
