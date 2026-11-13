@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 3,
+  "source": "workstreams/tidy_up/PLAN.md",
+  "updated": "2026-11-13",
+  "protocolVersion": "1",
+  "tier": "standard",
+  "tasks": [
+    {
+      "id": "TU-01",
+      "phase": 1,
+      "priority": 10,
+      "title": "The trim test derives its limit from the brief",
+      "kind": "behaviour",
+      "findings": [
+        "T1",
+        "D-TRIM-TEST"
+      ],
+      "summary": "test_long_decision_logs_get_trimmed_with_a_pointer sets --max-chars from the length of the same brief without DECISIONS.md, plus room for a few entries, instead of a fixed 3400.",
+      "files": [
+        "tests/test_settle.py"
+      ],
+      "docs": [
+        "docs/decisions/0015-mbz-feedback.md"
+      ],
+      "acceptance": [
+        "test_long_decision_logs_get_trimmed_with_a_pointer contains no fixed --max-chars literal; its limit is computed from a brief rendered without the log",
+        "The test still asserts the more: pointer, that call 39 is kept and call 1 dropped, and that the brief is no longer than the limit",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-02",
+      "phase": 1,
+      "priority": 20,
+      "title": "Public text_problem and mentions",
+      "kind": "behaviour",
+      "findings": [
+        "T2",
+        "D-PUBLIC"
+      ],
+      "summary": "Rename evidence._text_problem to text_problem and decisions._mentions to mentions, and update every caller.",
+      "files": [
+        "src/workstream/evidence.py",
+        "src/workstream/decisions.py",
+        "src/workstream/handoff.py",
+        "src/workstream/brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "grep -rnE '_text_problem|_mentions\\(' src/workstream prints nothing (quoted in evidence)",
+        "make test passes with no test changed"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-03",
+      "phase": 1,
+      "priority": 30,
+      "title": "The tracking-file warning names each file's own writer",
+      "kind": "behaviour",
+      "findings": [
+        "T3",
+        "D-WRITER"
+      ],
+      "summary": "hook.py gains WRITTEN_BY beside WRITERS, and tasks.tracking_file_warnings names each file with its writer, so baseline.json names ws baseline record instead of ws settle.",
+      "files": [
+        "src/workstream/hook.py",
+        "src/workstream/tasks.py",
+        "tests/test_tasks.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A test asserts WRITTEN_BY and WRITERS have the same keys",
+        "TrackingFileWarningTests has a baseline.json case whose warning names `ws baseline record` and not `ws settle`",
+        "The handoff and two-file cases assert the new wording, each still ending in 'so the item should ask for the evidence or a proposed decision'",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-04",
+      "phase": 1,
+      "priority": 40,
+      "title": "ws-coordinate shows --expect",
+      "kind": "prompts",
+      "findings": [
+        "T4",
+        "D-EXPECT"
+      ],
+      "summary": "The source ws-coordinate skill shows the acceptance correction with an optional --expect \"<literal>\" and says leaving it out drops the old literal.",
+      "files": [
+        "src/workstream/assets/skills/ws-coordinate/SKILL.md",
+        "tests/test_protocol.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "test_coordinate_names_both_corrections_a_decision_can_make pins the command with --expect \"<literal>\"",
+        "make audit passes with the coordinator within budget",
+        "make test passes"
+      ],
+      "verify": [
+        "test",
+        "audit"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "Edit only the source under src/workstream/assets; TU-08 regenerates .claude/.",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-05",
+      "phase": 1,
+      "priority": 50,
+      "title": "A test for a brief with both open decisions and changes",
+      "kind": "behaviour",
+      "findings": [
+        "T5",
+        "D-BOTH"
+      ],
+      "summary": "A brief test where one task has both an open decision upstream and a closed decision changing it.",
+      "files": [
+        "tests/test_brief.py"
+      ],
+      "docs": [],
+      "acceptance": [
+        "A new test in tests/test_brief.py asserts both ## Open decisions and ## Changed since the plan appear, in that order, each holding only its own entry",
+        "make test passes"
+      ],
+      "verify": [
+        "test"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-06",
+      "phase": 1,
+      "priority": 60,
+      "title": "The snapshot names the tasks file, and JetBrains reads it",
+      "kind": "behaviour",
+      "findings": [
+        "T6",
+        "T7",
+        "D-PATHS-TASKS"
+      ],
+      "summary": "ws snapshot -w gives paths.tasks when the tasks file exists; the schema allows it; JetBrains' tasksFile reads it instead of guessing from watch, and leaves it out of docs.",
+      "files": [
+        "src/workstream/snapshot.py",
+        "schema/snapshot.schema.json",
+        "tests/test_snapshot.py",
+        "ui/jetbrains/src/main/kotlin/dev/workstream/jetbrains/Snapshots.kt",
+        "ui/jetbrains/src/test/kotlin/dev/workstream/jetbrains"
+      ],
+      "docs": [
+        "docs/decisions/0017-vscode-extension.md",
+        "ui/jetbrains/README.md"
+      ],
+      "acceptance": [
+        "tests/test_snapshot.py asserts paths['tasks'] is the workstream's tasks file, absent when it doesn't exist, and that the snapshot passes its schema",
+        "A Kotlin test covers tasksFile reading paths.tasks and being null without it, and docs holding no 'tasks' entry",
+        "Snapshots.kt no longer reads watch to find the tasks file",
+        "make test and make test-jetbrains pass"
+      ],
+      "verify": [
+        "test",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-07",
+      "phase": 2,
+      "priority": 70,
+      "title": "VS Code reads the tasks file from paths.tasks",
+      "kind": "behaviour",
+      "findings": [
+        "T8",
+        "D-VSCODE-TASKS"
+      ],
+      "summary": "tasksFileOf takes only the workstream snapshot and returns paths.tasks; views/health.ts passes only that.",
+      "files": [
+        "ui/vscode/src/logic/health.ts",
+        "ui/vscode/src/views/health.ts",
+        "ui/vscode/test/logic/health.test.ts"
+      ],
+      "docs": [
+        "docs/decisions/0017-vscode-extension.md"
+      ],
+      "acceptance": [
+        "health.test.ts covers tasksFileOf with paths.tasks present and absent",
+        "ui/vscode/src has no reference to watch order for the tasks file",
+        "make test-vscode passes"
+      ],
+      "verify": [
+        "test",
+        "make test-vscode"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "TU-06"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "background",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    },
+    {
+      "id": "TU-08",
+      "phase": 3,
+      "priority": 80,
+      "title": "End to end: adapt, every suite, evals, the record",
+      "kind": "docs",
+      "findings": [
+        "T4"
+      ],
+      "summary": "On main with TU-01 to TU-07 merged: regenerate .claude/, run every suite and the Claude Code evals, check the new warning and paths.tasks on a sample, and record it in docs/decisions/0020-tidy-up.md.",
+      "files": [
+        ".claude",
+        ".workstream/adapters.json",
+        "docs/decisions/0020-tidy-up.md",
+        "docs/decisions/0015-mbz-feedback.md",
+        "docs/decisions/0017-vscode-extension.md"
+      ],
+      "docs": [
+        "docs/decisions/0015-mbz-feedback.md",
+        "docs/decisions/0017-vscode-extension.md"
+      ],
+      "acceptance": [
+        {
+          "text": "ws adapt claude-code --check says OK",
+          "expect": "OK"
+        },
+        "make test, make audit, make test-vscode and make test-jetbrains pass",
+        "On a sample, ws validate warns about an item naming baseline.json with `ws baseline record`, and ws snapshot -w shows paths.tasks (quoted in evidence)",
+        "make eval AGENT=claude-code passes on Opus 5.5 at medium effort, with its cost quoted",
+        "docs/decisions/0020-tidy-up.md records each item, what proved it and what stays unproven; 0015's and 0017's Left open sections point to it"
+      ],
+      "verify": [
+        "test",
+        "audit",
+        "ws adapt claude-code --check",
+        "make test-vscode",
+        "make test-jetbrains"
+      ],
+      "branch": "",
+      "blockedBy": [
+        "TU-01",
+        "TU-02",
+        "TU-03",
+        "TU-04",
+        "TU-05",
+        "TU-06",
+        "TU-07"
+      ],
+      "needsUserDecision": false,
+      "notes": "",
+      "mode": "foreground",
+      "requires": [],
+      "releaseImpact": null,
+      "status": "todo",
+      "startedAt": null,
+      "baseCommit": null,
+      "claimedBy": null,
+      "completedAt": null,
+      "commit": null,
+      "verification": null,
+      "blockedReason": null
+    }
+  ],
+  "scope": {
+    "inScope": [
+      "the five open items in 0015-mbz-feedback.md named in Context",
+      "D029: paths.tasks in the snapshot, read by VS Code and JetBrains",
+      "regenerating .claude/ and rerunning Claude Code evals"
+    ],
+    "outOfScope": [
+      "D010 (closed by D034)",
+      "the ### text-to-apply marker (kept as D-TEXT designed it)",
+      "Copilot evals",
+      "ui/web and ui/mod",
+      "subsonic-server and the Kotlin harness"
+    ],
+    "rule": "Close only the listed left-open items; nothing else changes behaviour."
+  }
+}

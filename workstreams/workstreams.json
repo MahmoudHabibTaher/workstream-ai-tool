@@ -464,6 +464,29 @@
         "commit": "2b1eb72f3e55896737bd82e49bb4a55fd77dddab",
         "pruned": false
       }
+    },
+    {
+      "id": "tidy_up",
+      "title": "Tidy up",
+      "summary": "Close the small items 0015 and 0017 left open: four test and wording fixes, public helpers, and paths.tasks in the snapshot read by both IDE plugins.",
+      "status": "planned",
+      "taskPrefix": "TU",
+      "path": "workstreams/tidy_up",
+      "tier": "standard",
+      "created": "2026-11-13",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "226fac1",
+      "dependsOn": [],
+      "progress": {
+        "total": 8,
+        "todo": 8,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }
