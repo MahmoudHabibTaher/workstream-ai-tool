@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `e935195`.
 
 ---
 
+## 2026-11-13: PX-04: Pre-flight before filling the prompt, and Run This Task
+
+Merged as `aeb849713e`. Verified: test pass, audit pass, make test-mod pass. [Evidence](evidence/PX-04.md).
+
 ## 2026-11-13: PX-03: Task page with jump buttons
 
 Merged as `1d0d4bb500`. Verified: test pass, audit pass, make test-mod pass. [Evidence](evidence/PX-03.md).

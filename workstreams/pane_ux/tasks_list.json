@@ -239,13 +239,34 @@
       "mode": "foreground",
       "requires": [],
       "releaseImpact": "none",
-      "status": "in-progress",
+      "status": "done",
       "startedAt": "2026-11-13T08:37:05Z",
       "baseCommit": "fd0a3afc0c6fcd858fda530286728a4ae05afa92",
       "claimedBy": "main-session",
-      "completedAt": null,
-      "commit": null,
-      "verification": null,
+      "completedAt": "2026-11-13T08:48:16Z",
+      "commit": "aeb849713e1235cdaeccb45fb648b6b3afb8720a",
+      "verification": {
+        "tree": "154716136b2fa56fb61e3eb8ddef760931b82059",
+        "at": "2026-11-13T08:47:54Z",
+        "postMerge": "same-tree",
+        "results": [
+          {
+            "key": "test",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "audit",
+            "exit": 0,
+            "verdict": "pass"
+          },
+          {
+            "key": "make test-mod",
+            "exit": 0,
+            "verdict": "pass"
+          }
+        ]
+      },
       "blockedReason": null
     },
     {
