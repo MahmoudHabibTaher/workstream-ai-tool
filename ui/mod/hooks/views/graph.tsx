@@ -29,6 +29,17 @@ export function graphLines(tasks: Task[]): GraphLine[] {
   return lines
 }
 
+// Depth as layout, one margin step per level: a surface may collapse leading spaces in text.
+function Indented(ui: any, key: string, depth: number, child: unknown): unknown {
+  const { Box } = ui
+  if (depth === 0) return child
+  return (
+    <Box key={`${key}:${depth}`} marginLeft={GAP.section}>
+      {Indented(ui, key, depth - 1, child)}
+    </Box>
+  )
+}
+
 export type GraphProps = { tasks: Task[]; onJump: (id: string) => void }
 
 export function Graph(ui: any, props: GraphProps) {
@@ -41,14 +52,14 @@ export function Graph(ui: any, props: GraphProps) {
       {Caption(ui, 'Each task sits under the tasks it waits on.')}
       {lines.map((line, n) => {
         const task = byId.get(line.id)!
-        const indent = '  '.repeat(line.depth) + (line.depth > 0 ? '└ ' : '')
-        return (
+        const button = (
           <Button key={`graph:${line.id}:${n}`} plain onPress={() => props.onJump(line.id)}>
-            <Text dimColor>{indent}</Text>
+            {line.depth > 0 && <Text dimColor>└ </Text>}
             <Text weight="semibold">{line.id}</Text> <Text color={statusColor(task.status)}>{task.status}</Text>
             <Text dimColor>{line.isRepeat ? ' (shown above)' : ` · ${task.title}`}</Text>
           </Button>
         )
+        return Indented(ui, `indent:${n}`, line.depth, button)
       })}
     </Box>
   )
