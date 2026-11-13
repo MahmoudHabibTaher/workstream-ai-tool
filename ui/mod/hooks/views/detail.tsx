@@ -1,6 +1,6 @@
 // One workstream: the wave line, then its tasks by phase in priority order.
 // Every fact here comes from the snapshot; nothing is recomputed.
-import type { Confirm, Snapshot, Task, View, Wave } from '../../types'
+import type { Confirm, Launch, RegistryRow, Snapshot, Task, View, Wave } from '../../types'
 import { offers } from './health'
 import { badgeColor, Caption, GAP, Heading, Section, statusColor, Title, Toolbar } from './style'
 
@@ -72,14 +72,16 @@ function Expanded(ui: any, task: Task, props: DetailProps) {
   )
 }
 
-export type PromptKind = 'run' | 'coordinate' | 'close' | 'abandon'
+// What a prompt button leaves in the box: the launch's own text, and a placeholder for
+// what it asks. Never submitted.
+export function launchFill(launch: Launch): string {
+  return launch.ask ? `${launch.prompt}<${launch.ask}>` : launch.prompt
+}
 
-// What each prompt button leaves in the box. Never submitted.
-export function promptText(kind: PromptKind, ws: string): string {
-  if (kind === 'run') return `Use the ws-run skill to run workstream ${ws}.`
-  if (kind === 'coordinate') return `Use the ws-coordinate skill on workstream ${ws}.`
-  if (kind === 'close') return `Use the ws-coordinate skill to close workstream ${ws}.`
-  return `Use the ws-coordinate skill to abandon workstream ${ws}: <why>`
+const LABELS: Record<string, string> = { run: 'Run', coordinate: 'Coordinate', close: 'Close…', abandon: 'Abandon…' }
+
+function launchLabel(launch: Launch): string {
+  return LABELS[launch.kind] ?? launch.kind
 }
 
 export type DetailProps = {
@@ -92,7 +94,7 @@ export type DetailProps = {
   onTask: (id: string) => void
   onHealth: () => void
   onReview: (id: string) => void
-  onPrompt: (kind: PromptKind) => void
+  onPrompt: (launch: Launch) => void
   onAct: (confirm: Confirm) => void
 }
 
@@ -114,21 +116,30 @@ function TaskRow(ui: any, task: Task, props: DetailProps) {
   )
 }
 
-function Actions(ui: any, status: string | undefined, props: DetailProps) {
+function LaunchButton(ui: any, launch: Launch, props: DetailProps) {
   const { Button } = ui
-  const isOpen = status !== 'done' && status !== 'abandoned'
+  return (
+    <Button
+      key={launch.kind}
+      variant={launch.kind === 'run' ? 'primary' : undefined}
+      onPress={() => props.onPrompt(launch)}
+    >
+      {launchLabel(launch)}
+    </Button>
+  )
+}
+
+// The row's launches, with the status writes after run and coordinate. The snapshot gives a
+// closed row no launches, so nothing here decides which are offered.
+function Actions(ui: any, row: RegistryRow | undefined, props: DetailProps) {
+  const { Button } = ui
+  const status = row?.status
+  const launches = row?.launches ?? []
+  const first = launches.filter(l => l.kind === 'run' || l.kind === 'coordinate')
+  const rest = launches.filter(l => !first.includes(l))
   return Toolbar(
     ui,
-    isOpen && (
-      <Button key="run" variant="primary" onPress={() => props.onPrompt('run')}>
-        Run
-      </Button>
-    ),
-    isOpen && (
-      <Button key="coordinate" onPress={() => props.onPrompt('coordinate')}>
-        Coordinate
-      </Button>
-    ),
+    ...first.map(l => LaunchButton(ui, l, props)),
     (status === 'planned' || status === 'active') && (
       <Button key="act:pause" onPress={() => props.onAct({ action: 'pause', task: null })}>
         Pause
@@ -139,16 +150,7 @@ function Actions(ui: any, status: string | undefined, props: DetailProps) {
         Resume
       </Button>
     ),
-    isOpen && (
-      <Button key="close" onPress={() => props.onPrompt('close')}>
-        Close…
-      </Button>
-    ),
-    isOpen && (
-      <Button key="abandon" onPress={() => props.onPrompt('abandon')}>
-        Abandon…
-      </Button>
-    ),
+    ...rest.map(l => LaunchButton(ui, l, props)),
   )
 }
 
@@ -177,7 +179,7 @@ export function Detail(ui: any, props: DetailProps) {
         {Title(ui, props.ws, status && <Text color={statusColor(status)}>{status}</Text>)}
         <Text weight="medium">{waveLine(snapshot.wave)}</Text>
       </Box>
-      {Actions(ui, status, props)}
+      {Actions(ui, row, props)}
       {lanes(snapshot.tasks ?? []).map(lane =>
         Section(ui, `Phase ${lane.phase}`, 'promptBorder', lane.tasks.map(task => TaskRow(ui, task, props))),
       )}

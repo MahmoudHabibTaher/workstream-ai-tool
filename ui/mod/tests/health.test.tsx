@@ -20,11 +20,20 @@ const STALE = {
   actions: [{ action: 'unclaim', workstream: WS, task: 'T-01' }],
 }
 
+// Stand-ins: the CLI owns the real texts, and the pane must show whatever it is given.
+const LAUNCHES = [
+  { kind: 'run', prompt: `run-text ${WS}` },
+  { kind: 'coordinate', prompt: `coordinate-text ${WS}` },
+  { kind: 'close', prompt: `close-text ${WS}` },
+  { kind: 'abandon', prompt: `abandon-text ${WS}: `, ask: 'reason' },
+]
+
 function snapshot(status: string, health: object[], progressStale = false) {
   const progress = { total: 1, todo: 0, 'in-progress': 1, blocked: 0, done: 0, deferred: 0 }
   return {
     snapshotVersion: 1, repoRoot: ROOT, integrationBranch: 'trunk',
-    registry: [{ id: WS, title: WS, summary: '', status, dependsOn: [], progress, progressStale }],
+    registry: [{ id: WS, title: WS, summary: '', status, dependsOn: [], progress, progressStale,
+      launches: status === 'done' || status === 'abandoned' ? [] : LAUNCHES }],
     watch: [`${ROOT}/ws.json`],
   revisions: { registry: 'REG', tasks: { [WS]: 'TASKS' } },
     health, git: { branch: 'trunk' }, tasks: [TASK],
@@ -130,10 +139,7 @@ test('prompt buttons only fill the box, and nothing ever submits', async ($, on)
   const ui = await openDetail($, 'mobile')
 
   for (const key of ['run', 'coordinate', 'close', 'abandon']) await ui.press({ key })
-  expect(world.fills[0]).toBe(`Use the ws-run skill to run workstream ${WS}.`)
-  expect(world.fills[1]).toBe(`Use the ws-coordinate skill on workstream ${WS}.`)
-  expect(world.fills[2]).toContain(`close workstream ${WS}`)
-  expect(world.fills[3]).toContain(`abandon workstream ${WS}`)
+  expect(world.fills).toEqual([`run-text ${WS}`, `coordinate-text ${WS}`, `close-text ${WS}`, `abandon-text ${WS}: <reason>`])
   expect(world.submits).toBe(0)
   expect(world.acts.length).toBe(0)
   await ui.unmount()

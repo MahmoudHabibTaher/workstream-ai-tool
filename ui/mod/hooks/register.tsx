@@ -7,7 +7,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { Confirm, Feed, FeedTab, ReviewScreen, Snapshot, View } from '../types'
 import { loadReview, loadSnapshot, readText, resolveRoot, runAct } from './data'
-import { Detail, promptText } from './views/detail'
+import { Detail, launchFill } from './views/detail'
 import { FeedScreen, lastPage } from './views/feed'
 import { ConfirmBox, Health } from './views/health'
 import { Registry } from './views/registry'
@@ -248,9 +248,7 @@ export const register: Register = on => {
             onReview: id => {
               if (state.ws) void openReview($, state.ws, id)
             },
-            onPrompt: kind => {
-              if (state.ws) void $.prompt.fill({ text: promptText(kind, state.ws) })
-            },
+            onPrompt: launch => void $.prompt.fill({ text: launchFill(launch) }),
             onAct: ask,
           })}
         {snap &&

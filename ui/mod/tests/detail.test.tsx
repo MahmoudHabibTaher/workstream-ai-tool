@@ -61,6 +61,7 @@ const SNAPSHOT = {
       dependsOn: [],
       progress: { total: 4, todo: 3, 'in-progress': 1, blocked: 0, done: 0, deferred: 0 },
       progressStale: false,
+      launches: [{ kind: 'run', prompt: 'run-text' }],
     },
   ],
   watch: [`${ROOT}/ws.json`],
@@ -167,6 +168,18 @@ test('the feed pages a 300-line file in 120-line pages on every surface', async 
     await ui.press({ key: 'back' })
     await ui.unmount()
   }
+})
+
+test('only the launches the row offers become prompt buttons', async ($, on) => {
+  engine(on)
+  mock.clock(on, { now: NOW })
+  await open($)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: `ws:${WS}` })
+  expect(await ui.find({ key: 'run' })).toBeDefined()
+  for (const key of ['coordinate', 'close', 'abandon']) expect(await ui.find({ key })).toBeUndefined()
+  await ui.unmount()
 })
 
 test('a changed mtime re-snapshots once, an unchanged one never', async ($, on) => {

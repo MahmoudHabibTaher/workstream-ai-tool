@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from tests.helpers import WsTestCase, task
+from workstream.snapshot import LAUNCH_PROMPTS
 
 MOD = Path(__file__).resolve().parent.parent / "ui" / "mod"
 FORBIDDEN = re.compile(r"\b(develop|subsonic|the Kotlin harness|cargo|gradle|manage_workstreams|python3"
@@ -22,6 +23,16 @@ class NamesNoProjectTests(WsTestCase):
         found = [f"{p.relative_to(MOD)}:{n}: {line.strip()}"
                  for folder in ("hooks", "types") for p in sorted((MOD / folder).rglob("*.ts*"))
                  for n, line in enumerate(p.read_text().splitlines(), 1) if FORBIDDEN.search(line)]
+        self.assertEqual(found, [])
+
+    def test_no_file_holds_a_launch_prompt(self) -> None:
+        # The CLI owns these texts and the pane reads them from each row's launches. Each
+        # prompt's words up to its first placeholder must appear nowhere under ui/mod.
+        stems = [text.split("{", 1)[0].strip() for text in LAUNCH_PROMPTS.values()]
+        self.assertTrue(all(len(stem) > 10 for stem in stems), stems)
+        found = [f"{p.relative_to(MOD)}: {stem}" for p in sorted(MOD.rglob("*"))
+                 if p.is_file() and "node_modules" not in p.parts
+                 for stem in stems if stem in p.read_text(errors="ignore")]
         self.assertEqual(found, [])
 
 
