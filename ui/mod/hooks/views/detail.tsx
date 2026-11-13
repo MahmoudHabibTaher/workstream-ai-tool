@@ -1,8 +1,9 @@
 // One workstream: the wave line, then its tasks by phase in priority order.
 // Every fact here comes from the snapshot; nothing is recomputed.
-import type { Confirm, FeedTab, Launch, RegistryRow, Snapshot, Sub, Task, View, Wave } from '../../types'
+import type { Confirm, FeedTab, Launch, Preflight, RegistryRow, Snapshot, Sub, Task, View, Wave } from '../../types'
 import { Graph } from './graph'
 import { Overview } from './overview'
+import { LaunchSlot, PreflightBox, preflightFor } from './preflight'
 import { badgeColor, GAP, Section, statusColor, Title, Toolbar } from './style'
 
 export function waveLine(wave: Wave | undefined): string {
@@ -48,7 +49,7 @@ export function launchFill(launch: Launch): string {
 
 const LABELS: Record<string, string> = { run: 'Run', coordinate: 'Coordinate', close: 'Close…', abandon: 'Abandon…' }
 
-function launchLabel(launch: Launch): string {
+export function launchLabel(launch: Launch): string {
   return LABELS[launch.kind] ?? launch.kind
 }
 
@@ -61,7 +62,10 @@ export type DetailProps = {
   onFeed: () => void
   onTask: (id: string) => void
   onHealth: () => void
+  // Runs the launch's pre-flight, then fills the box if nothing blocks.
   onPrompt: (launch: Launch) => void
+  preflight: Preflight | null
+  onRecheck: () => void
   onAct: (confirm: Confirm) => void
   onSub: (sub: Sub) => void
   onDocument: (tab: FeedTab) => void
@@ -109,16 +113,13 @@ function TaskRow(ui: any, task: Task, props: DetailProps) {
 }
 
 function LaunchButton(ui: any, launch: Launch, props: DetailProps) {
-  const { Button } = ui
-  return (
-    <Button
-      key={launch.kind}
-      variant={launch.kind === 'run' ? 'primary' : undefined}
-      onPress={() => props.onPrompt(launch)}
-    >
-      {launchLabel(launch)}
-    </Button>
-  )
+  return LaunchSlot(ui, {
+    key: launch.kind,
+    label: launchLabel(launch),
+    isPrimary: launch.kind === 'run',
+    pf: preflightFor(props.preflight, props.ws, launch.kind, null),
+    onPress: () => props.onPrompt(launch),
+  })
 }
 
 // The row's launches, with the status writes after run and coordinate. The snapshot gives a
@@ -154,6 +155,7 @@ export function Detail(ui: any, props: DetailProps) {
   const status = row?.status
   // A view stored before sub-screens existed has none; it shows Tasks.
   const sub: Sub = props.view.sub ?? 'tasks'
+  const shown = props.preflight && props.preflight.ws === props.ws && props.preflight.task === null ? props.preflight : null
 
   return (
     <Box flexDirection="column" gap={GAP.screen}>
@@ -174,6 +176,7 @@ export function Detail(ui: any, props: DetailProps) {
         <Text weight="medium">{waveLine(snapshot.wave)}</Text>
       </Box>
       {Actions(ui, row, props)}
+      {shown && PreflightBox(ui, shown, launchLabel(shown.launch ?? { kind: shown.kind, prompt: '' }), props.onRecheck)}
       {SubRow(ui, sub, props)}
       {sub === 'tasks' && Tasks(ui, props)}
       {sub === 'graph' && Graph(ui, { tasks: snapshot.tasks ?? [], onJump: props.onTask })}

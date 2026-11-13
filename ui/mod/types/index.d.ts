@@ -26,6 +26,23 @@ export type RegistryRow = {
 // A launch's prompt is the CLI's text; `ask` names what the person must add at its end.
 export type Launch = { kind: string; prompt: string; ask?: string }
 
+// One `ws launch check` result: `blocking` says whether its failure stops the launch.
+export type Check = { id: string; ok: boolean; blocking: boolean; message: string }
+
+// The last pre-flight the person asked for. `launch` is the row's, or null for run-task,
+// whose prompt comes from `ws launch argv`. `error` is a check or prompt that could not be
+// had; then nothing was filled.
+export type Preflight = {
+  ws: string
+  kind: string
+  task: string | null
+  launch: Launch | null
+  checks: Check[]
+  blocked: boolean
+  filled: boolean
+  error: string | null
+}
+
 export type ActAction = 'pause' | 'resume' | 'unclaim' | 'sync'
 
 export type Confirm = { action: ActAction; task: string | null }
@@ -147,6 +164,7 @@ declare module 'claude-code' {
       snapshot: Shaped<Snapshot | null>
       feed: Shaped<Feed | null>
       review: Shaped<ReviewScreen | null>
+      preflight: Shaped<Preflight | null>
       root: string | null
       error: string | null
       actError: string | null
