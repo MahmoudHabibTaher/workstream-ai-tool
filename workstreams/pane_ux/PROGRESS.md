@@ -6,6 +6,10 @@ Created 2026-11-10 from `main` at `e935195`.
 
 ---
 
+## 2026-11-13: PX-06: Graph nesting that holds on every surface
+
+Merged as `244d864d39`. Verified: test pass, make test-mod pass. [Evidence](evidence/PX-06.md).
+
 ## 2026-11-13: PX-05: Prove it in the desktop app
 
 Merged as `a0f21f7a47`. Verified: test pass, make test-mod pass. [Evidence](evidence/PX-05.md).
