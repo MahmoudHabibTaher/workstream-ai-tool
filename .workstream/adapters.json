@@ -5,7 +5,7 @@
       "toolVersion": "0.1.0",
       "hook": false,
       "files": {
-        ".claude/skills/ws-coordinate/SKILL.md": "c94e80f2c875749b5177623e1ca5bf51dc23861150a9c685e6cf489cd6f892c0",
+        ".claude/skills/ws-coordinate/SKILL.md": "052d48363bc7afd62d0ebe271046a8287bdefdada459191c3a46798574a08406",
         ".claude/skills/ws-plan/SKILL.md": "ee5e3ac56cbcedb7ce40a28c6e0b43f99cdbadad9c56ba792f266945681e1013",
         ".claude/skills/ws-review/SKILL.md": "7cc4a216be15a752b91b5cc1a0d4ad7cb8af3ba48f3ed9b7b7edce5fad0b1914",
         ".claude/skills/ws-run/SKILL.md": "6c5a13d7224539b5111fb9f7123b41526894a09d17a1bcbec3ebba7e7f6403e7",
