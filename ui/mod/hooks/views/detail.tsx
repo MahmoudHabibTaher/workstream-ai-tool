@@ -1,6 +1,8 @@
 // One workstream: the wave line, then its tasks by phase in priority order.
 // Every fact here comes from the snapshot; nothing is recomputed.
-import type { Confirm, Launch, RegistryRow, Snapshot, Task, View, Wave } from '../../types'
+import type { Confirm, FeedTab, Launch, RegistryRow, Snapshot, Sub, Task, View, Wave } from '../../types'
+import { Graph } from './graph'
+import { Overview } from './overview'
 import { offers } from './health'
 import { badgeColor, Caption, GAP, Heading, Section, statusColor, Title, Toolbar } from './style'
 
@@ -96,6 +98,34 @@ export type DetailProps = {
   onReview: (id: string) => void
   onPrompt: (launch: Launch) => void
   onAct: (confirm: Confirm) => void
+  onSub: (sub: Sub) => void
+  // Shows a task in Tasks, expanded.
+  onJump: (id: string) => void
+  onDocument: (tab: FeedTab) => void
+}
+
+const SUBS: { sub: Sub; label: string }[] = [
+  { sub: 'tasks', label: 'Tasks' },
+  { sub: 'graph', label: 'Graph' },
+  { sub: 'overview', label: 'Overview' },
+]
+
+function SubRow(ui: any, current: Sub, props: DetailProps) {
+  const { Button } = ui
+  return Toolbar(
+    ui,
+    ...SUBS.map(s => (
+      <Button key={`sub:${s.sub}`} variant={s.sub === current ? 'primary' : undefined} onPress={() => props.onSub(s.sub)}>
+        {s.label}
+      </Button>
+    )),
+  )
+}
+
+function Tasks(ui: any, props: DetailProps) {
+  return lanes(props.snapshot.tasks ?? []).map(lane =>
+    Section(ui, `Phase ${lane.phase}`, 'promptBorder', lane.tasks.map(task => TaskRow(ui, task, props))),
+  )
 }
 
 function TaskRow(ui: any, task: Task, props: DetailProps) {
@@ -160,6 +190,8 @@ export function Detail(ui: any, props: DetailProps) {
   const { snapshot } = props
   const row = snapshot.registry.find(r => r.id === props.ws)
   const status = row?.status
+  // A view stored before sub-screens existed has none; it shows Tasks.
+  const sub: Sub = props.view.sub ?? 'tasks'
 
   return (
     <Box flexDirection="column" gap={GAP.screen}>
@@ -180,9 +212,10 @@ export function Detail(ui: any, props: DetailProps) {
         <Text weight="medium">{waveLine(snapshot.wave)}</Text>
       </Box>
       {Actions(ui, row, props)}
-      {lanes(snapshot.tasks ?? []).map(lane =>
-        Section(ui, `Phase ${lane.phase}`, 'promptBorder', lane.tasks.map(task => TaskRow(ui, task, props))),
-      )}
+      {SubRow(ui, sub, props)}
+      {sub === 'tasks' && Tasks(ui, props)}
+      {sub === 'graph' && Graph(ui, { tasks: snapshot.tasks ?? [], onJump: props.onJump })}
+      {sub === 'overview' && Overview(ui, { snapshot, now: props.now, onDocument: props.onDocument })}
     </Box>
   )
 }

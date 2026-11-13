@@ -17,12 +17,12 @@ import { GAP } from './views/style'
 const PANE = 'workstreams'
 const TITLE = 'Workstreams'
 const POLL_MS = 3000
-const INITIAL_VIEW: View = { screen: 'registry', ws: null, task: null, tab: 'handoff', page: 0, showDone: false, confirm: null }
+const INITIAL_VIEW: View = { screen: 'registry', sub: 'tasks', ws: null, task: null, tab: 'handoff', page: 0, showDone: false, confirm: null }
 
 // Bump a shape tag whenever its value's fields change: a stored value under
 // another tag is then read as the initial one.
-const view = atom({ plugin: 'workstreams-pane', key: 'view' } as const, INITIAL_VIEW, { shape: 'view-4' })
-const snapshot = atom({ plugin: 'workstreams-pane', key: 'snapshot' } as const, null as Snapshot | null, { shape: 'snapshot-3' })
+const view = atom({ plugin: 'workstreams-pane', key: 'view' } as const, INITIAL_VIEW, { shape: 'view-5' })
+const snapshot = atom({ plugin: 'workstreams-pane', key: 'snapshot' } as const, null as Snapshot | null, { shape: 'snapshot-4' })
 const feed = atom({ plugin: 'workstreams-pane', key: 'feed' } as const, null as Feed | null, { shape: 'feed-1' })
 const review = atom({ plugin: 'workstreams-pane', key: 'review' } as const, null as ReviewScreen | null, { shape: 'review-1' })
 const root = atom({ plugin: 'workstreams-pane', key: 'root' } as const, null)
@@ -146,7 +146,7 @@ function stopPoll() {
 async function openWorkstream($: EngineInterface, id: string) {
   const at = await read($, root)
   if (!at || !(await refresh($, at, id))) return
-  await update($, view, v => ({ ...v, screen: 'detail' as const, ws: id, task: null }))
+  await update($, view, v => ({ ...v, screen: 'detail' as const, sub: 'tasks' as const, ws: id, task: null }))
 }
 
 export const register: Register = on => {
@@ -250,6 +250,9 @@ export const register: Register = on => {
             },
             onPrompt: launch => void $.prompt.fill({ text: launchFill(launch) }),
             onAct: ask,
+            onSub: sub => void update($, view, v => ({ ...v, sub })),
+            onJump: id => void update($, view, v => ({ ...v, sub: 'tasks' as const, task: id })),
+            onDocument: tab => void openTab($, tab),
           })}
         {snap &&
           state.screen === 'health' &&
