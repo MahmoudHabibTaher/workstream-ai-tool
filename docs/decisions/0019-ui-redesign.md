@@ -119,6 +119,26 @@ The owner installed the extension from a `.vsix` (built from `task/vf-05` with V
 | A fresh Terminal launch uses the combined pick | Yes |
 | Abandon carries its reason | Yes |
 
+## What was built in the Claude Code pane (pane_ux)
+
+Five tasks (PX-01 to PX-05); the workstream's `DECISIONS.md` holds the smaller calls.
+
+- **Prompts come from the snapshot's per-row `launches`.** The pane's own copy, `promptText`, is gone, and `tests/test_mod_files.py` fails if any file under `ui/mod` holds a launch prompt's text.
+- **Detail has Tasks, Graph and Overview** sub-screens. Graph draws each task under the tasks it waits on, from `blockedBy` and `unblocks`. Overview shows the documents (as feed buttons), claims, scope, verify commands and baseline.
+- **A task opens its own page,** with depends-on and unblocks as buttons that jump. It replaces the inline expansion.
+- **Every launch runs `ws launch check` first** and shows each check. A blocking failure fills nothing. The surface's Button has no disabled state, so a held launch is drawn as dimmed text naming the first blocking check, with **Check again** (D010). **Run This Task** on a task page fills run-task's prompt, which comes from the last argument of `ws launch argv --agent claude-code`, as the JetBrains plugin reads it (D011).
+
+## What was seen (PX-05)
+
+The owner ran `/reload-plugins` and `/workstreams` in the Claude Code desktop app. The plugin was read from `ui/mod` on `main` with PX-01 to PX-04 merged. pane_ux itself was the sample: PX-05 was claimed, so `ws launch check --kind run` blocked on `claim`.
+
+| Check | Claude Code desktop app |
+|---|---|
+| Tasks, Graph and Overview draw | Yes, but the Graph's indentation is lost: PX-02 to PX-05 all sit one level under PX-01 instead of each one further in. The leading spaces in a line's text are collapsed on the desktop surface. `claude plugin test` keeps them, which is why the tests passed. |
+| A task page's dependency buttons jump | Yes |
+| A blocked Run shows its message and fills nothing | Yes |
+| Run This Task fills the box and sends nothing | Yes |
+
 ## Rules for changing it
 
 - A new idea from the other workstream plugin comes in as a description of behaviour, written here, never as its code or text.
