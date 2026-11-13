@@ -40,6 +40,15 @@ WRITERS = {
     "PROGRESS.md": "the progress log is written by `ws settle`",
     HANDOFF_NAME: "the handoff is written by `ws settle` and `ws handoff --note`",
 }
+# The same files, keyed the same way: the commands that write each one, for the acceptance
+# warning. WRITERS' sentences are for the hook's deny message.
+WRITTEN_BY = {
+    TASKS_NAME: "`ws add`, `ws update`, `ws claim` and `ws settle`",
+    BASELINE_NAME: "`ws baseline record`",
+    "DECISIONS.md": "`ws decide` and `ws settle`",
+    "PROGRESS.md": "`ws settle`",
+    HANDOFF_NAME: "`ws settle` and `ws handoff --note`",
+}
 
 
 def tool_arguments(payload: dict) -> dict | str:
