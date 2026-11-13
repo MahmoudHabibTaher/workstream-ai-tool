@@ -352,7 +352,7 @@
         "test",
         "make test-mod"
       ],
-      "branch": "",
+      "branch": "task/px-06",
       "blockedBy": [
         "PX-05"
       ],
@@ -363,10 +363,10 @@
         "user"
       ],
       "releaseImpact": null,
-      "status": "todo",
-      "startedAt": null,
-      "baseCommit": null,
-      "claimedBy": null,
+      "status": "in-progress",
+      "startedAt": "2026-11-13T09:01:38Z",
+      "baseCommit": "860a6f4c56a24971f7467c9b51f08a467b8df805",
+      "claimedBy": "main-session",
       "completedAt": null,
       "commit": null,
       "verification": null,
