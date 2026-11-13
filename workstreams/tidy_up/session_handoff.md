@@ -1,7 +1,12 @@
 # Session handoff
 
-**State: new.** Created 2026-11-13 from `main` at `226fac1`. No task has started.
+**State:** 1/8 done on `main` at `c818b9a`, as of 2026-11-13.
 
-**Next:** `ws claim --commit TU-01 TU-02 TU-03 TU-04 TU-05 TU-06` (phase 1).
+**Just landed:** TU-03 (`c818b9a1b7`)
 
-**Gotchas:** None.
+**Still in progress:** TU-01 (coordinator), TU-02 (coordinator)
+
+**Next:** `ws claim --commit TU-04 TU-05 TU-06` (phase 1).
+
+**Gotchas:**
+- TU-03: - `docs/decisions/0015-mbz-feedback.md:86` and `workstreams/mbz_feedback/PLAN.md:76` quote the old wording; they are records of a closed workstream, so left as they were.
