@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-12",
+  "updated": "2026-11-13",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -413,12 +413,12 @@
       "id": "pane_ux",
       "title": "Claude Code pane UX",
       "summary": "Give the pane Tasks, Graph and Overview sub-screens, a task page with jump buttons, and pre-flight before a prompt is filled.",
-      "status": "planned",
+      "status": "active",
       "taskPrefix": "PX",
       "path": "workstreams/pane_ux",
       "tier": "standard",
       "created": "2026-11-10",
-      "startedAt": null,
+      "startedAt": "2026-11-13",
       "completedAt": null,
       "baseCommit": "e935195",
       "dependsOn": [
@@ -426,8 +426,8 @@
       ],
       "progress": {
         "total": 5,
-        "todo": 5,
-        "in-progress": 0,
+        "todo": 4,
+        "in-progress": 1,
         "blocked": 0,
         "done": 0,
         "deferred": 0
