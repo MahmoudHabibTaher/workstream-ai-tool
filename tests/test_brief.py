@@ -253,6 +253,20 @@ class OpenDecisionTests(WsTestCase):
     def test_it_is_there_with_no_acceptance_too(self) -> None:
         self.assertIn("- D002: transitive call", self.ok("brief", "T1", "-w", "alpha"))
 
+    def test_open_decisions_come_before_changes_and_each_holds_only_its_own(self) -> None:
+        change = "\n## D006 (2026-01-01, user): use the new name\n\nChanges: T2.\n\nWhy. **Closed.**\n"
+        (self.ws_dir / "alpha" / "DECISIONS.md").write_text(self.LOG + change)
+        brief = self.ok("brief", "T2", "-w", "alpha")
+        after = brief.split("## Acceptance\n\n1. works\n\n", 1)[1]
+        self.assertTrue(after.startswith("## Open decisions\n"), after[:80])
+        self.assertLess(brief.index("## Open decisions\n"), brief.index("## Changed since the plan\n"))
+        opened = after.split("\n\n## ", 1)[0]
+        self.assertEqual([line for line in opened.splitlines() if line.startswith("- ")],
+                         ["- D001: direct call", "- D002: transitive call"])
+        changed = ChangedSinceThePlanTests.section(brief)
+        self.assertEqual([line for line in changed.splitlines() if line.startswith("- ")],
+                         ["- D006: use the new name"])
+
 
 class ResumeTests(WsTestCase):
     BLOCKED = "# T1\n\n- **Status:** blocked (needs a key)\n"
