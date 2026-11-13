@@ -33,3 +33,11 @@ The four documents the feed already pages (plan, progress, decisions, handoff) a
 ## D007 (2026-11-13, PX-02): Overview's verify commands are each task's commands, once per label
 
 The snapshot has no workstream-level command list, so Overview shows the union of the tasks' `verifyCommands`, in the order tasks first name them. Rejected: reading the project config, which would mean the pane computing a fact the CLI doesn't give. **Closed.**
+
+## D008 (2026-11-13, PX-03): the task page replaces the inline expansion in Tasks
+
+A task row now opens `screen: 'task'`, which shows everything the expansion did (summary, acceptance, verify, files, notes, requires, Review, Unclaim) plus depends on, unblocks and the claim. The expansion was removed from `detail.tsx`, so there is one view of a task, not two. The Graph's line (D005) now opens the page too. Rejected: keeping both, which would mean two copies of the same task view to keep in step. **Closed.**
+
+## D009 (2026-11-13, PX-03): Back from a task page goes to detail, and Back from Review goes to the task page
+
+Jumping between tasks keeps no history: Back always returns to the sub-screen the person was on. Review is reached only from a task page now, so its Back returns there. Rejected: a jump history stack, which is more state for little gain. **Closed.**
