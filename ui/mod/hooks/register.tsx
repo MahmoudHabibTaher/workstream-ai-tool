@@ -5,10 +5,10 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { Confirm, Feed, FeedTab, ReviewScreen, Snapshot, View } from '../types'
-import { loadReview, loadSnapshot, readText, resolveRoot, runAct } from './data'
+import type { Confirm, Feed, FeedTab, Launch, Preflight, ReviewScreen, Snapshot, View } from '../types'
+import { launchCheck, loadReview, loadSnapshot, readText, resolveRoot, runAct, taskPrompt } from './data'
 import { Detail, launchFill } from './views/detail'
-import { TaskPage } from './views/task'
+import { RUN_TASK, TaskPage } from './views/task'
 import { FeedScreen, lastPage } from './views/feed'
 import { ConfirmBox, Health } from './views/health'
 import { Registry } from './views/registry'
@@ -26,6 +26,7 @@ const view = atom({ plugin: 'workstreams-pane', key: 'view' } as const, INITIAL_
 const snapshot = atom({ plugin: 'workstreams-pane', key: 'snapshot' } as const, null as Snapshot | null, { shape: 'snapshot-4' })
 const feed = atom({ plugin: 'workstreams-pane', key: 'feed' } as const, null as Feed | null, { shape: 'feed-1' })
 const review = atom({ plugin: 'workstreams-pane', key: 'review' } as const, null as ReviewScreen | null, { shape: 'review-1' })
+const preflight = atom({ plugin: 'workstreams-pane', key: 'preflight' } as const, null as Preflight | null, { shape: 'preflight-1' })
 const root = atom({ plugin: 'workstreams-pane', key: 'root' } as const, null)
 const error = atom({ plugin: 'workstreams-pane', key: 'error' } as const, null)
 const actError = atom({ plugin: 'workstreams-pane', key: 'actError' } as const, null)
@@ -98,6 +99,42 @@ async function confirmAct($: EngineInterface, ws: string, confirm: Confirm) {
   await refresh($, at, ws)
 }
 
+// Checks first, and fills the box only when no blocking check failed. A row's launch carries
+// its own prompt; run-task's comes from the CLI once the checks pass. Nothing is submitted.
+async function prelaunch($: EngineInterface, ws: string, launch: Launch | null, task: string | null) {
+  const at = await read($, root)
+  if (!at) return
+  const kind = launch?.kind ?? RUN_TASK
+  const base: Preflight = { ws, kind, task, launch, checks: [], blocked: true, filled: false, error: null }
+  const checked = await launchCheck($, at, ws, kind, task)
+  if (checked.error !== undefined) {
+    await update($, preflight, () => ({ ...base, error: checked.error }))
+    return
+  }
+  const checks = checked.checks
+  if (checks.some(c => c.blocking && !c.ok)) {
+    await update($, preflight, () => ({ ...base, checks }))
+    return
+  }
+  let text: string
+  if (launch) text = launchFill(launch)
+  else {
+    const got = task ? await taskPrompt($, at, ws, task) : { error: 'run-task needs a task' }
+    if (got.error !== undefined) {
+      await update($, preflight, () => ({ ...base, checks, error: got.error ?? null }))
+      return
+    }
+    text = got.prompt as string
+  }
+  await $.prompt.fill({ text })
+  await update($, preflight, () => ({ ...base, checks, blocked: false, filled: true }))
+}
+
+async function recheck($: EngineInterface) {
+  const pf = await read($, preflight)
+  if (pf) await prelaunch($, pf.ws, pf.launch, pf.task)
+}
+
 // Module variables on purpose: a reload drops the old timer with them, and
 // session.start starts a new one while the pane is open.
 let cancelPoll: Timer | undefined
@@ -147,6 +184,7 @@ function stopPoll() {
 async function openWorkstream($: EngineInterface, id: string) {
   const at = await read($, root)
   if (!at || !(await refresh($, at, id))) return
+  await update($, preflight, () => null)
   await update($, view, v => ({ ...v, screen: 'detail' as const, sub: 'tasks' as const, ws: id, task: null }))
 }
 
@@ -191,6 +229,7 @@ export const register: Register = on => {
     const now = await $.clock.now()
     const refusal = await read($, actError)
     const reviewing = await read($, review)
+    const pf = await read($, preflight)
     const leave = () => void update($, actError, () => null)
     const toRegistry = () => {
       leave()
@@ -250,7 +289,11 @@ export const register: Register = on => {
             onFeed: () => void openTab($, state.tab),
             onTask: toTask,
             onHealth: () => void update($, view, v => ({ ...v, screen: 'health' as const })),
-            onPrompt: launch => void $.prompt.fill({ text: launchFill(launch) }),
+            onPrompt: launch => {
+              if (state.ws) void prelaunch($, state.ws, launch, null)
+            },
+            preflight: pf,
+            onRecheck: () => void recheck($),
             onAct: ask,
             onSub: sub => void update($, view, v => ({ ...v, sub })),
             onDocument: tab => void openTab($, tab),
@@ -270,6 +313,11 @@ export const register: Register = on => {
               if (state.ws) void openReview($, state.ws, id)
             },
             onAct: ask,
+            preflight: pf,
+            onRunTask: id => {
+              if (state.ws) void prelaunch($, state.ws, null, id)
+            },
+            onRecheck: () => void recheck($),
           })}
         {snap &&
           state.screen === 'health' &&

@@ -2,7 +2,7 @@
 // truth: the pane draws what it returns and writes only through `ws act`.
 import type { EngineInterface } from 'claude-code'
 
-import type { Confirm, ReviewData, Snapshot } from '../types'
+import type { Check, Confirm, ReviewData, Snapshot } from '../types'
 
 const WS = 'ws'
 const NO_WS = 'ws is not on the PATH this app runs commands with. Install it, then run /workstreams again.'
@@ -100,5 +100,47 @@ export async function loadSnapshot($: EngineInterface, root: string, id?: string
     return { snapshot: parsed }
   } catch {
     return { error: 'snapshot printed no JSON' }
+  }
+}
+
+// The pre-flight for one launch, before anything is filled. `ws launch check` exits 0 even when
+// a blocking check fails; a non-zero exit is a call it refused, drawn as its stderr line.
+export async function launchCheck(
+  $: EngineInterface,
+  root: string,
+  ws: string,
+  kind: string,
+  task: string | null,
+): Promise<{ checks: Check[]; error?: undefined } | { checks?: undefined; error: string }> {
+  const argv = [WS, 'launch', 'check', '-w', ws, '--kind', kind, ...(task ? ['--task', task] : []), '--json']
+  try {
+    const ran = await $.process.run(argv, { cwd: root, timeoutMs: 60_000 })
+    if (ran.exitCode !== 0) return { error: ran.stderr.trim() || `launch check exited ${ran.exitCode}` }
+    return { checks: (JSON.parse(ran.stdout) as { checks: Check[] }).checks }
+  } catch (err) {
+    return { error: `launch check did not run: ${String(err)}` }
+  }
+}
+
+// A pinned task's prompt. The snapshot's launches are a row's, so the CLI's text for run-task
+// is the last argument of the command line it builds for this agent, as the JetBrains plugin
+// reads it.
+export const PROMPT_AGENT = 'claude-code'
+
+export async function taskPrompt(
+  $: EngineInterface,
+  root: string,
+  ws: string,
+  task: string,
+): Promise<{ prompt: string; error?: undefined } | { prompt?: undefined; error: string }> {
+  const argv = [WS, 'launch', 'argv', '-w', ws, '--agent', PROMPT_AGENT, '--prompt-kind', 'run-task', '--task', task, '--json']
+  try {
+    const ran = await $.process.run(argv, { cwd: root, timeoutMs: 60_000 })
+    if (ran.exitCode !== 0) return { error: ran.stderr.trim() || `launch argv exited ${ran.exitCode}` }
+    const built = (JSON.parse(ran.stdout) as { argv: string[] }).argv
+    const prompt = built[built.length - 1]
+    return prompt ? { prompt } : { error: 'launch argv gave no prompt' }
+  } catch (err) {
+    return { error: `launch argv did not run: ${String(err)}` }
   }
 }

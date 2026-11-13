@@ -61,3 +61,29 @@ class TheCliAnswersThePaneTests(WsTestCase):
         out = self.ok("act", "pause", "-w", "alpha", "--expect-registry", snap["revisions"]["registry"],
                       "--expect-tasks", snap["revisions"]["tasks"]["alpha"])
         self.assertIn("alpha: pause", out)
+
+    def test_launch_check_and_the_task_prompt_answer_the_pane(self) -> None:
+        # data.ts's pre-flight and run-task argv, sent as the pane sends them, to the real CLI.
+        source = (MOD / "hooks" / "data.ts").read_text()
+        for line in ("[WS, 'launch', 'check', '-w', ws, '--kind', kind, ...(task ? ['--task', task] : []), '--json']",
+                     "[WS, 'launch', 'argv', '-w', ws, '--agent', PROMPT_AGENT, '--prompt-kind', 'run-task', "
+                     "'--task', task, '--json']",
+                     "export const PROMPT_AGENT = 'claude-code'"):
+            self.assertIn(line, source)
+        snap = json.loads(self.ok("snapshot", "-w", "alpha"))
+        kinds = [launch["kind"] for launch in snap["registry"][0]["launches"]]
+        self.assertEqual(kinds, ["run", "coordinate", "close", "abandon"])
+        for kind in kinds:
+            checks = json.loads(self.ok("launch", "check", "-w", "alpha", "--kind", kind, "--json"))["checks"]
+            self.assertTrue(checks, kind)
+            for check in checks:
+                self.assertEqual(set(check), {"id", "ok", "blocking", "message"}, kind)
+        pinned = json.loads(self.ok("launch", "check", "-w", "alpha", "--kind", "run-task", "--task", "T1", "--json"))
+        self.assertIn("validate", [c["id"] for c in pinned["checks"]])
+        built = json.loads(self.ok("launch", "argv", "-w", "alpha", "--agent", "claude-code",
+                                   "--prompt-kind", "run-task", "--task", "T1", "--json"))["argv"]
+        self.assertEqual(built[-1], LAUNCH_PROMPTS["run-task"].format(ws="alpha", task="T1"))
+        # A task the queue doesn't hold is a refusal, which the pane draws as its stderr line.
+        code, _, err = self.ws("launch", "check", "-w", "alpha", "--kind", "run-task", "--task", "T9", "--json")
+        self.assertEqual(code, 1)
+        self.assertIn("T9", err)

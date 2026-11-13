@@ -1,8 +1,9 @@
 // One task's page: what it is, what it waits on and unblocks (each a button to that task),
 // files, acceptance, verify, notes and the claim, then Review and Unclaim.
-import type { Confirm, Snapshot, Task } from '../../types'
+import type { Confirm, Preflight, Snapshot, Task } from '../../types'
 import { ageOf } from './detail'
 import { offers } from './health'
+import { LaunchSlot, PreflightBox, preflightFor } from './preflight'
 import { Caption, GAP, Heading, Section, statusColor, Title, Toolbar } from './style'
 
 export type TaskPageProps = {
@@ -14,6 +15,18 @@ export type TaskPageProps = {
   onTask: (id: string) => void
   onReview: (id: string) => void
   onAct: (confirm: Confirm) => void
+  preflight: Preflight | null
+  // Runs run-task's pre-flight for this task, then fills the box if nothing blocks.
+  onRunTask: (id: string) => void
+  onRecheck: () => void
+}
+
+export const RUN_TASK = 'run-task'
+
+// A task that can still run, in a workstream whose row offers launches (an open one).
+export function offersRunTask(snapshot: Snapshot, ws: string, task: Task): boolean {
+  const row = snapshot.registry.find(r => r.id === ws)
+  return (row?.launches ?? []).length > 0 && task.status !== 'done' && task.status !== 'deferred'
 }
 
 export function claimLine(task: Task, now: number): string {
@@ -44,6 +57,7 @@ export function TaskPage(ui: any, props: TaskPageProps) {
   const tasks = props.snapshot.tasks ?? []
   const byId = new Map(tasks.map(t => [t.id, t]))
   const task = byId.get(props.id)
+  const shown = preflightFor(props.preflight, props.ws, RUN_TASK, props.id)
   const back = (
     <Button key="back" onPress={props.onBack}>
       Back
@@ -85,6 +99,14 @@ export function TaskPage(ui: any, props: TaskPageProps) {
       )}
       {Toolbar(
         ui,
+        offersRunTask(props.snapshot, props.ws, task) &&
+          LaunchSlot(ui, {
+            key: RUN_TASK,
+            label: 'Run This Task',
+            isPrimary: true,
+            pf: preflightFor(props.preflight, props.ws, RUN_TASK, task.id),
+            onPress: () => props.onRunTask(task.id),
+          }),
         <Button key={`review:${task.id}`} onPress={() => props.onReview(task.id)}>
           Review
         </Button>,
@@ -94,6 +116,7 @@ export function TaskPage(ui: any, props: TaskPageProps) {
           </Button>
         ),
       )}
+      {shown && PreflightBox(ui, shown, 'Run This Task', props.onRecheck)}
     </Box>
   )
 }

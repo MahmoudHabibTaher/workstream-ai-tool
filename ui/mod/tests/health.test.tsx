@@ -64,6 +64,7 @@ function engine(on: any, snap: object): World {
   })
   on('process.run', (_: unknown, e: { argv: string[] }) => {
     if (e.argv[1] === 'root') return result(0, `${ROOT}\n`)
+    if (e.argv[1] === 'launch') return result(0, JSON.stringify({ checks: [{ id: 'validate', ok: true, blocking: true, message: 'fine' }] }))
     if (e.argv[1] === 'act') {
       world.acts.push([...e.argv.slice(2)])
       return world.refuse ? result(1, '', world.refuse) : result(0, 'committed\n')
