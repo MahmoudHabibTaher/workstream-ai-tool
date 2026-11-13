@@ -3,8 +3,7 @@
 import type { Confirm, FeedTab, Launch, RegistryRow, Snapshot, Sub, Task, View, Wave } from '../../types'
 import { Graph } from './graph'
 import { Overview } from './overview'
-import { offers } from './health'
-import { badgeColor, Caption, GAP, Heading, Section, statusColor, Title, Toolbar } from './style'
+import { badgeColor, GAP, Section, statusColor, Title, Toolbar } from './style'
 
 export function waveLine(wave: Wave | undefined): string {
   if (!wave) return ''
@@ -41,39 +40,6 @@ export function lanes(tasks: Task[]): { phase: number; tasks: Task[] }[] {
   }))
 }
 
-function Expanded(ui: any, task: Task, props: DetailProps) {
-  const { Box, Text, Button, Code } = ui
-  return (
-    <Box marginLeft={GAP.section}>
-      {Section(
-        ui,
-        task.title,
-        'suggestion',
-        <Text>{task.summary}</Text>,
-        Heading(ui, 'Acceptance'),
-        task.acceptanceText.map(item => <Text>- {item}</Text>),
-        Heading(ui, 'Verify'),
-        <Code source={task.verifyCommands.map(c => c.command).join('\n')} language="sh" />,
-        task.files.length > 0 && Heading(ui, 'Files'),
-        task.files.map(file => Caption(ui, file)),
-        task.notes !== '' && <Text>Notes: {task.notes}</Text>,
-        task.requires.length > 0 && <Text>Requires: {task.requires.join(', ')}</Text>,
-        Toolbar(
-          ui,
-          <Button key={`review:${task.id}`} onPress={() => props.onReview(task.id)}>
-            Review
-          </Button>,
-          offers(props.snapshot, props.ws, 'unclaim', task.id) && (
-            <Button key={`act:unclaim:${task.id}`} onPress={() => props.onAct({ action: 'unclaim', task: task.id })}>
-              Unclaim
-            </Button>
-          ),
-        ),
-      )}
-    </Box>
-  )
-}
-
 // What a prompt button leaves in the box: the launch's own text, and a placeholder for
 // what it asks. Never submitted.
 export function launchFill(launch: Launch): string {
@@ -95,12 +61,9 @@ export type DetailProps = {
   onFeed: () => void
   onTask: (id: string) => void
   onHealth: () => void
-  onReview: (id: string) => void
   onPrompt: (launch: Launch) => void
   onAct: (confirm: Confirm) => void
   onSub: (sub: Sub) => void
-  // Shows a task in Tasks, expanded.
-  onJump: (id: string) => void
   onDocument: (tab: FeedTab) => void
 }
 
@@ -130,7 +93,7 @@ function Tasks(ui: any, props: DetailProps) {
 
 function TaskRow(ui: any, task: Task, props: DetailProps) {
   const { Box, Text, Button } = ui
-  const { snapshot, view, now } = props
+  const { snapshot, now } = props
   const badges = badgesOf(task, snapshot.tasks ?? [], snapshot.wave, now)
   return (
     <Box flexDirection="column" gap={GAP.row}>
@@ -141,7 +104,6 @@ function TaskRow(ui: any, task: Task, props: DetailProps) {
           <Text color={badgeColor(badge)}> {badge}</Text>
         ))}
       </Button>
-      {view.task === task.id && Expanded(ui, task, props)}
     </Box>
   )
 }
@@ -214,7 +176,7 @@ export function Detail(ui: any, props: DetailProps) {
       {Actions(ui, row, props)}
       {SubRow(ui, sub, props)}
       {sub === 'tasks' && Tasks(ui, props)}
-      {sub === 'graph' && Graph(ui, { tasks: snapshot.tasks ?? [], onJump: props.onJump })}
+      {sub === 'graph' && Graph(ui, { tasks: snapshot.tasks ?? [], onJump: props.onTask })}
       {sub === 'overview' && Overview(ui, { snapshot, now: props.now, onDocument: props.onDocument })}
     </Box>
   )

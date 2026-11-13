@@ -151,6 +151,7 @@ test('a write button is absent when nothing offers it', async ($, on) => {
 
   await ui.press({ key: 'task:T-01' })
   expect(await ui.find({ key: 'act:unclaim:T-01' })).toBeUndefined()
+  await ui.press({ key: 'back' })
   expect(await ui.find({ key: 'act:resume' })).toBeUndefined()
   expect(await ui.find({ key: 'act:pause' })).toBeDefined()
   await ui.press({ key: 'health' })
@@ -167,6 +168,7 @@ test('status and the snapshot bring the other write buttons', async ($, on) => {
   expect(await ui.find({ key: 'act:resume' })).toBeDefined()
   await ui.press({ key: 'task:T-01' })
   expect(await ui.find({ key: 'act:unclaim:T-01' })).toBeDefined()
+  await ui.press({ key: 'back' })
   await ui.press({ key: 'health' })
   expect(await ui.find({ key: 'act:sync' })).toBeDefined()
   await ui.unmount()

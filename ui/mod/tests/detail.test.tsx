@@ -129,7 +129,7 @@ test('detail shows the lanes in priority order, the wave line and every badge', 
   }
 })
 
-test('selecting a task expands it, and again collapses it', async ($, on) => {
+test('a task row opens its page, and back returns to the lanes', async ($, on) => {
   engine(on)
   mock.clock(on, { now: NOW })
   await open($)
@@ -140,8 +140,10 @@ test('selecting a task expands it, and again collapses it', async ($, on) => {
   await ui.press({ key: 'task:T-01' })
   expect(await ui.find({ type: 'Text', text: /T-01 accepted/ })).toBeDefined()
   expect((await ui.find({ type: 'Code' }))?.text).toContain('make test')
-  await ui.press({ key: 'task:T-01' })
+  expect(await ui.find({ key: 'task:T-02' })).toBeUndefined()
+  await ui.press({ key: 'back' })
   expect(await ui.find({ type: 'Text', text: /T-01 accepted/ })).toBeUndefined()
+  expect(await ui.find({ key: 'task:T-02' })).toBeDefined()
   await ui.unmount()
 })
 
