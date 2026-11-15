@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-13",
+  "updated": "2026-11-15",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -469,13 +469,13 @@
       "id": "tidy_up",
       "title": "Tidy up",
       "summary": "Close the small items 0015 and 0017 left open: four test and wording fixes, public helpers, and paths.tasks in the snapshot read by both IDE plugins.",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "TU",
       "path": "workstreams/tidy_up",
       "tier": "standard",
       "created": "2026-11-13",
       "startedAt": "2026-11-13",
-      "completedAt": null,
+      "completedAt": "2026-11-15",
       "baseCommit": "226fac1",
       "dependsOn": [],
       "progress": {
@@ -486,7 +486,11 @@
         "done": 8,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "edc8504818246d61d927a50569d7e587fbe2f5c5",
+        "pruned": false
+      }
     }
   ]
 }
