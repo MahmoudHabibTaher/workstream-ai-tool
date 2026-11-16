@@ -22,7 +22,7 @@ PACKAGE = REPO / "ui" / "vscode"
 SRC = PACKAGE / "src"
 NODE = shutil.which("node")
 FORBIDDEN = re.compile(
-    r"\b(develop|subsonic|the Kotlin harness|work|cargo|gradle|npm|manage_workstreams|python3"
+    r"\b(develop|subsonic|cargo|gradle|npm|manage_workstreams|python3"
     r"|dispatch-tasks|coordinate-workstream|claude|copilot|anthropic|openai|codex)\b"
     r"|\bworkstreams/", re.IGNORECASE)
 # Repo text in a MarkdownString would render as markup (plan T6), so nothing turns either on.

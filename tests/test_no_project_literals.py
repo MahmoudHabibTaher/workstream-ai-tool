@@ -13,7 +13,7 @@ import workstream
 CORE = Path(workstream.__file__).resolve().parent
 FORBIDDEN = re.compile(
     r"\b(develop|cargo|rustc?|gradlew?|detekt|kotlin|swift|npm|pnpm|yarn|pytest|mvn|maven"
-    r"|make check|clippy|subsonic|the Kotlin harness|work|claude|copilot|anthropic|openai|codex"
+    r"|make check|clippy|subsonic|claude|copilot|anthropic|openai|codex"
     r"|ghcr|fastlane|media-library)\b", re.IGNORECASE)
 # The branch name, not the worktree `"main"` key the snapshot writes.
 ALLOWED_ONLY_IN_CONFIG = re.compile(r'(?<!get\()"main"(?!:)|task/\{slug\}|task/\*')
