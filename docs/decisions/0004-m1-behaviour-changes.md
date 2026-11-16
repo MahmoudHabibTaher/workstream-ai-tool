@@ -10,5 +10,5 @@
 - **`wrong-branch` is a warning, not an error.** Sitting on a feature branch is normal in most repos, and it only disables UI writes.
 - **`show` and `next` print compact text by default**, with `--json` for tools. They ran about 1.8 KB of JSON per call in subsonic.
 - **Older queues are refused, not silently upgraded.** A `schemaVersion` other than 3 is an error. The subsonic CLI's tests for reading schema 1 and 2 in place weren't ported; `ws import` (M6) is the way across.
-- **the Kotlin harness's `clear` isn't carried over.** Re-planning the same folder under a new graph is rare, and `reset` plus a new workstream covers it.
+- **The Kotlin harness's `clear` isn't carried over.** Re-planning the same folder under a new graph is rare, and `reset` plus a new workstream covers it.
 - **Two inherited weaknesses are closed.** A registry `path` can no longer leave the repository, which `close --purge` would otherwise delete, and a revision starting with `-` can no longer reach `git diff` as an option.

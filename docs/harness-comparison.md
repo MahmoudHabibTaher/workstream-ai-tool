@@ -4,23 +4,23 @@ How the two workstream harnesses this tool grew out of compare: subsonic-server 
 
 ## Verdict
 
-**subsonic-server has the better system. the Kotlin harness has the better agent ergonomics and is the bigger waster of always-on context.** Neither should be copied wholesale. The tool should use subsonic's engineering as the base and port the Kotlin harness's best ideas into the CLI.
+**subsonic-server has the better system. The Kotlin harness has the better agent ergonomics and is the bigger waster of always-on context.** Neither should be copied wholesale. The tool should use subsonic's engineering as the base and port the Kotlin harness's best ideas into the CLI.
 
 | Dimension | Better | Why |
 |---|---|---|
-| Prompt clarity | **the Kotlin harness** | "The One Rule", verify-don't-trust loop, failure-mode tables, a validation adequacy table |
+| Prompt clarity | **the Kotlin harness** | a single overriding rule stated up front, verify-don't-trust loop, failure-mode tables, a validation adequacy table |
 | Prompt structure | **subsonic** | Clean plan / dispatch / coordinate split, native plan mode, a compact planner |
-| Prompt portability | Neither | subsonic's skills are full of repo facts (47 matching lines in the coordinator, including a cargo/GHCR release runbook). the Kotlin harness's use Gradle/detekt and Copilot tool names |
+| Prompt portability | Neither | subsonic's skills are full of repo facts (47 matching lines in the coordinator, including a cargo/GHCR release runbook). The Kotlin harness's skills use Gradle/detekt and Copilot tool names |
 | Script engineering | **subsonic** | 2,093 lines with 2,375 lines of tests, against 1,940 lines and no tests found. Has a JSON read model, hash-guarded writes and parallel waves |
 | Script ergonomics for agents | **the Kotlin harness** | `clockin` assembles the briefing, `-w <name>` is short, `clockout` gates mechanically, baseline diffing, drift reporting |
-| Parallel execution | **subsonic** | Worktree batches, all-or-nothing `claim`, single writer for tracking files. the Kotlin harness is strictly sequential |
-| Always-on context | **subsonic** | Rules are path-scoped. the Kotlin harness loads 35 KB into nearly every session |
+| Parallel execution | **subsonic** | Worktree batches, all-or-nothing `claim`, single writer for tracking files. The Kotlin harness is strictly sequential |
+| Always-on context | **subsonic** | Rules are path-scoped. The Kotlin harness loads 35 KB into nearly every session |
 | Orchestrator context | **the Kotlin harness** | Its loop only spawns and checks. subsonic's orchestrator hand-writes briefs, reads evidence and does the bookkeeping |
-| UI | **subsonic** | A working 1,001-line Claude Code mod. the Kotlin harness has none |
+| UI | **subsonic** | A working 1,001-line Claude Code mod. The Kotlin harness has none |
 
 ## Context cost
 
-**Method.** Static figures are bytes ÷ 4. Measured figures come from transcripts on this machine: 123 subsonic worker runs, 31 subsonic orchestrator sessions and 317 the Kotlin harness Copilot sessions. The two vendors report tokens differently, so compare within a harness rather than across them.
+**Method.** Static figures are bytes ÷ 4. Measured figures come from transcripts on this machine: 123 subsonic worker runs, 31 subsonic orchestrator sessions and 317 Copilot sessions in the Kotlin harness. The two vendors report tokens differently, so compare within a harness rather than across them.
 
 **The cost model that matters:** anything loaded stays in context and is re-read every turn. A subsonic worker runs a median of 40 turns, so 1k always-loaded tokens means about 40k token-reads per worker. Prompt caching lowers the price but not the room it takes up.
 
@@ -45,8 +45,8 @@ Both prompt sets are nearly the same total size (83 KB and 85 KB). What differs 
 
 ## Where context is wasted
 
-**the Kotlin harness**
-1. **`tasks-list-workflow.instructions.md` has `applyTo: '**'`.** Its 35 KB was in the system prompt of **39 of 40** sampled the Kotlin harness sessions, including work unrelated to workstreams. That is about 350k token-reads per 40-turn shift, and it is the largest single fix available. It also documents rarely used commands (`reset`, `clear`, `close`) in that always-on text.
+**The Kotlin harness**
+1. **`tasks-list-workflow.instructions.md` has `applyTo: '**'`.** Its 35 KB was in the system prompt of **39 of 40** sampled sessions in the Kotlin harness, including work unrelated to workstreams. That is about 350k token-reads per 40-turn shift, and it is the largest single fix available. It also documents rarely used commands (`reset`, `clear`, `close`) in that always-on text.
 2. **Rules restated across files.** "One task per shift" appears 20 times across 5 files, sub-agent model inheritance 12 times across 5, scope 17 times across 4. The shift prompt restates its own skill.
 3. **Whole `PROGRESS.md` reads.** Files reach 16–22 KB while the skill only needs the latest entry.
 4. **`tasks.py` output is 17% of all tool-result tokens**, about 6k per session.

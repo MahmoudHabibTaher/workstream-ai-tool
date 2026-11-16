@@ -59,7 +59,7 @@ State       workstreams/<id>/  committed files + JSON Schema
 
 ## Layout
 
-Repo root: `<repo root>` (empty today; needs `git init`).
+Repo root: the repo root (empty today; needs `git init`).
 
 ```
 src/workstream/   cli, state, schema, graph, gates, verify, baseline, worktree,
@@ -153,7 +153,7 @@ Order is deliberate: UIs depend on a CLI that enforces invariants, so surfaces c
 
 ## Boundaries
 
-- **the Kotlin harness is shared with your team and is a work project.** Nothing is pushed there, and no the Kotlin harness content enters this repo: fixtures are synthetic, and replay tests read the local checkout and skip when it is absent. Adopting the tool there is a separate decision for you and your team. This also keeps a future public release clean.
+- **The Kotlin harness is shared with your team and is a work project.** Nothing is pushed there, and no content from the Kotlin harness enters this repo: fixtures are synthetic, and replay tests read the local checkout and skip when it is absent. Adopting the tool there is a separate decision for you and your team. This also keeps a future public release clean.
 - **subsonic migration happens on a branch.** Merging is your call, and the current harness keeps working until then.
 - **Running agents from a UI** opens the user's own `claude` or `copilot` in a terminal under their own login. The tool never handles credentials. Recheck the Agent SDK terms before any public release.
 - **Not building:** drag-and-drop kanban, embedded terminals, a hosted service or database, or fleets of agents launched from the UI. Earlier research in subsonic found review load, not agent speed, is the bottleneck for this kind of tool, so review screens get priority.
@@ -172,7 +172,7 @@ Order is deliberate: UIs depend on a CLI that enforces invariants, so surfaces c
 
 - `subsonic-server/workstreams/tools/`: `manage_tasks.py`, `manage_workstreams.py`, `snapshot.py`, `act.py`, `review.py`, and `tests/` (basis of M1)
 - `subsonic-server/workstreams/tools/pane/` (basis of M7)
-- `the Kotlin harness's scripts/tasks.py`: `clockin`, `clockout`, baseline and registry logic (ported in M1–M2, with new tests)
+- The Kotlin harness's `scripts/tasks.py`: `clockin`, `clockout`, baseline and registry logic (ported in M1–M2, with new tests)
 - `subsonic-server/research_notes/Workstream skills harness review/`: `gui_management_tooling.md`, `portability_standards.md` (input to M5 and M8)
 
 ## Verification
