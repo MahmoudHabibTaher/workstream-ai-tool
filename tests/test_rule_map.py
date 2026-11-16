@@ -25,7 +25,7 @@ class RuleMapTests(unittest.TestCase):
         sources = [r[0] for r in rows()]
         self.assertGreater(len(sources), 120)
         self.assertGreater(sources.count("subsonic"), 30)
-        self.assertGreater(sources.count("the Kotlin harness"), 30)
+        self.assertGreater(sources.count("kotlin"), 30)
 
     def test_every_row_has_a_known_kind(self) -> None:
         self.assertEqual([r for r in rows() if r[2] not in KINDS], [])
