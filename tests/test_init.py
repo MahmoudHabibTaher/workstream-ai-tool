@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import tomllib
@@ -129,7 +130,10 @@ class InactiveKeyTests(AdoptCase):
     def test_a_missing_tool_is_not_run_and_says_so(self) -> None:
         self.file("go.mod")
         self.commit()
-        with mock.patch.dict(os.environ, {"PATH": f"{self.bin}:/usr/bin:/bin"}):
+        # Hide go however it was installed: CI runners ship it in /usr/bin.
+        real_which = shutil.which
+        hide_go = lambda tool, *a, **k: None if tool == "go" else real_which(tool, *a, **k)  # noqa: E731
+        with mock.patch("workstream.adopt.shutil.which", side_effect=hide_go):
             out = self.init()
         self.assertIn("go isn't on PATH", out)
         self.assertEqual(self.config().commands, {})
