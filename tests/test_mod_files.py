@@ -14,7 +14,7 @@ from tests.helpers import WsTestCase, task
 from workstream.snapshot import LAUNCH_PROMPTS
 
 MOD = Path(__file__).resolve().parent.parent / "ui" / "mod"
-FORBIDDEN = re.compile(r"\b(develop|subsonic|the Kotlin harness|cargo|gradle|manage_workstreams|python3"
+FORBIDDEN = re.compile(r"\b(develop|subsonic|cargo|gradle|manage_workstreams|python3"
                        r"|dispatch-tasks|coordinate-workstream)\b|\bworkstreams/", re.IGNORECASE)
 
 

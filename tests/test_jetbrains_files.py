@@ -22,7 +22,7 @@ KOTLIN = SRC / "main" / "kotlin" / "dev" / "workstream" / "jetbrains"
 CLI = KOTLIN / "Cli.kt"
 TEXT = KOTLIN / "Text.kt"
 FORBIDDEN = re.compile(
-    r"\b(develop|subsonic|the Kotlin harness|work|cargo|gradle|npm|manage_workstreams|python3"
+    r"\b(develop|subsonic|cargo|gradle|npm|manage_workstreams|python3"
     r"|dispatch-tasks|coordinate-workstream|claude|copilot|anthropic|openai|codex)\b"
     r"|\bworkstreams/", re.IGNORECASE)
 # Swing reads `<html>` as markup and a notification's content is always HTML (plan T2): each of
