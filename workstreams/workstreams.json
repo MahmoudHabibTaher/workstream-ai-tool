@@ -496,13 +496,13 @@
       "id": "go_public",
       "title": "Go public",
       "summary": "Scrub work references from files and history so the repo can be published",
-      "status": "active",
+      "status": "done",
       "taskPrefix": "GP",
       "path": "workstreams/go_public",
       "tier": "standard",
       "created": "2026-11-16",
       "startedAt": "2026-11-16",
-      "completedAt": null,
+      "completedAt": "2026-11-16",
       "baseCommit": "709b885",
       "dependsOn": [],
       "progress": {
@@ -513,7 +513,11 @@
         "done": 7,
         "deferred": 0
       },
-      "notes": ""
+      "notes": "",
+      "closed": {
+        "commit": "05b1860f032278142cabdb9ce76b0cad808b7ebc",
+        "pruned": false
+      }
     }
   ]
 }
