@@ -2,26 +2,26 @@
 
 Append-only log, newest entry on top: the date, the task, what changed, and a link to its evidence file.
 
-Created 2026-11-02 from `main` at `132ac54`.
+Created 2026-11-02 from `main` at `066b109`.
 
 ---
 
 ## 2026-11-02: AA-05: A real small workstream on each agent
 
-Merged as `baba5b83fc`. Verified: test pass, audit pass. [Evidence](evidence/AA-05.md).
+Merged as `a47fc7732b`. Verified: test pass, audit pass. [Evidence](evidence/AA-05.md).
 
 ## 2026-11-02: AA-04: Eval harness, proven with a stub agent
 
-Merged as `b68db7e44e`. Verified: test pass, audit pass. [Evidence](evidence/AA-04.md).
+Merged as `a691825892`. Verified: test pass, audit pass. [Evidence](evidence/AA-04.md).
 
 ## 2026-11-02: AA-03: ws hook and its settings
 
-Merged as `2fabaefeb4`. Verified: test pass, audit pass. [Evidence](evidence/AA-03.md).
+Merged as `5c1f99a036`. Verified: test pass, audit pass. [Evidence](evidence/AA-03.md).
 
 ## 2026-11-02: AA-02: Worker agent, per-agent notes and audit
 
-Merged as `7fad3a9992`. Verified: test pass, audit pass. [Evidence](evidence/AA-02.md).
+Merged as `d17bb800ae`. Verified: test pass, audit pass. [Evidence](evidence/AA-02.md).
 
 ## 2026-11-02: AA-01: ws adapt, manifest and drift check
 
-Merged as `b64773ec37`. Verified: test pass, audit pass. [Evidence](evidence/AA-01.md).
+Merged as `73a363b279`. Verified: test pass, audit pass. [Evidence](evidence/AA-01.md).

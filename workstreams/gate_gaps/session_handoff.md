@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 4/4 done on `main` at `0b42e62`, as of 2026-11-03.
+**State:** 4/4 done on `main` at `4553d2e`, as of 2026-11-03.
 
-**Just landed:** GG-04 (`0b42e6272c`)
+**Just landed:** GG-04 (`4553d2e451`)
 
 **Next:** The queue is finished; `ws close` closes the workstream.
 

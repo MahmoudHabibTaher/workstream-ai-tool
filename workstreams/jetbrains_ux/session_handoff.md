@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 10/10 done on `main` at `9a37df9`, as of 2026-11-11.
+**State:** 10/10 done on `main` at `cadbe11`, as of 2026-11-11.
 
-**Just landed:** JX-10 (`9a37df9a92`)
+**Just landed:** JX-10 (`cadbe113d2`)
 
 **Open decisions:**
 - D023: Run This Task… is left out of the Run group until JX-08 (no task waiting)

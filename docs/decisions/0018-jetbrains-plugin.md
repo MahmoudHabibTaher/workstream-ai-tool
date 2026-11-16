@@ -35,7 +35,7 @@ On macOS, IntelliJ IDEA 2026.3 (IU-263.7307.200) and Android Studio 2026.2 (AI-2
 | Run in a Terminal tab | Run on alpha opened a Terminal tab running the agent command with the prompt as its argument, in IntelliJ and in Android Studio. With the agent command cleared, Run opened no tab and copied `Use the ws-run skill to run workstream alpha.` |
 | Android Studio | The tool window drew on the sample, and `d91ad8a beta: resume (ws act)` landed |
 | Alongside another `Workstreams` tool window | Android Studio here also has another plugin that registers a tool window with id `Workstreams`. It was disabled for the checks above; afterwards the owner installed both side by side and reported no conflicts (D030) |
-| This repo, read-only | Viewed in IntelliJ with no writes; HEAD (`3cb2c67`), status and refs were the same afterwards |
+| This repo, read-only | Viewed in IntelliJ with no writes; HEAD (`b8b63d0`), status and refs were the same afterwards |
 | Automated | `make test` and `make test-jetbrains` pass |
 
 ## Not proven

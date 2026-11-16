@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 7/7 done on `main` at `a32d2bc`, as of 2026-11-09.
+**State:** 7/7 done on `main` at `c9df99b`, as of 2026-11-09.
 
-**Just landed:** JB-07 (`a32d2bca19`)
+**Just landed:** JB-07 (`c9df99b28f`)
 
 **Open decisions:**
 - D014: the Terminal tab is opened with the public `createNewSession(runner, TerminalTabState)`, not the five-argument overload plan T7 names (no task waiting)

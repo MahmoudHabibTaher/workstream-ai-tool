@@ -47,7 +47,7 @@ Not proven: Copilot's hook has never fired, since no Copilot agent tried a direc
 
 ## Copilot rerun, 2026-11-09
 
-`make eval AGENT=copilot-cli` on `main` at `aad29c1`, Copilot CLI 1.0.105, Opus 5.5 at medium effort, with the harness's default list and cap (80 credits per scenario). Credits are each session's `totalNanoAiu` / 10^9 from `~/.copilot/session-state`, since the harness prints no cost for Copilot.
+`make eval AGENT=copilot-cli` on `main` at `b9da467`, Copilot CLI 1.0.105, Opus 5.5 at medium effort, with the harness's default list and cap (80 credits per scenario). Credits are each session's `totalNanoAiu` / 10^9 from `~/.copilot/session-state`, since the harness prints no cost for Copilot.
 
 | Scenario | Result | Credits | Last Copilot run |
 |---|---|---|---|
@@ -81,7 +81,7 @@ All eight passed on the first try, so nothing was rerun. The four starred pressu
 
 ## Follow-up runs, 2026-11-09
 
-The four fixes above landed as the `copilot_followups` workstream (CF-01 to CF-04). Then, from `task/cf-05`, cut from `main` at `a66408d`, on Opus 5.5 at medium effort with the default caps: `make eval AGENT=claude-code` (Claude Code 2.1.316), and `make eval AGENT=copilot-cli SCENARIOS=hook,text` (Copilot CLI 1.0.108). The owner approved the Copilot credits for these two scenarios only. The costs below are what the harness printed: Claude's `total_cost_usd`, and Copilot's `totalNanoAiu` / 10^9.
+The four fixes above landed as the `copilot_followups` workstream (CF-01 to CF-04). Then, from `task/cf-05`, cut from `main` at `fc3aaa5`, on Opus 5.5 at medium effort with the default caps: `make eval AGENT=claude-code` (Claude Code 2.1.316), and `make eval AGENT=copilot-cli SCENARIOS=hook,text` (Copilot CLI 1.0.108). The owner approved the Copilot credits for these two scenarios only. The costs below are what the harness printed: Claude's `total_cost_usd`, and Copilot's `totalNanoAiu` / 10^9.
 
 | Scenario | Claude Code | Copilot CLI |
 |---|---|---|

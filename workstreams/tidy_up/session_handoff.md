@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 8/8 done on `main` at `5471736`, as of 2026-11-13.
+**State:** 8/8 done on `main` at `5d935e2`, as of 2026-11-13.
 
-**Just landed:** TU-08 (`54717363d1`)
+**Just landed:** TU-08 (`5d935e2411`)
 
 **Next:** The queue is finished; `ws close` closes the workstream.
 

@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 10/10 done on `main` at `0f2d4be`, as of 2026-11-05.
+**State:** 10/10 done on `main` at `af6288d`, as of 2026-11-05.
 
-**Just landed:** MF-10 (`0f2d4be1b4`)
+**Just landed:** MF-10 (`af6288d458`)
 
 **Next:** The queue is finished; `ws close` closes the workstream.
 

@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 16/16 done on `main` at `4b44e01`, as of 2026-11-04.
+**State:** 16/16 done on `main` at `14fd32b`, as of 2026-11-04.
 
-**Just landed:** RF-15 (`4b44e0144c`)
+**Just landed:** RF-15 (`14fd32b26f`)
 
 **Next:** The queue is finished; `ws close` closes the workstream.
 

@@ -2,8 +2,8 @@
 
 Run from the repo root:
 
-    python3 -m scripts.private_terms            # tracked text files at HEAD, except workstreams/
-    python3 -m scripts.private_terms --all      # the same, including workstreams/
+    python3 -m scripts.private_terms            # every tracked text file at HEAD
+    python3 -m scripts.private_terms --all      # the same (kept from when workstreams/ was skipped)
     python3 -m scripts.private_terms --history  # every blob on every ref, and every commit message
 
 Text is lowercased and split into ``[a-z0-9]+`` tokens. A token, or a pair of
@@ -41,7 +41,7 @@ USERS_PATH = "users-path"
 _TOKEN = re.compile(r"[a-z0-9]+")
 _USERS = re.compile(r"/Users/[A-Za-z0-9._-]+")
 
-EXCLUDED_BY_DEFAULT = ("workstreams/",)
+EXCLUDED_BY_DEFAULT = ()
 
 
 def _digest(text):
@@ -165,7 +165,7 @@ def scan_history():
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python3 -m scripts.private_terms")
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--all", action="store_true", help="include workstreams/")
+    mode.add_argument("--all", action="store_true", help="the same as the default scan")
     mode.add_argument("--history", action="store_true",
                       help="scan every blob on every ref and every commit message")
     args = parser.parse_args(argv)

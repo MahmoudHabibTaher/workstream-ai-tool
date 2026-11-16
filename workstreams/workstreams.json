@@ -25,7 +25,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "918819bf0906160a3ece0e81b0ce4ac94d7b8c56",
+        "commit": "ee32e8a54004df90558ccec86caccb6d4691e8bd",
         "pruned": false
       }
     },
@@ -52,7 +52,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "a3c4db7de6e5a40a5078e44612fb06f1e8325c51",
+        "commit": "5a17a647f719f05ae5e9ae437ce79f5277087620",
         "pruned": false
       }
     },
@@ -79,7 +79,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "95761881a1386d638d80ea23eaf0ff85ac71b94f",
+        "commit": "ce2beaef99e10fec9cf22783236ffc7efba4cbb3",
         "pruned": false
       }
     },
@@ -106,7 +106,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "268597b1b41771e82f5abf95b80160b556426e63",
+        "commit": "94ada8ecee99487641e15ae1b55f00f2e983b75c",
         "pruned": false
       }
     },
@@ -133,7 +133,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "f8f8a9c653728427324145228686c589fc5d5e76",
+        "commit": "e940007f24aab6d4ad9e9dc72f95f9a5007c6a2e",
         "pruned": false
       }
     },
@@ -160,7 +160,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "cc62eebc215004cec2213dfbc7ac03023d6121de",
+        "commit": "3dde68a9a8da0c11f2e8f9495e20db6474199f01",
         "pruned": false
       }
     },
@@ -187,7 +187,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "547dc8d5b74c9fb05dbdbb50c07279a7a2753612",
+        "commit": "eccb18020b23c7179f6e92c97f3d1294d81bf208",
         "pruned": false
       }
     },
@@ -214,7 +214,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "0947c120fbc4479f78b05b0b9ebdce685316f5eb",
+        "commit": "ab054837e7e46b067ba5f922eaea5ec951c32ead",
         "pruned": false
       }
     },
@@ -241,7 +241,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "905509a91d8dca8ad1ab9e5664154932d01edd3e",
+        "commit": "16719e3a28eddc2ffb0d0f356c0f54448f1141a8",
         "pruned": false
       }
     },
@@ -268,7 +268,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "a5cf7fffe2b10f38990a05a644cf4989158fe52c",
+        "commit": "15689e14ac8d6a2d78bbda55aa75d4e3585740c6",
         "pruned": false
       }
     },
@@ -295,7 +295,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "f0fa533638dcc2e442f33b907ec08e6dd1d146ff",
+        "commit": "5fb35164f336179d91ff696af58e81a3dabd01ec",
         "pruned": false
       }
     },
@@ -322,7 +322,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "55d59eeb09fadd96acb23c279b4fc13c2b9cdbc7",
+        "commit": "4a81f1efa06446981f959a33a028b96c842ba8ed",
         "pruned": false
       }
     },
@@ -349,7 +349,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "5062cbb6d8035b0098f9197b663b8fdc2c177519",
+        "commit": "d94b4ec952ce217117d1c2af33dd0dc83d72e407",
         "pruned": false
       }
     },
@@ -376,7 +376,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "5e0ae1947f3737e24941f5928c9e8a1e39fbdd01",
+        "commit": "b454e4e91fcd27a7dfe5c2299e599c7b16529593",
         "pruned": false
       }
     },
@@ -405,7 +405,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "db77f0c4d53100b6d62ba56261b53d68be402832",
+        "commit": "4b8294858074355558fceb2c756879ba04ba6bd3",
         "pruned": false
       }
     },
@@ -434,7 +434,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "cabb369acacb44247d4f0e9ac2fd8f6544c732ed",
+        "commit": "ad0c04a349d20cba1df79b72a5dd4c4a07b33136",
         "pruned": false
       }
     },
@@ -461,7 +461,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "2b1eb72f3e55896737bd82e49bb4a55fd77dddab",
+        "commit": "4c5948692a3d8160d5766f0d9be3f6cbd322d46b",
         "pruned": false
       }
     },
@@ -488,34 +488,7 @@
       },
       "notes": "",
       "closed": {
-        "commit": "edc8504818246d61d927a50569d7e587fbe2f5c5",
-        "pruned": false
-      }
-    },
-    {
-      "id": "go_public",
-      "title": "Go public",
-      "summary": "Scrub work references from files and history so the repo can be published",
-      "status": "done",
-      "taskPrefix": "GP",
-      "path": "workstreams/go_public",
-      "tier": "standard",
-      "created": "2026-11-16",
-      "startedAt": "2026-11-16",
-      "completedAt": "2026-11-16",
-      "baseCommit": "709b885",
-      "dependsOn": [],
-      "progress": {
-        "total": 7,
-        "todo": 0,
-        "in-progress": 0,
-        "blocked": 0,
-        "done": 7,
-        "deferred": 0
-      },
-      "notes": "",
-      "closed": {
-        "commit": "05b1860f032278142cabdb9ce76b0cad808b7ebc",
+        "commit": "8069d47de6e680726671ee9df54daa98557214fb",
         "pruned": false
       }
     }

@@ -2,46 +2,46 @@
 
 Append-only log, newest entry on top: the date, the task, what changed, and a link to its evidence file.
 
-Created 2026-11-10 from `main` at `bf36f9b`.
+Created 2026-11-10 from `main` at `5988f3a`.
 
 ---
 
 ## 2026-11-11: JX-10: Prove it in both IDEs by hand
 
-Merged as `9a37df9a92`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-10.md).
+Merged as `cadbe113d2`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-10.md).
 
 ## 2026-11-11: JX-09: Copilot Chat and Air launch targets
 
-Merged as `dc23088203`. Verified: test pass, make test-jetbrains pass, make verify-jetbrains pass. [Evidence](evidence/JX-09.md).
+Merged as `bc7609dea5`. Verified: test pass, make test-jetbrains pass, make verify-jetbrains pass. [Evidence](evidence/JX-09.md).
 
 ## 2026-11-11: JX-08: Launch dialog with pre-flight, presets and targets
 
-Merged as `45521654b3`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-08.md).
+Merged as `9f69fec404`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-08.md).
 
 ## 2026-11-11: JX-07: Toolbar groups, Tools menu, empty states, status bar
 
-Merged as `3860811bb6`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-07.md).
+Merged as `c893262bb2`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-07.md).
 
 ## 2026-11-11: JX-06: Graph and Overview tabs
 
-Merged as `2fa3c527c3`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-06.md).
+Merged as `c249a0c669`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-06.md).
 
 ## 2026-11-11: JX-05: Master-detail Workstreams tab: list, Tasks table, task pane
 
-Merged as `b4194c5985`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-05.md).
+Merged as `547922f52a`. Verified: test pass, make test-jetbrains pass. [Evidence](evidence/JX-05.md).
 
 ## 2026-11-11: JX-04: ws launch argv and agent presets, plus the run-task prompt
 
-Merged as `a04eb10d31`. Verified: test pass. [Evidence](evidence/JX-04.md).
+Merged as `31d788d94e`. Verified: test pass. [Evidence](evidence/JX-04.md).
 
 ## 2026-11-11: JX-03: ws launch check: pre-flight checks
 
-Merged as `5d6ad3dcfe`. Verified: test pass. [Evidence](evidence/JX-03.md).
+Merged as `b8920c882c`. Verified: test pass. [Evidence](evidence/JX-03.md).
 
 ## 2026-11-11: JX-01: Record the comparison and the rules it changes
 
-Merged as `d35bf0e318`. Verified: test pass. [Evidence](evidence/JX-01.md).
+Merged as `6170bac1a7`. Verified: test pass. [Evidence](evidence/JX-01.md).
 
 ## 2026-11-11: JX-02: Snapshot facts: unblocks, waitingOn, scope, baseline
 
-Merged as `e73906035e`. Verified: test pass. [Evidence](evidence/JX-02.md).
+Merged as `3bf960aa0d`. Verified: test pass. [Evidence](evidence/JX-02.md).

@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 7/7 done on `main` at `ebe5318`, as of 2026-11-12.
+**State:** 7/7 done on `main` at `3f6e2fb`, as of 2026-11-12.
 
-**Just landed:** VX-07 (`ebe5318839`)
+**Just landed:** VX-07 (`3f6e2fbae8`)
 
 **Open decisions:**
 - D020: the launch menu still uses the D022 status rule (no task waiting)

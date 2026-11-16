@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 5/5 done on `main` at `4e15af4`, as of 2026-11-09.
+**State:** 5/5 done on `main` at `eec1de6`, as of 2026-11-09.
 
-**Just landed:** CF-05 (`4e15af4ffa`)
+**Just landed:** CF-05 (`eec1de6b64`)
 
 **Text to apply:**
 - CF-04: .claude/agents/ws-worker.md (evidence/CF-04.md)

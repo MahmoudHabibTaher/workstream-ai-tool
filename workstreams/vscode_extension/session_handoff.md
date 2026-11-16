@@ -1,8 +1,8 @@
 # Session handoff
 
-**State:** 8/8 done on `main` at `d24def5`, as of 2026-11-06.
+**State:** 8/8 done on `main` at `835853b`, as of 2026-11-06.
 
-**Just landed:** VS-08 (`d24def5b16`)
+**Just landed:** VS-08 (`835853babd`)
 
 **Open decisions:**
 - D009: `--show` is left out of cli.ts until VS-06 (no task waiting)
