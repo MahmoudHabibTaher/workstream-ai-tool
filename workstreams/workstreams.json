@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-15",
+  "updated": "2026-11-16",
   "workstreams": [
     {
       "id": "project_adaptation",
@@ -491,6 +491,29 @@
         "commit": "edc8504818246d61d927a50569d7e587fbe2f5c5",
         "pruned": false
       }
+    },
+    {
+      "id": "go_public",
+      "title": "Go public",
+      "summary": "Scrub work references from files and history so the repo can be published",
+      "status": "planned",
+      "taskPrefix": "GP",
+      "path": "workstreams/go_public",
+      "tier": "standard",
+      "created": "2026-11-16",
+      "startedAt": null,
+      "completedAt": null,
+      "baseCommit": "709b885",
+      "dependsOn": [],
+      "progress": {
+        "total": 7,
+        "todo": 7,
+        "in-progress": 0,
+        "blocked": 0,
+        "done": 0,
+        "deferred": 0
+      },
+      "notes": ""
     }
   ]
 }
