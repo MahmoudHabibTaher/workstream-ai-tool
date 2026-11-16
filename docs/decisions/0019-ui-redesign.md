@@ -1,12 +1,12 @@
-# 0019: The IDE UIs take their shape from the other workstream plugin
+# 0019: The IDE UIs take their shape from another workstream plugin
 
 Decided with the owner on 2026-11-10 (workstream `jetbrains_ux`, D001), before the redesign started. It changes how the JetBrains plugin ([0018](0018-jetbrains-plugin.md)) and, after it, the VS Code extension ([0017](0017-vscode-extension.md)) lay out their views and start agents. Native UI ([0016](0016-native-ide-ui.md)) and "the plugin decides nothing" stay.
 
-**Why.** The owner compared our tool window with another workstream plugin, and found its UI better to work in. They asked for ours to favour it.
+**Why.** The owner compared our tool window with another workstream plugin and found its UI better to work in. They asked for ours to favour it.
 
 ## The boundary: ideas only
 
-the other workstream plugin is a work project. We take ideas from using it, never its code, its strings or its docs. Every adopted idea below is described in our own words and built from our own CLI. Nothing in this repo is copied from it, no file of its repo is read while building, and none of its commands are ported: it drives its registry through its own scripts, and our plugin still gets every fact from the `ws` CLI and makes every write through `ws act`.
+The other workstream plugin is a work project. We take ideas from using it, never its code, its strings or its docs. Every adopted idea below is described in our own words and built from our own CLI. Nothing in this repo is copied from it, no file of its repo is read while building, and none of its commands are ported: it drives its registry through its own scripts, and our plugin still gets every fact from the `ws` CLI and makes every write through `ws act`.
 
 ## What it does better
 
